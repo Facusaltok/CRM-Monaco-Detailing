@@ -7,7 +7,8 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <meta name="theme-color" content="#0a8d4b" />
 <style>
-  :root{ --bg:#0a0a0a; --panel:#101317; --border:#1f2937; --text:#e8eef2; --mut:#9fb0bf; --accent:#0a8d4b; --accent2:#19c37d }
+  html, body { overscroll-behavior: none; } /* FIX #3 */
+  :root{ --bg:#0a0a0a; --panel:#101317; --border:#1f2937; --text:#e5e7eb; --mut:#9fb0bf; --accent:#0a8d4b; --accent2:#19c37d }
   :root[data-theme="light"]{ --bg:#f6f8fb; --panel:#ffffff; --border:#d9e1ea; --text:#0b1220; --mut:#465366 }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial}
@@ -173,7 +174,7 @@
 
 </div>
 
-<!-- MODALES -->
+<!-- MODALES (Cliente / Cita / Lead / Campaña) -->
 <div class="modalBack" id="modalClient">
   <div class="modal">
     <h3 id="cliTitle">Cliente</h3>
@@ -250,15 +251,14 @@
     </div>
   </div>
 </div>
+
 <script>
-// Evitar saltos por el hash de Supabase (#access_token, #refresh_token, type=recovery, etc.)
-// Limpia el hash SIN recargar ni cambiar de página.
-if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
-  history.replaceState(null, document.title, location.pathname + location.search);
-}
+  // FIX #1: limpia el hash de Supabase (#access_token, #refresh_token, type=...)
+  if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
+    history.replaceState(null, document.title, location.pathname + location.search);
+  }
 </script>
 
-  
 <script type="module">
   import { supabase } from "./supabaseClient.js";
   import "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
@@ -283,43 +283,79 @@ if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
     }
   });
 
-  // ===== Util
+  // ===== Utils
+  const q = (s)=>document.querySelector(s);
   const fmtARS = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n||0);
   const show = (el,flag)=> el.style.display = flag?'flex':'none';
-  const q = sel => document.querySelector(sel);
 
-  // ===== Drag & drop grid
-  const enableDnD = (gridEl, key) => {
+  // ===== Drag & Drop robusto (FIX #2)
+  function enableDnD(gridEl, key) {
     let dragEl = null;
-    const persist=()=> localStorage.setItem('layout_'+key, JSON.stringify([...gridEl.children].map(c=>c.dataset.id)));
-    gridEl.querySelectorAll('.card').forEach(card=>{
-      const h = card.querySelector('.drag-handle') || card.firstElementChild;
-      if(!h) return; h.draggable=true;
-      h.addEventListener('dragstart', e=>{ dragEl=card; card.style.opacity=.5; });
-      h.addEventListener('dragend',   e=>{ card.style.opacity=''; dragEl=null; persist(); });
-    });
-    gridEl.addEventListener('dragover', e=>{ e.preventDefault(); const after=[...gridEl.children].find(c=> e.clientY <= c.getBoundingClientRect().top + c.offsetHeight/2 ); gridEl.insertBefore(dragEl, after||null); });
-    const saved = localStorage.getItem('layout_'+key);
-    if(saved){ const ids=JSON.parse(saved); const map={}; [...gridEl.children].forEach(c=>map[c.dataset.id]=c); ids.forEach(id=> map[id] && gridEl.appendChild(map[id])); }
-  };
-  enableDnD(q('#dashGrid'),'dash'); enableDnD(q('#mktGrid'),'mkt');
 
-  // ===== Charts (se alimentan luego con datos reales si querés)
-  const chartLeads = new Chart(q('#chartLeads'), { type:'doughnut', data:{ labels:['Instagram','Facebook','Web','WhatsApp','Referido'], datasets:[{ data:[40,25,20,10,5] }]}, options:{responsive:true, maintainAspectRatio:false}});
-  const chartServices = new Chart(q('#chartServices'), { type:'bar', data:{ labels:['Interior','Cerámico','Motor','Paquete'], datasets:[{ data:[72,48,34,28], backgroundColor:'#0a8d4b'}]}, options:{responsive:true, maintainAspectRatio:false}});
+    // Restaurar layout
+    const saved = localStorage.getItem('layout_' + key);
+    if (saved) {
+      const ids = JSON.parse(saved);
+      const map = {};
+      Array.from(gridEl.children).forEach(c => map[c.dataset.id] = c);
+      ids.forEach(id => map[id] && gridEl.appendChild(map[id]));
+    }
+
+    // Habilitar drag por tarjeta
+    Array.from(gridEl.children).forEach(card => {
+      const handle = card.querySelector('.drag-handle') || card.firstElementChild;
+      if (!handle) return;
+      handle.draggable = true;
+
+      handle.addEventListener('dragstart', (e) => {
+        dragEl = card;
+        e.dataTransfer.effectAllowed = 'move';
+        card.style.opacity = 0.5;
+      });
+
+      handle.addEventListener('dragend', () => {
+        if (dragEl) dragEl.style.opacity = '';
+        dragEl = null;
+        const order = Array.from(gridEl.children).map(c => c.dataset.id);
+        localStorage.setItem('layout_' + key, JSON.stringify(order));
+      });
+    });
+
+    // Reordenar únicamente si hay drag activo
+    gridEl.addEventListener('dragover', (e) => {
+      if (!dragEl) return;  // evita reflows sin drag
+      e.preventDefault();
+      const children = Array.from(gridEl.children);
+      const after = children.find(c => e.clientY <= c.getBoundingClientRect().top + c.offsetHeight / 2);
+      if (after === dragEl) return; // evita inserciones redundantes
+      gridEl.insertBefore(dragEl, after || null);
+    });
+  }
+
+  // ===== Habilitar DnD en grids
+  enableDnD(q('#dashGrid'),'dash');
+  enableDnD(q('#mktGrid'),'mkt');
+
+  // ===== KPIs demo (puedes conectar a Supabase luego)
+  document.getElementById('kpiRevenue').textContent = fmtARS(1200000);
+  document.getElementById('kpiAppts').textContent = 5;
+  document.getElementById('kpiClients').textContent = 3;
+  document.getElementById('kpiRetention').textContent = '85%';
+
+  // ===== Charts demo
+  new Chart(q('#chartLeads'), { type:'doughnut', data:{ labels:['Instagram','Facebook','Web','WhatsApp','Referido'], datasets:[{ data:[40,25,20,10,5] }]}, options:{responsive:true, maintainAspectRatio:false}});
+  new Chart(q('#chartServices'), { type:'bar', data:{ labels:['Interior','Cerámico','Motor','Paquete'], datasets:[{ data:[72,48,34,28], backgroundColor:'#0a8d4b'}]}, options:{responsive:true, maintainAspectRatio:false}});
 
   // ======= CLIENTES (CRUD)
   const clientsTbody = q('#clientsTbody');
   let clients = []; let editingClientId = null;
   async function loadClients(filter=''){
-    const sel = filter? `or(name.ilike.%${filter}%,email.ilike.%${filter}%,phone.ilike.%${filter}%)` : '*';
-    const { data, error } = await supabase.from('clients').select('*').order('created_at',{ascending:false});
-    clients = data||[];
-    renderClients(filter);
+    const { data } = await supabase.from('clients').select('*').order('created_at',{ascending:false});
+    clients = data||[]; renderClients(filter);
   }
   function renderClients(filter=''){
-    const f = filter.toLowerCase();
-    const rows = clients.filter(c => !f || (c.name||'').toLowerCase().includes(f) || (c.email||'').toLowerCase().includes(f) || (c.phone||'').toLowerCase().includes(f))
+    const f = (filter||'').toLowerCase();
+    clientsTbody.innerHTML = (clients.filter(c => !f || (c.name||'').toLowerCase().includes(f) || (c.email||'').toLowerCase().includes(f) || (c.phone||'').toLowerCase().includes(f))
       .map(c=>{
         const v = c.vehicle||{};
         return `<tr>
@@ -332,7 +368,6 @@ if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
             <button class="btn" data-del="${c.id}">Borrar</button>
           </td>
         </tr>`; }).join('') || `<tr><td colspan="5" class="mut">Sin clientes</td></tr>`;
-    clientsTbody.innerHTML = rows;
   }
   q('#cliSearch').addEventListener('input', e=> renderClients(e.target.value));
   q('#btnNewClient').onclick=()=> openClientModal({});
@@ -372,7 +407,6 @@ if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
   };
 
   // ======= AGENDA (CRUD + lectura GCal)
-  // grid temporal
   const hoursCol = q('#hours'); for(let i=0;i<24;i++){ const d=document.createElement('div'); d.className='mut'; d.textContent=(i<10?'0':'')+i+':00'; hoursCol.appendChild(d); }
   const dayCols = [...document.querySelectorAll('.daycol')];
   function startOfWeek(d){ const x=new Date(d); const day=(x.getDay()||7); x.setDate(x.getDate()-day+1); x.setHours(0,0,0,0); return x; }
@@ -436,9 +470,7 @@ if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
   function openApptModal(meta={}){
     editingApptId = meta.supaId || null;
     q('#apptTitle').textContent = editingApptId?'Editar cita':'Nueva cita';
-    loadClientOptions().then(()=>{
-      if(meta.client_id) apptFields.client.value = meta.client_id;
-    });
+    loadClientOptions().then(()=>{ if(meta.client_id) apptFields.client.value = meta.client_id; });
     apptFields.service.value = meta.service || 'Interior';
     apptFields.date.value    = meta.date    || new Date().toISOString().slice(0,10);
     apptFields.start.value   = meta.start   || '10:00';
@@ -455,16 +487,6 @@ if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
     if(editingApptId) res = await supabase.from('appointments').update(row).eq('id', editingApptId).select().single();
     else res = await supabase.from('appointments').insert(row).select().single();
     if(res.error){ alert('Error: '+res.error.message); return; }
-
-    // crear también en Google si está habilitado
-    const createG = JSON.parse(localStorage.getItem('setCreateGCal')||'false');
-    const calId = localStorage.getItem('setCalendarId') || gcalInput.value;
-    if(createG && calId){
-      const startISO = `${apptFields.date.value}T${apptFields.start.value}`;
-      const endISO   = `${apptFields.date.value}T${apptFields.end.value}`;
-      await fetch('/api/calendar-create',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ calendarId: calId, summary: `${row.service}`, description: apptFields.notes.value, startISO, endISO }) }).catch(()=>{});
-    }
-
     show(mAppt,false); renderWeek(); paintAppointments();
   };
 
@@ -490,17 +512,18 @@ if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
     const row = { client_name:q('#leadClient').value.trim(), source:q('#leadSource').value, status:q('#leadStatus').value, notes:q('#leadNotes').value };
     await supabase.from('leads').insert(row); show(q('#modalLead'),false); loadLeads(); refreshLeadCharts();
   };
-  leadsTbody.addEventListener('change', async (e)=>{ const id=e.target.dataset.upd; if(!id) return; await supabase.from('leads').update({status:e.target.value}).eq('id',id); refreshLeadCharts(); });
+  leadsTbody.addEventListener('change', async (e)=>{ const id=e.target.dataset.upd; if(!id) return; await supabase.from('leads').update({status:e.target.value}).eq('id',id); const L = leads.find(x=>x.id===id); if(L) L.status=e.target.value; refreshLeadCharts(); });
   leadsTbody.addEventListener('click', async (e)=>{ const id=e.target.dataset.del; if(!id) return; if(confirm('¿Borrar lead?')){ await supabase.from('leads').delete().eq('id',id); loadLeads(); refreshLeadCharts(); }});
 
   function refreshLeadCharts(){
     const agg = leads.reduce((m,l)=> (m[l.source]= (m[l.source]||0)+1, m), {});
-    chartLeads.data.labels = Object.keys(agg); chartLeads.data.datasets[0].data = Object.values(agg); chartLeads.update();
+    const ch = Chart.getChart('chartLeads'); if(!ch) return;
+    ch.data.labels = Object.keys(agg); ch.data.datasets[0].data = Object.values(agg); ch.update();
   }
 
   // ======= CAMPAÑAS (CRUD)
   const campTbody = q('#campTbody'); let campaigns=[];
-  async function loadCampaigns(){ const { data } = await supabase.from('campaigns').select('*').order('created_at',{ascending:false}); campaigns=data||[]; renderCampaigns(); refreshCampChart(); }
+  async function loadCampaigns(){ const { data } = await supabase.from('campaigns').select('*').order('created_at',{ascending:false}); campaigns=data||[]; renderCampaigns(); }
   function renderCampaigns(){
     campTbody.innerHTML = campaigns.map(c=>`<tr>
       <td>${c.name||''}</td>
@@ -517,7 +540,7 @@ if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
   campTbody.addEventListener('click', async (e)=>{
     const id = e.target.dataset.ed || e.target.dataset.del; if(!id) return;
     if(e.target.dataset.ed){ const c=campaigns.find(x=>x.id===id); openCampModal(c); }
-    if(e.target.dataset.del){ if(confirm('¿Borrar campaña?')){ await supabase.from('campaigns').delete().eq('id',id); loadCampaigns(); refreshCampChart(); } }
+    if(e.target.dataset.del){ if(confirm('¿Borrar campaña?')){ await supabase.from('campaigns').delete().eq('id',id); loadCampaigns(); } }
   });
 
   const mCamp=q('#modalCamp'); let editingCampId=null;
@@ -530,12 +553,7 @@ if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
     const row = { name:q('#campName').value.trim(), channel:q('#campChannel').value.trim(), budget: +q('#campBudget').value||0, conversions: +q('#campConv').value||0 };
     if(editingCampId) await supabase.from('campaigns').update(row).eq('id',editingCampId);
     else await supabase.from('campaigns').insert(row);
-    show(mCamp,false); loadCampaigns(); refreshCampChart();
-  }
-  function refreshCampChart(){
-    const agg = campaigns.reduce((m,c)=> (m[c.name]=c.conversions||0, m), {});
-    const el = document.getElementById('chartServices'); // reutilizo bar
-    // (si querés gráfico separado, crea otro canvas)
+    show(mCamp,false); loadCampaigns();
   }
 
   // ======= Ajustes
@@ -548,7 +566,7 @@ if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
   q('#btnSaveSettings').onclick=()=>{ localStorage.setItem('setCalendarId', setCalendarId.value.trim()); localStorage.setItem('setCreateGCal', JSON.stringify(setCreateGCal.checked)); alert('Ajustes guardados'); };
 
   // ======= Inicializa data
-  loadClients(); loadLeads().then(refreshLeadCharts); loadCampaigns(); paintAppointments();
+  loadClients(); loadLeads(); loadCampaigns(); paintAppointments();
 
   // Embudo simple
   (function funnel(){
@@ -557,7 +575,7 @@ if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
     rows.forEach(([bw,bh,label],i)=>{ const x=(w-bw)/2;
       const p=document.createElementNS('http://www.w3.org/2000/svg','rect'); p.setAttribute('x',x); p.setAttribute('y',y); p.setAttribute('rx','10'); p.setAttribute('width',bw); p.setAttribute('height',bh);
       p.setAttribute('fill', i? (i===1?'#1f2937':'#495') : '#0a8d4b'); f.appendChild(p);
-      const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('x',w/2); t.setAttribute('y',y+bh/2+5); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#e8eef2'); t.textContent=label; f.appendChild(t);
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('x',w/2); t.setAttribute('y',y+bh/2+5); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#e5e7eb'); t.textContent=label; f.appendChild(t);
       y+=bh+12;
     });
   })();
