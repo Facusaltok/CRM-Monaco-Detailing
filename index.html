@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monaco Detailing CRM</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <meta name="theme-color" content="#0a8d4b" />
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #0a0a0a;
+      color: #e5e7eb;
+    }
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem; background: #111; border-bottom: 1px solid #1f2937;
+    }
+    header h1 { color: #0a8d4b; font-size: 1.3rem; margin: 0; }
+    header .controls { display:flex; gap:.5rem; align-items:center; }
+    header button, .tabbtn { background: #0a8d4b; color: white; border: none; padding: .5rem .9rem; border-radius: 6px; cursor: pointer; }
+    header select { background:#111; color:#e5e7eb; border:1px solid #1f2937; border-radius:6px; padding:.35rem .5rem; }
+    nav { display: flex; background: #1f2937; }
+    nav button { flex: 1; background: none; border: none; padding: 1rem; color: #e5e7eb; cursor: pointer; font-size: 1rem; }
+    nav button.active { background: #0a8d4b; color: #fff; }
+    .tab { display: none; padding: 1rem; }
+    .tab.active { display: block; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+    .card { background: #111; border: 1px solid #1f2937; border-radius: 10px; padding: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.4); }
+    .card h2 { font-size: 1.05rem; color: #0a8d4b; margin: 0 0 .6rem; }
+    canvas, svg { width: 100%; height: 250px; display: block; }
+    table { width: 100%; border-collapse: collapse; margin-top: .5rem; }
+    th, td { border: 1px solid #333; padding: .5rem; text-align: center; }
+    th { background: #1f2937; }
+
+    /* THEME & DENSITY */
+    :root[data-theme="light"] { --bg:#f7f9fb; --panel:#ffffff; --hard:#f2f5f8; --text:#0b1220; --mut:#445266; --border:#d6dee7; }
+    body[data-density="compact"] header { padding:.6rem .8rem; }
+    body[data-density="compact"] nav button, body[data-density="compact"] .tab { padding:.6rem .8rem; }
+    body[data-density="compact"] .grid { gap:.75rem; }
+    body[data-density="compact"] .card { padding:.75rem; }
+
+    /* AUTH overlay */
+    .auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:9999}
+    .auth-card{width:100%;max-width:380px;background:#111;border:1px solid #1f2937;border-radius:12px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+    .auth-card h2{margin:0 0 8px;font-size:1.2rem;color:#0a8d4b}
+    .auth-card p{margin:.25rem 0 1rem;color:#cbd5e1;font-size:.95rem}
+    .auth-card label{display:block;font-size:.9rem;margin:.25rem 0 .25rem;opacity:.9}
+    .auth-card input{width:100%;padding:.6rem .7rem;border-radius:8px;border:1px solid #2b3340;background:#0f141a;color:#e5e7eb}
+    .auth-actions{display:flex;flex-direction:column;gap:.5rem;margin-top:1rem}
+    .btn-auth{border:none;border-radius:8px;padding:.6rem .8rem;cursor:pointer}
+    .btn-green{background:#0a8d4b;color:#fff}
+    .btn-dark{background:#1f2937;color:#e5e7eb}
+    .auth-foot{margin-top:.6rem;font-size:.85rem;color:#99a7b5}
+  </style>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js"));
+    }
+  </script>
+</head>
+<body>
+  <!-- AUTH OVERLAY -->
+  <div id="auth" class="auth-overlay" hidden>
+    <div class="auth-card">
+      <h2>Accedé a Monaco CRM</h2>
+      <p>Ingresá con tu correo y contraseña o pedí un magic link.</p>
+      <label for="authEmail">Email</label>
+      <input id="authEmail" type="email" placeholder="tu@correo.com" />
+      <label for="authPass">Contraseña</label>
+      <input id="authPass" type="password" placeholder="••••••••" />
+      <div class="auth-actions">
+        <button id="btnSignIn" class="btn-auth btn-green">Ingresar</button>
+        <button id="btnMagic" class="btn-auth btn-dark">Enviar Magic Link</button>
+      </div>
+      <div class="auth-foot">¿Sin cuenta? El admin puede crearte una en Supabase Auth.</div>
+      <div id="authMsg" class="auth-foot" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- APP WRAPPER -->
+  <div id="app">
+    <header>
+      <h1>Monaco Detailing CRM</h1>
+      <div class="controls">
+        <label style="font-size:.9rem; opacity:.85;">Densidad</label>
+        <select id="densitySel">
+          <option value="comfortable">Cómoda</option>
+          <option value="compact">Compacta</option>
+        </select>
+        <button id="toggleTheme" class="tabbtn" title="Cambiar tema">☾/☀</button>
+        <button id="btnExport" class="tabbtn" title="Exportar JSON">Exportar</button>
+        <button id="btnSignOut" class="btn-auth btn-dark" style="display:none">Salir</button>
+      </div>
+    </header>
+
+    <nav>
+      <button class="active" onclick="openTab('dashboard')">Dashboard</button>
+      <button onclick="openTab('agenda')">Agenda</button>
+      <button onclick="openTab('marketing')">Marketing</button>
+    </nav>
+
+    <!-- Nota de integraciones -->
+    <section class="card" style="margin:1rem;">
+      <details>
+        <summary style="cursor:pointer; font-weight:600; color:#0a8d4b">Integraciones (Google Calendar / Supabase)</summary>
+        <div style="margin-top:.75rem; font-size:.95rem; line-height:1.5; color:#cbd5e1">
+          <p>Completá <code>SUPA_URL</code> y <code>SUPA_ANON</code> (abajo) y, si querés, levantá un proxy para Calendar.</p>
+        </div>
+      </details>
+    </section>
+
+    <section id="dashboard" class="tab active">
+      <div class="grid">
+        <div class="card">
+          <h2>Ingresos Mensuales</h2>
+          <canvas id="chartIngresos"></canvas>
+        </div>
+        <div class="card">
+          <h2>Servicios Más Vendidos</h2>
+          <canvas id="chartServicios"></canvas>
+        </div>
+        <div class="card">
+          <h2>Embudo de Conversión</h2>
+          <svg id="funnel"></svg>
+        </div>
+      </div>
+    </section>
+
+    <section id="agenda" class="tab">
+      <div class="card">
+        <h2>Turnos de la Semana</h2>
+        <table>
+          <thead><tr><th>Día</th><th>Cliente</th><th>Servicio</th><th>Hora</th></tr></thead>
+          <tbody id="agendaBody">
+            <tr><td>Lunes</td><td>Ana G.</td><td>Interior SUV</td><td>10:00</td></tr>
+            <tr><td>Martes</td><td>Carlos M.</td><td>Tratamiento Cerámico</td><td>09:30</td></tr>
+            <tr><td>Miércoles</td><td>Lucía R.</td><td>Motor a Vapor</td><td>14:00</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="marketing" class="tab">
+      <div class="grid">
+        <div class="card">
+          <h2>Fuentes de Leads</h2>
+          <canvas id="chartLeads"></canvas>
+        </div>
+        <div class="card">
+          <h2>Mapa de Calor (Visitas Web)</h2>
+          <canvas id="chartHeatmap"></canvas>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Libs -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    // === Preferencias de UI (tema y densidad) ===
+    (function initPrefs(){
+      const root = document.documentElement; const body = document.body;
+      const savedTheme = localStorage.getItem('md_theme') || 'dark';
+      const savedDensity = localStorage.getItem('md_density') || 'comfortable';
+      root.setAttribute('data-theme', savedTheme);
+      body.setAttribute('data-density', savedDensity);
+      densitySel.value = savedDensity;
+      document.getElementById('toggleTheme').addEventListener('click', ()=>{
+        const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', next); localStorage.setItem('md_theme', next);
+        document.body.style.background = next==='light' ? '#f7f9fb' : '#0a0a0a';
+      });
+      densitySel.addEventListener('change', (e)=>{ body.setAttribute('data-density', e.target.value); localStorage.setItem('md_density', e.target.value); });
+    })();
+
+    // === SUPABASE AUTH (Email/Password + Magic Link) ===
+    const SUPA_URL  = "https://TU-PROYECTO.supabase.co"; // <-- REEMPLAZAR
+    const SUPA_ANON = "TU_ANON_KEY";                      // <-- REEMPLAZAR
+    const supa = window.supabase.createClient(SUPA_URL, SUPA_ANON);
+
+    async function initAuth(){
+      const { data: { session } } = await supa.auth.getSession();
+      setAuthUI(!!session);
+      supa.auth.onAuthStateChange((_e, sess)=> setAuthUI(!!sess));
+    }
+    function setAuthUI(isIn){
+      const auth = document.getElementById('auth');
+      const app  = document.getElementById('app');
+      const out  = document.getElementById('btnSignOut');
+      if(isIn){ auth.hidden = true; app.style.filter='none'; out.style.display='inline-flex'; }
+      else     { auth.hidden = false; app.style.filter='blur(2px)'; out.style.display='none'; }
+    }
+    document.addEventListener('click', async (e)=>{
+      if(e.target.id==='btnSignIn'){
+        const email = document.getElementById('authEmail').value.trim();
+        const pass  = document.getElementById('authPass').value;
+        const msg   = document.getElementById('authMsg'); msg.style.display='block'; msg.textContent='Ingresando...';
+        const { error } = await supa.auth.signInWithPassword({ email, password: pass });
+        msg.textContent = error ? ('Error: '+error.message) : '¡Perfecto!';
+      }
+      if(e.target.id==='btnMagic'){
+        const email = document.getElementById('authEmail').value.trim();
+        const msg   = document.getElementById('authMsg'); msg.style.display='block'; msg.textContent='Enviando link...';
+        const { error } = await supa.auth.signInWithOtp({ email, options:{ emailRedirectTo: window.location.href } });
+        msg.textContent = error ? ('Error: '+error.message) : 'Revisá tu correo para continuar';
+      }
+      if(e.target.id==='btnSignOut'){ await supa.auth.signOut(); }
+      if(e.target.id==='btnExport'){ exportData(); }
+    });
+    initAuth();
+
+    // === Navegación Tabs ===
+    function openTab(tabId) {
+      document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelector(`nav button[onclick="openTab('${tabId}')"]`).classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+      setTimeout(()=> resizeCanvases(), 50);
+    }
+
+    // === Export demo JSON ===
+    function exportData() {
+      const data = {
+        ingresos: [100,200,150,300,400,350,500],
+        servicios: {Interior:30,Motor:15,Ceramico:20,Paquete:10},
+        leads: {Instagram:40,Facebook:25,Web:35},
+      };
+      const blob = new Blob([JSON.stringify(data,null,2)], {type: "application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "monaco_crm_demo.json"; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // === Charts demo ===
+    const ctxIngresos = document.getElementById('chartIngresos');
+    const chartIngresos = new Chart(ctxIngresos, {
+      type: 'bar',
+      data: {labels:['Ene','Feb','Mar','Abr','May','Jun','Jul'], datasets:[{label:'Ingresos', data:[100,200,150,300,400,350,500], backgroundColor:'#0a8d4b'}]},
+      options: {responsive:true, maintainAspectRatio:false}
+    });
+
+    const ctxServicios = document.getElementById('chartServicios');
+    const chartServicios = new Chart(ctxServicios, {
+      type: 'pie',
+      data: {labels:['Interior','Motor','Cerámico','Paquete'], datasets:[{data:[30,15,20,10], backgroundColor:['#0a8d4b','#1f2937','#444','#888']}]},
+      options:{responsive:true, maintainAspectRatio:false}
+    });
+
+    const ctxLeads = document.getElementById('chartLeads');
+    const chartLeads = new Chart(ctxLeads, {
+      type: 'doughnut',
+      data: {labels:['Instagram','Facebook','Web'], datasets:[{data:[40,25,35], backgroundColor:['#0a8d4b','#1f2937','#444']}]},
+      options:{responsive:true, maintainAspectRatio:false}
+    });
+
+    function resizeCanvases(){ chartIngresos.resize(); chartServicios.resize(); chartLeads.resize(); }
+
+    // === Heatmap Canvas (7x10) ===
+    (function renderHeatmap(){
+      const c = document.getElementById('chartHeatmap'); if(!c) return; const ctx = c.getContext('2d');
+      const w = c.width = c.clientWidth; const h = c.height = c.clientHeight;
+      const cols = 7, rows = 10; const cw = w/cols, rh = h/rows;
+      const val = Array.from({length:rows},()=>Array.from({length:cols},()=>Math.random()));
+      for (let r=0;r<rows;r++){
+        for (let col=0; col<cols; col++){
+          const t = val[r][col];
+          const g = ctx.createLinearGradient(0, r*rh, 0, r*rh+rh);
+          const base = 0.15 + t*0.65;
+          g.addColorStop(0, `rgba(10,141,75,${base})`);
+          g.addColorStop(1, `rgba(10,141,75,${Math.max(0,base-0.1)})`);
+          ctx.fillStyle = g; ctx.fillRect(col*cw+2, r*rh+2, cw-4, rh-4);
+        }
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,.08)';
+      for (let x=0;x<=cols;x++){ ctx.beginPath(); ctx.moveTo(x*cw,0); ctx.lineTo(x*cw,h); ctx.stroke(); }
+      for (let y=0;y<=rows;y++){ ctx.beginPath(); ctx.moveTo(0,y*rh); ctx.lineTo(w,y*rh); ctx.stroke(); }
+    })();
+
+    // === Funnel SVG simple ===
+    (function renderFunnel(){
+      const funnel = document.getElementById('funnel');
+      funnel.innerHTML = `
+        <polygon points="0,0 300,0 250,80 50,80" fill="#0a8d4b"/>
+        <polygon points="50,80 250,80 220,150 80,150" fill="#1f2937"/>
+        <polygon points="80,150 220,150 200,210 100,210" fill="#444"/>
+      `;
+    })();
+  </script>
+</body>
+</html>
