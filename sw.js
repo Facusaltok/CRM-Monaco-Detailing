@@ -1,9 +1,16 @@
-const CACHE = "monaco-crm-v1";
-const ASSETS = ["./index.html","./dashboard.html","./supabaseClient.js","./manifest.webmanifest"];
+const CACHE = "monaco-crm-v2";
+const ASSETS = [
+  "./",
+  "./index.html",
+  "./dashboard.html",
+  "./supabaseClient.js",
+  "./manifest.webmanifest"
+];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
 });
+
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -11,6 +18,9 @@ self.addEventListener("activate", (e) => {
     )
   );
 });
+
 self.addEventListener("fetch", (e) => {
-  e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request)));
+  e.respondWith(
+    caches.match(e.request).then((r) => r || fetch(e.request))
+  );
 });
