@@ -1,3 +1,12 @@
+create policy "auth read appts" on appointments
+for select to authenticated using (true);
+
+create policy "auth write appts" on appointments
+for insert with check (true);
+
+create policy "auth update appts" on appointments
+for update using (true) with check (true);
+
 create table clients (
   id uuid primary key default gen_random_uuid(),
   name text not null,
