@@ -1,27 +1,27 @@
-// /api/calendar.js
+// /api/calendar-create.js
+// Esqueleto: crea un evento en Google Calendar (requiere OAuth2 server-side)
 export default async function handler(req, res) {
   try {
-    const key = process.env.GOOGLE_API_KEY;
-    if (!key) return res.status(500).json({ error: "Missing GOOGLE_API_KEY" });
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    const { accessToken } = await getAccessTokenFromRefresh(); // IMPLEMENTAR
+    const { calendarId, summary, startISO, endISO, description='' } = req.body || {};
+    if (!calendarId || !summary || !startISO || !endISO) return res.status(400).json({ error: 'Missing fields' });
 
-    const { calendarId, timeMin, timeMax, maxResults = 50 } = req.query;
-    const cal = calendarId || process.env.GOOGLE_CALENDAR_ID;
-    if (!cal) return res.status(400).json({ error: "calendarId query or GOOGLE_CALENDAR_ID env required" });
-
-    const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal)}/events`);
-    url.searchParams.set("singleEvents", "true");
-    url.searchParams.set("orderBy", "startTime");
-    url.searchParams.set("maxResults", String(maxResults));
-    if (timeMin) url.searchParams.set("timeMin", timeMin);
-    if (timeMax) url.searchParams.set("timeMax", timeMax);
-    url.searchParams.set("key", key);
-
-    const r = await fetch(url);
+    const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        summary, description,
+        start: { dateTime: startISO },
+        end:   { dateTime: endISO }
+      })
+    });
     const j = await r.json();
-
-    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=600");
-    res.status(200).json(j);
+    res.status(r.ok ? 200 : r.status).json(j);
   } catch (e) {
-    res.status(500).json({ error: e.message || "calendar error" });
+    res.status(500).json({ error: e.message || 'calendar-create error' });
   }
 }
+
+// TODO: implementá intercambio RefreshToken -> AccessToken con CLIENT_ID/SECRET y REFRESH_TOKEN
+async function getAccessTokenFromRefresh(){ throw new Error('OAuth pendiente'); }
