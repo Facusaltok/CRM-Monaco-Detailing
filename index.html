@@ -42,27 +42,35 @@
   <script type="module">
     import { supabase } from "./supabaseClient.js";
 
-    // Si ya hay sesión, ir al dashboard
+    // --- Redirects (Vercel + Local) ---
+    const PROD_REDIRECT  = "https://crm-monaco-detailing.vercel.app/dashboard.html";
+    const LOCAL_REDIRECT = "http://localhost:8080/dashboard.html";
+    const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    const redirectTo = isLocal ? LOCAL_REDIRECT : PROD_REDIRECT;
+
+    // Si ya hay sesión -> dashboard
     const { data: { session } } = await supabase.auth.getSession();
     if (session) location.href = "./dashboard.html";
 
     const msg = document.getElementById("msg");
 
+    // Email + Password
     document.getElementById("btnSignIn").addEventListener("click", async () => {
       msg.textContent = "Ingresando…";
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("pass").value;
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); }
-      else { msg.textContent = "¡Listo! Redirigiendo…"; location.href = "./dashboard.html"; }
+      else { location.href = "./dashboard.html"; }
     });
 
+    // Magic Link
     document.getElementById("btnMagic").addEventListener("click", async () => {
       msg.textContent = "Enviando link…";
       const email = document.getElementById("email").value.trim();
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: window.location.origin + "/dashboard.html" }
+        options: { emailRedirectTo: redirectTo }
       });
       if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); }
       else { msg.textContent = "Revisá tu correo para continuar"; msg.classList.remove("error"); }
