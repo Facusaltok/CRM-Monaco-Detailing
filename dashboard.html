@@ -7,7 +7,8 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <meta name="theme-color" content="#0a8d4b" />
 <style>
-  html, body { overscroll-behavior: none; } /* FIX #3 */
+  html, body { overscroll-behavior: none; } /* FIX: anti-vaivén */
+
   :root{ --bg:#0a0a0a; --panel:#101317; --border:#1f2937; --text:#e5e7eb; --mut:#9fb0bf; --accent:#0a8d4b; --accent2:#19c37d }
   :root[data-theme="light"]{ --bg:#f6f8fb; --panel:#ffffff; --border:#d9e1ea; --text:#0b1220; --mut:#465366 }
   *{box-sizing:border-box}
@@ -35,6 +36,7 @@
   .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
   .mut{color:var(--mut)}
   canvas,svg{width:100%;height:260px;display:block}
+
   /* Agenda */
   .week{display:grid;grid-template-columns:80px repeat(7,1fr);gap:6px}
   .hours{display:grid;grid-template-rows:repeat(24,36px);gap:6px}
@@ -42,14 +44,26 @@
   .slot{border:1px dashed rgba(255,255,255,.06);border-radius:8px}
   :root[data-theme="light"] .slot{border-color:#e8edf4}
   .event{position:relative;margin:2px;border:1px solid rgba(25,195,125,.45);background:linear-gradient(90deg,var(--accent),var(--accent2));color:#07150f;font-weight:800;font-size:12px;border-radius:8px;padding:6px 8px;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}
-  /* Modal */
-  .modalBack{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:50}
+
+  /* Modales: parche para no bloquear la UI cuando están ocultos */
+  .modalBack{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.5);
+    display:none;
+    align-items:center; justify-content:center; z-index:50;
+    pointer-events:none;        /* <- no captura eventos si está oculta */
+  }
+  .modalBack.show{
+    display:flex;
+    pointer-events:auto;        /* <- solo captura cuando está visible */
+  }
   .modal{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px}
   .modal h3{margin:.2rem 0 .6rem;color:var(--accent)}
   .row{display:grid;grid-template-columns:1fr 1fr; gap:8px}
 </style>
 </head>
 <body>
+
 <header>
   <div class="brand"><div class="dot"></div><div>MONACO DETAILING — CRM</div></div>
   <div class="actions">
@@ -174,7 +188,7 @@
 
 </div>
 
-<!-- MODALES (Cliente / Cita / Lead / Campaña) -->
+<!-- MODALES -->
 <div class="modalBack" id="modalClient">
   <div class="modal">
     <h3 id="cliTitle">Cliente</h3>
@@ -252,8 +266,9 @@
   </div>
 </div>
 
+<!-- Limpieza de hash ANTES del módulo -->
 <script>
-  // FIX #1: limpia el hash de Supabase (#access_token, #refresh_token, type=...)
+  // FIX: limpiar hash de Supabase (#access_token, #refresh_token, type=...)
   if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
     history.replaceState(null, document.title, location.pathname + location.search);
   }
@@ -263,32 +278,42 @@
   import { supabase } from "./supabaseClient.js";
   import "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
 
+  // Forzar type="button" en todos los botones (evita submits accidentales)
+  document.querySelectorAll('button:not([type])').forEach(b => b.setAttribute('type','button'));
+
   // ===== Tema
   const root=document.documentElement;
   root.setAttribute('data-theme', localStorage.getItem('md_theme')||'dark');
   document.getElementById('btnTheme').onclick=()=>{ const n=root.getAttribute('data-theme')==='dark'?'light':'dark'; root.setAttribute('data-theme',n); localStorage.setItem('md_theme',n); };
 
   // ===== Auth guard
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session} } = await supabase.auth.getSession();
   if (!session) location.href = "./index.html";
   supabase.auth.onAuthStateChange((_e,s)=>{ if(!s) location.href="./index.html"; });
   document.getElementById("btnSignOut").onclick = async ()=> { await supabase.auth.signOut(); };
 
-  // ===== Tabs
-  document.querySelectorAll('.tabbtn').forEach(b=>{
-    b.onclick=()=>{
-      document.querySelectorAll('.tabbtn').forEach(x=>x.classList.remove('active'));
-      document.querySelectorAll('.tab').forEach(x=>x.style.display='none');
-      b.classList.add('active'); document.getElementById('tab-'+b.dataset.tab).style.display='block';
-    }
-  });
-
   // ===== Utils
   const q = (s)=>document.querySelector(s);
   const fmtARS = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n||0);
-  const show = (el,flag)=> el.style.display = flag?'flex':'none';
+  // Mostrar/ocultar modales con clase .show (no bloquean cuando están ocultos)
+  function show(el, flag){ if(!el) return; el.classList.toggle('show', !!flag); }
+  function closeAllModals(){ document.querySelectorAll('.modalBack.show').forEach(m => m.classList.remove('show')); }
 
-  // ===== Drag & Drop robusto (FIX #2)
+  // ===== Tabs robustas (cierran modales al cambiar)
+  document.querySelectorAll('.tabbtn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      closeAllModals();
+      const tab = btn.dataset.tab; // "dash", "clientes", ...
+      document.querySelectorAll('.tabbtn').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(x=>x.style.display='none');
+      btn.classList.add('active');
+      const target = document.getElementById('tab-'+tab);
+      if (target) target.style.display='block';
+    });
+  });
+
+  // ===== Drag & Drop robusto
   function enableDnD(gridEl, key) {
     let dragEl = null;
 
@@ -301,7 +326,7 @@
       ids.forEach(id => map[id] && gridEl.appendChild(map[id]));
     }
 
-    // Habilitar drag por tarjeta
+    // Drag por tarjeta
     Array.from(gridEl.children).forEach(card => {
       const handle = card.querySelector('.drag-handle') || card.firstElementChild;
       if (!handle) return;
@@ -321,22 +346,20 @@
       });
     });
 
-    // Reordenar únicamente si hay drag activo
+    // Reordenar SOLO si hay drag activo
     gridEl.addEventListener('dragover', (e) => {
-      if (!dragEl) return;  // evita reflows sin drag
+      if (!dragEl) return;                // evita reflows fantasma
       e.preventDefault();
       const children = Array.from(gridEl.children);
       const after = children.find(c => e.clientY <= c.getBoundingClientRect().top + c.offsetHeight / 2);
-      if (after === dragEl) return; // evita inserciones redundantes
+      if (after === dragEl) return;       // evita inserciones redundantes
       gridEl.insertBefore(dragEl, after || null);
     });
   }
-
-  // ===== Habilitar DnD en grids
   enableDnD(q('#dashGrid'),'dash');
   enableDnD(q('#mktGrid'),'mkt');
 
-  // ===== KPIs demo (puedes conectar a Supabase luego)
+  // ===== KPIs demo
   document.getElementById('kpiRevenue').textContent = fmtARS(1200000);
   document.getElementById('kpiAppts').textContent = 5;
   document.getElementById('kpiClients').textContent = 3;
@@ -575,7 +598,7 @@
     rows.forEach(([bw,bh,label],i)=>{ const x=(w-bw)/2;
       const p=document.createElementNS('http://www.w3.org/2000/svg','rect'); p.setAttribute('x',x); p.setAttribute('y',y); p.setAttribute('rx','10'); p.setAttribute('width',bw); p.setAttribute('height',bh);
       p.setAttribute('fill', i? (i===1?'#1f2937':'#495') : '#0a8d4b'); f.appendChild(p);
-      const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('x',w/2); t.setAttribute('y',y+bh/2+5); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#e5e7eb'); t.textContent=label; f.appendChild(t);
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('x',w/2); t.setAttribute('y',y+bh/2+5); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#e8e7eb'); t.textContent=label; f.appendChild(t);
       y+=bh+12;
     });
   })();
