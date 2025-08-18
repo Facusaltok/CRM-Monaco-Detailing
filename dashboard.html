@@ -250,7 +250,15 @@
     </div>
   </div>
 </div>
+<script>
+// Evitar saltos por el hash de Supabase (#access_token, #refresh_token, type=recovery, etc.)
+// Limpia el hash SIN recargar ni cambiar de página.
+if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
+  history.replaceState(null, document.title, location.pathname + location.search);
+}
+</script>
 
+  
 <script type="module">
   import { supabase } from "./supabaseClient.js";
   import "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
