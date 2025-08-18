@@ -31,13 +31,11 @@ create table leads (
   created_at timestamp default now()
 );
 
--- Seguridad (RLS)
 alter table clients enable row level security;
 alter table appointments enable row level security;
 alter table campaigns enable row level security;
 alter table leads enable row level security;
 
--- Lectura pública (solo si querés exponer métricas sin login)
 create policy "public read clients" on clients for select to anon using (true);
 create policy "public read appointments" on appointments for select to anon using (true);
 create policy "public read campaigns" on campaigns for select to anon using (true);
