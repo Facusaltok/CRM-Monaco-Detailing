@@ -69,4 +69,39 @@
 
     // Export demo
     document.getElementById("btnExport").addEventListener("click", ()=>{
-      const data = { ingresos:[100,200]()
+      const data = { ingresos:[100,200,150,300,400,350,500], servicios:{Interior:30,Motor:15,Ceramico:20,Paquete:10} };
+      const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob); const a = document.createElement("a");
+      a.href=url; a.download="monaco_crm_demo.json"; a.click(); URL.revokeObjectURL(url);
+    });
+
+    // Charts base
+    const c1 = new Chart(document.getElementById('chartIngresos'), {
+      type:'bar', data:{ labels:['Ene','Feb','Mar','Abr','May','Jun','Jul'], datasets:[{label:'Ingresos', data:[100,200,150,300,400,350,500], backgroundColor:'#0a8d4b'}]},
+      options:{ responsive:true, maintainAspectRatio:false }
+    });
+    const c2 = new Chart(document.getElementById('chartServicios'), {
+      type:'pie', data:{ labels:['Interior','Motor','Cerámico','Paquete'], datasets:[{ data:[30,15,20,10], backgroundColor:['#0a8d4b','#1f2937','#444','#888'] }]},
+      options:{ responsive:true, maintainAspectRatio:false }
+    });
+
+    // === (Opcional) Leer datos reales de Supabase si creaste tablas ===
+    // Adaptado al schema.sql que te paso abajo
+    async function cargarAgenda() {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("day, service, start, end")
+        .gte("created_at", new Date(Date.now()-7*864e5).toISOString())
+        .order("day", { ascending: true });
+
+      const tb = document.getElementById("agendaBody");
+      if (error) { tb.innerHTML = `<tr><td colspan="4">Error: ${error.message}</td></tr>`; return; }
+      if (!data || !data.length) { tb.innerHTML = `<tr><td colspan="4">Sin datos</td></tr>`; return; }
+
+      const dayName = d => ["","Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][d] || d;
+      tb.innerHTML = data.map(r => `<tr><td>${dayName(r.day)}</td><td>${r.service||"—"}</td><td>${r.start||"—"}</td><td>${r.end||"—"}</td></tr>`).join("");
+    }
+    cargarAgenda();
+  </script>
+</body>
+</html>
