@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,43 +7,62 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <meta name="theme-color" content="#0a8d4b" />
 <style>
-  :root{--bg:#0a0a0a;--panel:#101317;--border:#1f2937;--text:#e8eef2;--mut:#9fb0bf;--accent:#0a8d4b;--accent2:#19c37d}
+  :root{
+    --bg:#0a0a0a; --panel:#101317; --border:#1f2937; --text:#e8eef2; --mut:#9fb0bf; --accent:#0a8d4b; --accent2:#19c37d
+  }
+  :root[data-theme="light"]{
+    --bg:#f6f8fb; --panel:#ffffff; --border:#d9e1ea; --text:#0b1220; --mut:#465366
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:linear-gradient(180deg,rgba(10,141,75,.05),transparent 25%),var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial}
-  header{position:sticky;top:0;z-index:20;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(16,19,23,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial}
+  header{position:sticky;top:0;z-index:20;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(16,19,23,.9);border-bottom:1px solid var(--border)}
+  :root[data-theme="light"] header{background:#fff}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800}
   .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 14px rgba(25,195,125,.7)}
   .actions{display:flex;gap:8px;flex-wrap:wrap}
   .btn{border:1px solid var(--border);background:#0f141a;color:var(--text);padding:.55rem .8rem;border-radius:10px;cursor:pointer}
   .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#07150f;border-color:transparent;font-weight:800}
-  nav{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:#0d1116}
-  .tabbtn{border:1px solid var(--border);background:#101317;color:var(--text);padding:.55rem .8rem;border-radius:10px;cursor:pointer}
+  :root[data-theme="light"] .btn{background:#f7f9fc}
+  nav{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:transparent}
+  .tabbtn{border:1px solid var(--border);background:var(--panel);color:var(--text);padding:.55rem .8rem;border-radius:10px;cursor:pointer}
   .tabbtn.active{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#0a120c;border-color:transparent;font-weight:800}
   .container{max-width:1200px;margin:14px auto;padding:0 12px 24px}
   .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
   .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
   .card h2{margin:.2rem 0 .6rem;font-size:1.05rem;color:var(--accent)}
+  .drag-handle{cursor:grab; user-select:none; opacity:.9; font-size:.9rem; color:var(--mut)}
   canvas,svg{width:100%;height:260px;display:block}
   /* KPIs */
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
   .kpi{background:linear-gradient(180deg,rgba(25,195,125,.10),rgba(25,195,125,.02));border:1px solid rgba(25,195,125,.35);border-radius:12px;padding:12px}
   .kpi b{font-size:22px;display:block;margin-top:4px}
+  :root[data-theme="light"] .kpi{background:#f0faf5;border-color:#cfeadd}
   /* Agenda semanal */
   .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 12px}
   .field{display:flex;align-items:center;gap:6px;background:#0f141a;border:1px solid var(--border);border-radius:10px;padding:6px 8px;color:var(--mut)}
+  :root[data-theme="light"] .field{background:#fff}
   .field input{background:transparent;border:0;color:var(--text);outline:none}
   .week{display:grid;grid-template-columns:80px repeat(7,1fr);gap:6px}
   .hours{display:grid;grid-template-rows:repeat(24,36px);gap:6px}
   .daycol{display:grid;grid-template-rows:repeat(24,36px);gap:6px;position:relative}
   .slot{border:1px dashed rgba(255,255,255,.06);border-radius:8px}
-  .event{position:relative;margin:2px;border:1px solid rgba(25,195,125,.45);background:linear-gradient(90deg,var(--accent),var(--accent2));color:#07150f;font-weight:800;font-size:12px;border-radius:8px;padding:6px 8px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  :root[data-theme="light"] .slot{border-color:#e8edf4}
+  .event{position:relative;margin:2px;border:1px solid rgba(25,195,125,.45);background:linear-gradient(90deg,var(--accent),var(--accent2));color:#07150f;font-weight:800;font-size:12px;border-radius:8px;padding:6px 8px;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}
   .legend{display:flex;gap:8px;flex-wrap:wrap;color:var(--mut);font-size:12px}
+  /* Modal */
+  .modalBack{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal{width:100%;max-width:460px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px}
+  .modal h3{margin:.2rem 0 .6rem;color:var(--accent)}
+  .row{display:grid;grid-template-columns:1fr 1fr; gap:8px}
+  .modal label{font-size:.9rem;color:var(--mut)}
+  .modal input,.modal select,.modal textarea{width:100%;padding:.55rem .6rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text)}
 </style>
 </head>
 <body>
 <header>
   <div class="brand"><div class="dot"></div><div>MONACO DETAILING — CRM</div></div>
   <div class="actions">
+    <button id="btnTheme" class="btn" title="Claro/Oscuro">☾/☀</button>
     <button id="btnExport" class="btn">Exportar JSON</button>
     <button id="btnSignOut" class="btn">Salir</button>
   </div>
@@ -59,24 +78,25 @@
 
   <!-- DASHBOARD -->
   <section id="tab-dash" class="tab" style="display:block">
-    <div class="kpis">
-      <div class="kpi"><small>Ingresos del mes</small><b id="kpi-revenue">$0</b></div>
-      <div class="kpi"><small>Citas hoy</small><b id="kpi-appointments">0</b></div>
-      <div class="kpi"><small>Nuevos clientes</small><b id="kpi-clients">0</b></div>
-      <div class="kpi"><small>Retención</small><b id="kpi-retention">0%</b></div>
+    <div class="kpis" id="kpiRow">
+      <div class="kpi" data-id="kpi-rev"><small>Ingresos del mes</small><b id="kpi-revenue">$0</b></div>
+      <div class="kpi" data-id="kpi-appt"><small>Citas hoy</small><b id="kpi-appointments">0</b></div>
+      <div class="kpi" data-id="kpi-cli"><small>Nuevos clientes</small><b id="kpi-clients">0</b></div>
+      <div class="kpi" data-id="kpi-ret"><small>Retención</small><b id="kpi-retention">0%</b></div>
     </div>
 
-    <div class="grid" style="margin-top:12px">
-      <div class="card"><h2>Embudo de conversión</h2><svg id="funnel"></svg></div>
-      <div class="card"><h2>Fuentes de leads</h2><canvas id="chartLeads"></canvas></div>
-      <div class="card"><h2>Servicios (ranking)</h2><canvas id="chartServices"></canvas></div>
-      <div class="card"><h2>Actividad (mapa de calor)</h2><canvas id="chartHeatmap"></canvas></div>
+    <div class="grid" id="dashGrid" data-grid="dash">
+      <div class="card" data-id="funnel"><div class="drag-handle">↕ Embudo</div><h2>Embudo de conversión</h2><svg id="funnel"></svg></div>
+      <div class="card" data-id="leads"><div class="drag-handle">↕ Leads</div><h2>Fuentes de leads</h2><canvas id="chartLeads"></canvas></div>
+      <div class="card" data-id="services"><div class="drag-handle">↕ Servicios</div><h2>Servicios (ranking)</h2><canvas id="chartServices"></canvas></div>
+      <div class="card" data-id="heat"><div class="drag-handle">↕ Actividad</div><h2>Actividad (mapa de calor)</h2><canvas id="chartHeatmap"></canvas></div>
     </div>
   </section>
 
   <!-- AGENDA -->
   <section id="tab-agenda" class="tab" style="display:none">
     <div class="card">
+      <div class="drag-handle">↕ Agenda</div>
       <h2>Agenda semanal</h2>
       <div class="toolbar">
         <button class="btn" id="btnPrev">◀︎ Semana</button>
@@ -105,65 +125,103 @@
 
   <!-- MARKETING -->
   <section id="tab-mkt" class="tab" style="display:none">
-    <div class="grid">
-      <div class="card"><h2>Conversiones por campaña</h2><canvas id="chartCampaigns"></canvas></div>
-      <div class="card"><h2>Eventos recientes</h2><div id="mktLogs" style="display:grid;gap:8px;max-height:260px;overflow:auto"></div></div>
+    <div class="grid" id="mktGrid" data-grid="mkt">
+      <div class="card" data-id="camp"><div class="drag-handle">↕ Campañas</div><h2>Conversiones por campaña</h2><canvas id="chartCampaigns"></canvas></div>
+      <div class="card" data-id="logs"><div class="drag-handle">↕ Logs</div><h2>Eventos recientes</h2><div id="mktLogs" style="display:grid;gap:8px;max-height:260px;overflow:auto"></div></div>
     </div>
   </section>
 
+</div>
+
+<!-- MODAL -->
+<div class="modalBack" id="modalBack">
+  <div class="modal">
+    <h3 id="modalTitle">Editar evento</h3>
+    <label>Título</label>
+    <input id="evTitle" placeholder="Servicio / Cliente" />
+    <div class="row">
+      <div>
+        <label>Fecha</label>
+        <input id="evDate" type="date" />
+      </div>
+      <div>
+        <label>Servicio</label>
+        <select id="evService">
+          <option>Interior</option><option>Tratamiento Cerámico</option><option>Motor a Vapor</option><option>Paquete Completo</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Inicio</label>
+        <input id="evStart" type="time" />
+      </div>
+      <div>
+        <label>Fin</label>
+        <input id="evEnd" type="time" />
+      </div>
+    </div>
+    <label>Notas</label>
+    <textarea id="evNotes" rows="3" placeholder="Observaciones (color, patente, etc.)"></textarea>
+    <div class="toolbar" style="justify-content:flex-end">
+      <button class="btn" id="btnCancel">Cancelar</button>
+      <button class="btn primary" id="btnSave">Guardar</button>
+    </div>
+  </div>
 </div>
 
 <script type="module">
   import { supabase } from "./supabaseClient.js";
   import "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
 
-  // Proteger ruta
+  // ===== Tema (persistente)
+  const root=document.documentElement;
+  const savedTheme=localStorage.getItem('md_theme')||'dark';
+  root.setAttribute('data-theme', savedTheme);
+  document.getElementById('btnTheme').onclick=()=>{
+    const next=root.getAttribute('data-theme')==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next); localStorage.setItem('md_theme',next);
+  };
+
+  // ===== Protección de ruta
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) location.href = "./index.html";
   supabase.auth.onAuthStateChange((_e, s)=>{ if(!s) location.href="./index.html"; });
   document.getElementById("btnSignOut").onclick = async ()=> { await supabase.auth.signOut(); };
 
-  // Tabs
+  // ===== Tabs
   document.querySelectorAll('.tabbtn').forEach(b=>{
     b.onclick=()=>{
       document.querySelectorAll('.tabbtn').forEach(x=>x.classList.remove('active'));
       document.querySelectorAll('.tab').forEach(x=>x.style.display='none');
       b.classList.add('active'); document.getElementById('tab-'+b.dataset.tab).style.display='block';
-      if(b.dataset.tab==='agenda') renderWeek(); // asegura alturas
+      if(b.dataset.tab==='agenda') renderWeek();
     }
   });
 
-  // KPIs demo
-  const data = {
-    kpis:{ revenue:1200000, appointments:5, clients:3, retention:85 },
+  // ===== KPIs demo
+  const data = { kpis:{ revenue:1200000, appointments:5, clients:3, retention:85 },
     leadSources:{ Instagram:40, Publicidad:25, Web:20, WhatsApp:15 },
     services:{ 'Interior':72, 'Tratamiento Cerámico':48, 'Motor a Vapor':34, 'Paquete Completo':28 },
-    campaigns:{ 'IG Agosto':120, 'Ads Display':80, 'Referidos':95, 'SEO Local':60 }
-  };
+    campaigns:{ 'IG Agosto':120, 'Ads Display':80, 'Referidos':95, 'SEO Local':60 } };
   const fmt = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n);
   document.getElementById('kpi-revenue').textContent = fmt(data.kpis.revenue);
   document.getElementById('kpi-appointments').textContent = data.kpis.appointments;
   document.getElementById('kpi-clients').textContent = data.kpis.clients;
   document.getElementById('kpi-retention').textContent = data.kpis.retention + '%';
 
-  // Charts
-  new Chart(document.getElementById('chartLeads'), {
-    type:'doughnut',
+  // ===== Charts
+  new Chart(document.getElementById('chartLeads'), { type:'doughnut',
     data:{ labels:Object.keys(data.leadSources), datasets:[{ data:Object.values(data.leadSources), backgroundColor:['#0a8d4b','#1f2937','#465','#789']}] },
-    options:{ responsive:true, maintainAspectRatio:false }
-  });
-  new Chart(document.getElementById('chartServices'), {
-    type:'bar',
+    options:{ responsive:true, maintainAspectRatio:false }});
+  new Chart(document.getElementById('chartServices'), { type:'bar',
     data:{ labels:Object.keys(data.services), datasets:[{ label:'Servicios', data:Object.values(data.services), backgroundColor:'#0a8d4b'}]},
-    options:{ responsive:true, maintainAspectRatio:false }
-  });
-  new Chart(document.getElementById('chartCampaigns'), {
-    type:'bar',
+    options:{ responsive:true, maintainAspectRatio:false }});
+  new Chart(document.getElementById('chartCampaigns'), { type:'bar',
     data:{ labels:Object.keys(data.campaigns), datasets:[{ label:'Conversiones', data:Object.values(data.campaigns), backgroundColor:'#0a8d4b'}]},
-    options:{ responsive:true, maintainAspectRatio:false }
-  });
+    options:{ responsive:true, maintainAspectRatio:false }});
 
-  // Heatmap simple
+  // ===== Heatmap simple
   (function heat(){
     const c=document.getElementById('chartHeatmap'); if(!c) return; const ctx=c.getContext('2d');
     const w=c.width=c.clientWidth, h=c.height=c.clientHeight, cols=7, rows=10, cw=w/cols, rh=h/rows;
@@ -178,23 +236,32 @@
     for(let y=0;y<=rows;y++){ctx.beginPath();ctx.moveTo(0,y*rh);ctx.lineTo(w,y*rh);ctx.stroke()}
   })();
 
-  // Funnel SVG
-  (function funnel(){
-    const f=document.getElementById('funnel'); const w=f.clientWidth||300, h=260; f.setAttribute('viewBox',`0 0 ${w} ${h}`);
-    const rows=[[w*1.0,70,'Visitas'],[w*.75,70,'Oportunidades'],[w*.5,70,'Clientes']]; let y=10;
-    rows.forEach(([bw,bh,label],i)=>{ const x=(w-bw)/2;
-      const p=document.createElementNS('http://www.w3.org/2000/svg','rect'); p.setAttribute('x',x); p.setAttribute('y',y); p.setAttribute('rx','10'); p.setAttribute('width',bw); p.setAttribute('height',bh);
-      p.setAttribute('fill', i? (i===1?'#1f2937':'#495') : '#0a8d4b'); f.appendChild(p);
-      const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('x',w/2); t.setAttribute('y',y+bh/2+5); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#e8eef2'); t.textContent=label; f.appendChild(t);
-      y+=bh+12;
+  // ===== DnD widgets (grid)
+  const loadLayout = (key, gridEl) => {
+    const saved = localStorage.getItem('layout_'+key);
+    if(!saved) return;
+    const ids = JSON.parse(saved); const map = {};
+    [...gridEl.children].forEach(c=>map[c.dataset.id]=c);
+    ids.forEach(id=> map[id] && gridEl.appendChild(map[id]));
+  };
+  const enableDnD = (gridEl, key) => {
+    let dragEl = null;
+    gridEl.querySelectorAll('.card').forEach(card=>{
+      const h = card.querySelector('.drag-handle'); if(!h) return;
+      h.draggable = true;
+      h.addEventListener('dragstart', (e)=>{ dragEl = card; e.dataTransfer.effectAllowed='move'; card.style.opacity=.5; });
+      h.addEventListener('dragend', ()=>{ dragEl && (dragEl.style.opacity=''); dragEl=null; localStorage.setItem('layout_'+key, JSON.stringify([...gridEl.children].map(c=>c.dataset.id))); });
     });
-  })();
+    gridEl.addEventListener('dragover', (e)=>{ e.preventDefault(); const after = [...gridEl.children].find(c=> e.clientY <= c.getBoundingClientRect().top + c.offsetHeight/2); gridEl.insertBefore(dragEl, after||null); });
+  };
+  loadLayout('dash', document.getElementById('dashGrid'));  enableDnD(document.getElementById('dashGrid'), 'dash');
+  loadLayout('mkt',  document.getElementById('mktGrid'));   enableDnD(document.getElementById('mktGrid'),  'mkt');
 
-  // ====== AGENDA (Google Calendar) ======
-  // Estado de semana
+  // ===== Agenda (Google Calendar + edición local en Supabase)
   const hoursCol = document.getElementById('hours');
   const dayCols  = Array.from(document.querySelectorAll('.daycol'));
-  for(let i=0;i<24;i++){ const d=document.createElement('div'); d.style.fontSize='11px'; d.style.opacity='.6'; d.textContent=(8+i<=9?'0':'')+(8+i)+':00'; hoursCol.appendChild(d); }
+  for(let i=0;i<24;i++){ const d=document.createElement('div'); d.style.fontSize='11px'; d.style.opacity='.6'; d.textContent=(i<10?'0':'')+i+':00'; hoursCol.appendChild(d); }
+
   function startOfWeek(d){ const x=new Date(d); const day=(x.getDay()||7); x.setDate(x.getDate()-day+1); x.setHours(0,0,0,0); return x; } // lunes
   let weekStart = startOfWeek(new Date());
   const label = document.getElementById('rangeLabel');
@@ -207,7 +274,6 @@
   document.getElementById('btnSync').onclick = ()=>{ localStorage.setItem('gcal_id', gcalInput.value.trim()); syncCalendar(); };
 
   function renderWeek(){
-    // encabezado/limpieza
     label.textContent = weekStart.toLocaleDateString('es-AR',{day:'2-digit',month:'short'}) + ' — ' +
       new Date(weekStart.getTime()+6*864e5).toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
     dayCols.forEach(col=>{ col.innerHTML=''; for(let r=0;r<24;r++){ const s=document.createElement('div'); s.className='slot'; col.appendChild(s); }});
@@ -217,11 +283,20 @@
     const start = new Date(ev.start.dateTime || ev.start.date);
     const end   = new Date(ev.end?.dateTime || ev.end?.date || start.getTime()+60*60*1000);
     const dow = (start.getDay()||7); // 1..7
-    const minutesFrom8 = (start.getHours()-8)*60 + start.getMinutes();
-    const duration = Math.max(30, (end-start)/60000);
-    const rowStart = Math.max(1, Math.floor(minutesFrom8/30)+1);
-    const rowSpan  = Math.max(1, Math.ceil(duration/30));
+    const minutesFrom0 = start.getHours()*60 + start.getMinutes();
+    const rowStart = Math.floor(minutesFrom0/60)+1; // 1..24
+    const rowSpan  = Math.max(1, Math.ceil((end-start)/3600000));
     return { dow, rowStart, rowSpan, title: ev.summary||'Evento', start };
+  }
+
+  function paintEvent({dow,rowStart,rowSpan,title,start}, meta={}){
+    const col = dayCols[dow-1]; if(!col) return;
+    const e = document.createElement('div'); e.className='event';
+    e.style.gridRow = `${rowStart} / span ${rowSpan}`;
+    e.textContent = `${title} (${start.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})})`;
+    e.dataset.meta = JSON.stringify(meta);
+    e.onclick = () => openModal({ title, start, endMinutes:rowSpan*60, service: meta.service||'Interior', notes: meta.notes||'', supaId: meta.supaId||null });
+    col.appendChild(e);
   }
 
   async function syncCalendar(){
@@ -234,22 +309,76 @@
       const res = await fetch(url);
       const json = await res.json();
       renderWeek();
-      (json.items||[]).forEach(ev=>{
-        const p = eventToPlacement(ev);
-        const col = dayCols[p.dow-1];
-        if(!col) return;
-        const e = document.createElement('div'); e.className='event';
-        e.style.gridRow = `${p.rowStart} / span ${p.rowSpan}`;
-        e.textContent = `${p.title} (${p.start.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})})`;
-        col.appendChild(e);
-      });
-    }catch(err){ console.warn(err); alert('No se pudo sincronizar el calendario. Verificá el Calendar ID y las variables en Vercel.'); }
+      (json.items||[]).forEach(ev=> paintEvent(eventToPlacement(ev), {source:'gcal'}));
+      // También pinto citas propias (Supabase) de esa semana:
+      await paintSupabaseAppointments();
+    }catch(err){ console.warn(err); alert('No se pudo sincronizar el calendario.'); }
   }
 
-  renderWeek(); // primer render
-  // puedes llamar syncCalendar() si querés auto-cargar: // syncCalendar();
+  async function paintSupabaseAppointments(){
+    const min = new Date(weekStart); const max = new Date(weekStart.getTime()+7*864e5);
+    const { data: appts } = await supabase.from('appointments')
+      .select('id, service, day, start, "end", notes, created_at')
+      .gte('created_at', min.toISOString()).lte('created_at', max.toISOString());
+    (appts||[]).forEach(r=>{
+      const [h1,m1] = String(r.start).split(':'); const [h2,m2] = String(r.end).split(':');
+      const start = new Date(weekStart.getTime() + (r.day-1)*864e5); start.setHours(+h1, +m1, 0, 0);
+      const end   = new Date(weekStart.getTime() + (r.day-1)*864e5); end.setHours(+h2, +m2, 0, 0);
+      paintEvent(eventToPlacement({ start:{dateTime:start}, end:{dateTime:end}, summary:r.service }),
+        { source:'supa', service:r.service, notes:r.notes||'', supaId:r.id });
+    });
+  }
 
-  // Export demo
+  // ===== Modal (crear/editar) — guarda en Supabase
+  const modalBack = document.getElementById('modalBack');
+  const evTitle = document.getElementById('evTitle');
+  const evService = document.getElementById('evService');
+  const evDate = document.getElementById('evDate');
+  const evStart = document.getElementById('evStart');
+  const evEnd = document.getElementById('evEnd');
+  const evNotes = document.getElementById('evNotes');
+  let editing = null;
+
+  function openModal({title,start,endMinutes=60,service='Interior',notes='',supaId=null}){
+    editing = { supaId };
+    evTitle.value = title||'';
+    evService.value = service;
+    evDate.value = start.toISOString().slice(0,10);
+    evStart.value = `${String(start.getHours()).padStart(2,'0')}:${String(start.getMinutes()).padStart(2,'0')}`;
+    const end = new Date(start.getTime()+endMinutes*60000);
+    evEnd.value = `${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`;
+    evNotes.value = notes;
+    modalBack.style.display='flex';
+  }
+  document.getElementById('btnCancel').onclick=()=>{ modalBack.style.display='none'; editing=null; };
+
+  document.getElementById('btnSave').onclick = async ()=>{
+    const day = (new Date(evDate.value)).getDay() || 7;
+    const row = {
+      service: evService.value,
+      day,
+      start: evStart.value,
+      end: evEnd.value,
+      notes: evNotes.value
+    };
+    let resp;
+    if(editing?.supaId){
+      resp = await supabase.from('appointments').update(row).eq('id', editing.supaId).select().single();
+    }else{
+      resp = await supabase.from('appointments').insert(row).select().single();
+    }
+    if(resp.error){ alert('Error guardando cita: '+resp.error.message); return; }
+    modalBack.style.display='none'; editing=null;
+    // refrescar vista semana
+    renderWeek(); await paintSupabaseAppointments();
+  };
+
+  // ===== Inicial
+  renderWeek(); // primera pintura de slots
+  // Si querés auto-sync al abrir la pestaña:
+  // syncCalendar();
+
+  // ===== Export demo
   document.getElementById('btnExport').onclick = ()=>{
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='monaco_crm_demo.json'; a.click(); URL.revokeObjectURL(url);
