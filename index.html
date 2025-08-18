@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Monaco Detailing CRM — Login</title>
+  <title>Monaco Detailing CRM — Acceso</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <meta name="theme-color" content="#0a8d4b" />
   <style>
     body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;color:#e5e7eb;font-family:system-ui,Segoe UI,Roboto,Arial}
-    .card{width:100%;max-width:360px;background:#111;border:1px solid #1f2937;border-radius:12px;padding:20px;box-shadow:0 12px 32px rgba(0,0,0,.4)}
+    .card{width:100%;max-width:380px;background:#111;border:1px solid #1f2937;border-radius:12px;padding:20px;box-shadow:0 12px 32px rgba(0,0,0,.4)}
     h1{margin:.2rem 0 1rem;font-size:1.25rem;color:#0a8d4b;text-align:center}
     label{display:block;font-size:.9rem;margin:.25rem 0 .25rem;opacity:.9}
     input{width:100%;padding:.6rem .7rem;border-radius:8px;border:1px solid #2b3340;background:#0f141a;color:#e5e7eb}
@@ -16,8 +16,11 @@
     button{border:none;border-radius:8px;padding:.65rem .8rem;cursor:pointer}
     .green{background:#0a8d4b;color:#fff}
     .dark{background:#1f2937;color:#e5e7eb}
-    .msg{margin-top:.6rem;font-size:.9rem;text-align:center;opacity:.9}
+    .muted{font-size:.9rem;opacity:.8;margin-top:.5rem;text-align:center}
+    .link{color:#a7f3d0;cursor:pointer}
+    .msg{margin-top:.6rem;font-size:.9rem;text-align:center;opacity:.95}
     .error{color:#f87171}
+    #newPassWrap{display:none;margin-top:.75rem}
   </style>
   <script>
     if ("serviceWorker" in navigator) {
@@ -27,53 +30,82 @@
 </head>
 <body>
   <div class="card">
-    <h1>Accedé a Monaco CRM</h1>
+    <h1>Acceso a Monaco CRM</h1>
+
     <label for="email">Email</label>
     <input id="email" type="email" placeholder="tu@correo.com" />
+
     <label for="pass">Contraseña</label>
     <input id="pass" type="password" placeholder="••••••••" />
+
+    <div id="newPassWrap">
+      <label for="newpass">Nueva contraseña</label>
+      <input id="newpass" type="password" placeholder="Nueva contraseña" />
+      <button id="btnSetNewPass" class="green">Guardar nueva contraseña</button>
+    </div>
+
     <div class="actions">
       <button id="btnSignIn" class="green">Ingresar</button>
-      <button id="btnMagic" class="dark">Enviar Magic Link</button>
+      <button id="btnSignUp" class="dark">Crear cuenta</button>
+      <button id="btnMagic"  class="dark">Enviar Magic Link</button>
     </div>
+
+    <div class="muted">
+      <span id="btnForgot" class="link">Olvidé mi contraseña</span>
+    </div>
+
     <div id="msg" class="msg"></div>
   </div>
 
   <script type="module">
     import { supabase } from "./supabaseClient.js";
 
-    // --- Redirects (Vercel + Local) ---
     const PROD_REDIRECT  = "https://crm-monaco-detailing.vercel.app/dashboard.html";
     const LOCAL_REDIRECT = "http://localhost:8080/dashboard.html";
     const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
     const redirectTo = isLocal ? LOCAL_REDIRECT : PROD_REDIRECT;
 
-    // Si ya hay sesión -> dashboard
+    const msg = document.getElementById("msg");
+    const emailEl = document.getElementById("email");
+    const passEl  = document.getElementById("pass");
+    const newPassWrap = document.getElementById("newPassWrap");
+    const newPassEl   = document.getElementById("newpass");
+
     const { data: { session } } = await supabase.auth.getSession();
     if (session) location.href = "./dashboard.html";
 
-    const msg = document.getElementById("msg");
+    const params = new URLSearchParams(location.hash.replace("#","?"));
+    if (params.get("type") === "recovery" || params.get("type") === "invite") newPassWrap.style.display = "block";
 
-    // Email + Password
     document.getElementById("btnSignIn").addEventListener("click", async () => {
-      msg.textContent = "Ingresando…";
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("pass").value;
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); }
-      else { location.href = "./dashboard.html"; }
+      msg.textContent = "Ingresando…"; msg.classList.remove("error");
+      const { error } = await supabase.auth.signInWithPassword({ email: emailEl.value.trim(), password: passEl.value });
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } else { location.href="./dashboard.html"; }
     });
 
-    // Magic Link
+    document.getElementById("btnSignUp").addEventListener("click", async () => {
+      msg.textContent = "Creando cuenta…"; msg.classList.remove("error");
+      const { error } = await supabase.auth.signUp({ email: emailEl.value.trim(), password: passEl.value, options:{ emailRedirectTo: redirectTo } });
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } else { msg.textContent = "Revisá tu correo para confirmar la cuenta"; }
+    });
+
     document.getElementById("btnMagic").addEventListener("click", async () => {
-      msg.textContent = "Enviando link…";
-      const email = document.getElementById("email").value.trim();
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: redirectTo }
-      });
+      msg.textContent = "Enviando link…"; msg.classList.remove("error");
+      const { error } = await supabase.auth.signInWithOtp({ email: emailEl.value.trim(), options:{ emailRedirectTo: redirectTo } });
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } else { msg.textContent = "Revisá tu correo para continuar"; }
+    });
+
+    document.getElementById("btnForgot").addEventListener("click", async () => {
+      msg.textContent = "Enviando email de recuperación…"; msg.classList.remove("error");
+      const { error } = await supabase.auth.resetPasswordForEmail(emailEl.value.trim(), { redirectTo });
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } else { msg.textContent = "Revisá tu correo para cambiar la contraseña"; }
+    });
+
+    document.getElementById("btnSetNewPass").addEventListener("click", async () => {
+      msg.textContent = "Actualizando contraseña…"; msg.classList.remove("error");
+      const { error } = await supabase.auth.updateUser({ password: newPassEl.value });
       if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); }
-      else { msg.textContent = "Revisá tu correo para continuar"; msg.classList.remove("error"); }
+      else { msg.textContent = "Contraseña actualizada. Redirigiendo…"; setTimeout(()=> location.href="./dashboard.html", 600); }
     });
   </script>
 </body>
