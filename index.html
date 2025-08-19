@@ -23,11 +23,9 @@
     #newPassWrap{display:none;margin-top:.75rem}
   </style>
   <script>
-    // Limpia hash de Supabase (#access_token...) para evitar saltos
     if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
       history.replaceState(null, document.title, location.pathname + location.search);
     }
-    // SW con auto-update
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", async () => {
         try {
@@ -52,7 +50,6 @@
     <label for="pass">Contraseña</label>
     <input id="pass" type="password" placeholder="••••••••" />
 
-    <!-- se mantiene recuperación si llega con token -->
     <div id="newPassWrap">
       <label for="newpass">Nueva contraseña</label>
       <input id="newpass" type="password" placeholder="Nueva contraseña" />
@@ -89,7 +86,6 @@
     const { data: { session } } = await supabase.auth.getSession();
     if (session) location.href = "./dashboard.html";
 
-    // Si vino desde "recovery" permite setear nueva pass
     const params = new URLSearchParams(location.hash.replace("#","?"));
     if (params.get("type") === "recovery" || params.get("type") === "invite") newPassWrap.style.display = "block";
 
@@ -111,7 +107,7 @@
       msg.textContent = "Actualizando contraseña…"; msg.classList.remove("error");
       const { error } = await supabase.auth.updateUser({ password: newPassEl.value });
       if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); }
-      else { msg.textContent = "Contraseña actualizada. Redirigiendo…"; setTimeout(()=> location.href="./dashboard.html", 600); }
+      else { msg.textContent = "Contraseña updated. Redirigiendo…"; setTimeout(()=> location.href="./dashboard.html", 600); }
     });
   </script>
 </body>
