@@ -7,7 +7,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <meta name="theme-color" content="#0a8d4b" />
   <style>
-    html, body { overscroll-behavior: none; } /* FIX #3 */
+    html, body { overscroll-behavior: none; }
     body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;color:#e5e7eb;font-family:system-ui,Segoe UI,Roboto,Arial}
     .card{width:100%;max-width:380px;background:#111;border:1px solid #1f2937;border-radius:12px;padding:20px;box-shadow:0 12px 32px rgba(0,0,0,.4)}
     h1{margin:.2rem 0 1rem;font-size:1.25rem;color:#0a8d4b;text-align:center}
@@ -24,12 +24,22 @@
     #newPassWrap{display:none;margin-top:.75rem}
   </style>
   <script>
-    // FIX #1: limpia el hash de Supabase para evitar saltos/scroll
+    // Limpia hash de Supabase (#access_token...) para evitar saltos
     if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
       history.replaceState(null, document.title, location.pathname + location.search);
     }
+    // SW con auto-update
     if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js"));
+      window.addEventListener("load", async () => {
+        try {
+          const reg = await navigator.serviceWorker.register("./sw.js");
+          reg.update();
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener("controllerchange", () => {
+            if (refreshing) return; refreshing = true; location.reload();
+          });
+        } catch (e) { console.warn("SW register error", e); }
+      });
     }
   </script>
 </head>
@@ -46,13 +56,13 @@
     <div id="newPassWrap">
       <label for="newpass">Nueva contraseña</label>
       <input id="newpass" type="password" placeholder="Nueva contraseña" />
-      <button id="btnSetNewPass" class="green">Guardar nueva contraseña</button>
+      <button id="btnSetNewPass" class="green" type="button">Guardar nueva contraseña</button>
     </div>
 
     <div class="actions">
-      <button id="btnSignIn" class="green">Ingresar</button>
-      <button id="btnSignUp" class="dark">Crear cuenta</button>
-      <button id="btnMagic"  class="dark">Enviar Magic Link</button>
+      <button id="btnSignIn" class="green" type="button">Ingresar</button>
+      <button id="btnSignUp" class="dark"  type="button">Crear cuenta</button>
+      <button id="btnMagic"  class="dark"  type="button">Enviar Magic Link</button>
     </div>
 
     <div class="muted">
@@ -64,6 +74,9 @@
 
   <script type="module">
     import { supabase } from "./supabaseClient.js";
+
+    // Botones = button (evita submits accidentales)
+    document.querySelectorAll('button:not([type])').forEach(b => b.setAttribute('type','button'));
 
     const PROD_REDIRECT  = "https://crm-monaco-detailing.vercel.app/dashboard.html";
     const LOCAL_REDIRECT = "http://localhost:8080/dashboard.html";
