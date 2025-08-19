@@ -1,4 +1,4 @@
-// sw.js — SW mínimo para evitar errores/warnings
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', () => self.clients.claim());
-self.addEventListener('fetch', () => { /* passthrough */ });
+// sw.js
+self.addEventListener("install", (e) => self.skipWaiting());
+self.addEventListener("activate", (e) => self.clients.claim());
+// sin handler de 'fetch' para evitar warning "no-op fetch handler"
