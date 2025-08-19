@@ -10,6 +10,7 @@
 - Supabase: editar `supabaseClient.js` (URL + anon)
 - Vercel (Project → Settings → Environment Variables):
   - `GOOGLE_API_KEY` (para `/api/calendar`)
+  - `GOOGLE_SERVICE_ACCOUNT_EMAIL` y `GOOGLE_PRIVATE_KEY` (para acceso con service account)
   - (opcional) `GOOGLE_CALENDAR_ID`
   - (opcional) `GOOGLE_OAUTH_ACCESS_TOKEN` (para `/api/calendar-create`)
 

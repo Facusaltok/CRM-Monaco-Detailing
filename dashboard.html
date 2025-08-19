@@ -47,6 +47,7 @@
   .cal-embed{ position:relative; width:100%; aspect-ratio: 4 / 3; background:#0f141a; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
   .cal-embed iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -88,12 +89,16 @@
         <div class="drag-handle">↕ Agenda Google</div>
         <h2>Agenda — Google Calendar</h2>
         <div class="cal-embed">
-          <iframe
-            src="https://calendar.google.com/calendar/embed?src=monacodetailingarg%40gmail.com&ctz=America%2FArgentina%2FBuenos_Aires"
-            frameborder="0" scrolling="no" allowfullscreen>
-          </iframe>
+          <iframe id="gcalEmbedDash" frameborder="0" scrolling="no" allowfullscreen></iframe>
         </div>
-        <small class="mut">Agenda en vivo de <b>monacodetailingarg@gmail.com</b>.</small>
+        <small class="mut">Agenda en vivo de <b id="gcalLabelDash"></b>.</small>
+      </div>
+
+      <!-- Gráfico ingresos vs gastos -->
+      <div class="card" data-id="balance">
+        <div class="drag-handle">↕ Balance mensual</div>
+        <h2>Ingresos vs Gastos</h2>
+        <canvas id="balanceChart"></canvas>
       </div>
 
       <!-- Se eliminaron: Leads y Servicios (ranking) -->
@@ -109,8 +114,8 @@
         <button id="btnNewClient" class="btn primary" type="button">+ Nuevo cliente</button>
       </div>
       <table>
-        <thead><tr><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Vehículo</th><th></th></tr></thead>
-        <tbody id="clientsTbody"><tr><td colspan="5" class="mut">Cargando…</td></tr></tbody>
+        <thead><tr><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Vehículo</th><th>Servicio</th><th>Duración</th><th>Mantención</th><th>Precio</th><th></th></tr></thead>
+        <tbody id="clientsTbody"><tr><td colspan="9" class="mut">Cargando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -144,10 +149,7 @@
     <div class="card">
       <h2>Google Calendar (vista completa)</h2>
       <div class="cal-embed">
-        <iframe
-          src="https://calendar.google.com/calendar/embed?src=monacodetailingarg%40gmail.com&ctz=America%2FArgentina%2FBuenos_Aires"
-          frameborder="0" scrolling="no" allowfullscreen>
-        </iframe>
+        <iframe id="gcalEmbedFull" frameborder="0" scrolling="no" allowfullscreen></iframe>
       </div>
     </div>
   </section>
@@ -207,6 +209,14 @@
     <div class="row">
       <div><label>Año</label><input id="cliYear" type="number" placeholder="2022"/></div>
       <div><label>Color</label><input id="cliColor" placeholder="Negro"/></div>
+    </div>
+    <div class="row">
+      <div><label>Servicio</label><input id="cliService"/></div>
+      <div><label>Duración</label><input id="cliDuration"/></div>
+    </div>
+    <div class="row">
+      <div><label>Mantención</label><input id="cliMaintenance"/></div>
+      <div><label>Precio</label><input id="cliPrice" type="number" step="0.01"/></div>
     </div>
     <label>Notas</label><textarea id="cliNotes" rows="3"></textarea>
     <div class="toolbar" style="justify-content:flex-end">
@@ -337,21 +347,51 @@
     });
   }
   enableDnD(q('#dashGrid'),'dash');
-
-  // ===== KPIs demo (puedes reemplazar por queries reales a futuro) =====
-  q('#kpiRevenue').textContent = fmtARS(1200000);
-  q('#kpiAppts').textContent = 5;
-  q('#kpiClients').textContent = 3;
-
   /* ========================= CLIENTES (CRUD) ========================= */
   const clientsTbody = q('#clientsTbody');
   let clients = []; let editingClientId = null;
+  let expenses = [];
+
+  function updateKpiRevenue(){
+    const now = new Date();
+    const ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    const total = (clients||[])
+      .filter(c => (c.created_at||'').startsWith(ym))
+      .reduce((s,c)=> s + (Number(c.price)||0), 0);
+    q('#kpiRevenue').textContent = fmtARS(total);
+    renderBalanceChart();
+  }
+  function updateKpiClients(){
+    const now = new Date();
+    const ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    const total = (clients||[]).filter(c => (c.created_at||'').startsWith(ym)).length;
+    q('#kpiClients').textContent = total;
+  }
+  let balanceChart;
+  function renderBalanceChart(){
+    const now = new Date();
+    const ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    const income = (clients||[])
+      .filter(c => (c.created_at||'').startsWith(ym))
+      .reduce((s,c)=> s + (Number(c.price)||0), 0);
+    const expense = (expenses||[])
+      .filter(e => (e.date||'').startsWith(ym))
+      .reduce((s,e)=> s + (Number(e.amount)||0), 0);
+    const ctx = q('#balanceChart'); if(!ctx) return;
+    if (balanceChart) balanceChart.destroy();
+    balanceChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: ['Ingresos','Gastos'], datasets: [{ data: [income, expense], backgroundColor: ['#19c37d','#f87171'] }] },
+      options: { plugins:{ legend:{ display:false } } }
+    });
+  }
 
   async function loadClients(filter=''){
     try{
       const { data } = await supabase.from('clients').select('*').order('created_at',{ascending:false});
       clients = data||[]; renderClients(filter);
     }catch{ clients=[]; renderClients(); }
+    updateKpiRevenue(); updateKpiClients();
   }
   function renderClients(filter=''){
     const f = (filter||'').toLowerCase();
@@ -363,11 +403,15 @@
           <td>${c.phone||''}</td>
           <td>${c.email||''}</td>
           <td>${[v.brand,v.model,v.year,v.color].filter(Boolean).join(' / ')}</td>
+          <td>${c.service||''}</td>
+          <td>${c.duration||''}</td>
+          <td>${c.maintenance||''}</td>
+          <td>${fmtARS(c.price||0)}</td>
           <td style="text-align:right">
             <button class="btn" data-ed="${c.id}" type="button">Editar</button>
             <button class="btn" data-del="${c.id}" type="button">Borrar</button>
           </td>
-        </tr>`; }).join('') || `<tr><td colspan="5" class="mut">Sin clientes</td></tr>`;
+        </tr>`; }).join('') || `<tr><td colspan="9" class="mut">Sin clientes</td></tr>`;
   }
   q('#cliSearch').addEventListener('input', e=> renderClients(e.target.value));
   q('#btnNewClient').onclick=()=> openClientModal({});
@@ -382,6 +426,7 @@
   const cliFields = {
     name:q('#cliName'), phone:q('#cliPhone'), email:q('#cliEmail'),
     brand:q('#cliBrand'), model:q('#cliModel'), year:q('#cliYear'), color:q('#cliColor'),
+    service:q('#cliService'), duration:q('#cliDuration'), maintenance:q('#cliMaintenance'), price:q('#cliPrice'),
     notes:q('#cliNotes')
   };
   function openClientModal(c){
@@ -389,6 +434,10 @@
     q('#cliTitle').textContent = editingClientId?'Editar cliente':'Nuevo cliente';
     cliFields.name.value = c.name||''; cliFields.phone.value=c.phone||''; cliFields.email.value=c.email||'';
     const v = c.vehicle||{}; cliFields.brand.value=v.brand||''; cliFields.model.value=v.model||''; cliFields.year.value=v.year||''; cliFields.color.value=v.color||'';
+    cliFields.service.value = c.service||'';
+    cliFields.duration.value = c.duration||'';
+    cliFields.maintenance.value = c.maintenance||'';
+    cliFields.price.value = c.price||'';
     cliFields.notes.value = c.notes||'';
     show(mCli,true);
   }
@@ -399,6 +448,10 @@
       phone: cliFields.phone.value.trim(),
       email: cliFields.email.value.trim(),
       vehicle: { brand:cliFields.brand.value.trim(), model:cliFields.model.value.trim(), year:cliFields.year.value.trim(), color:cliFields.color.value.trim() },
+      service: cliFields.service.value.trim(),
+      duration: cliFields.duration.value.trim(),
+      maintenance: cliFields.maintenance.value.trim(),
+      price: Number(cliFields.price.value||0),
       notes: cliFields.notes.value.trim()
     };
     try{
@@ -414,11 +467,19 @@
 
   function startOfWeek(d){ const x=new Date(d); const day=(x.getDay()||7); x.setDate(x.getDate()-day+1); x.setHours(0,0,0,0); return x; }
   let weekStart = startOfWeek(new Date());
-  const label = q('#rangeLabel'); 
-  const gcalInput = q('#gcalId'); 
-  const defaultGCal = "monacodetailingarg@gmail.com";
+  const label = q('#rangeLabel');
+  const gcalInput = q('#gcalId');
+  const defaultGCal = "110974190024706454194@group.calendar.google.com";
   if (!localStorage.getItem('gcal_id')) localStorage.setItem('gcal_id', defaultGCal);
-  if (gcalInput) gcalInput.value = localStorage.getItem('gcal_id') || defaultGCal;
+  let currentCal = localStorage.getItem('gcal_id') || defaultGCal;
+  if (gcalInput) gcalInput.value = currentCal;
+  if (q('#gcalEmbedDash')) {
+    q('#gcalEmbedDash').src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(currentCal)}&ctz=America%2FArgentina%2FBuenos_Aires`;
+    const lab = q('#gcalLabelDash'); if(lab) lab.textContent = currentCal;
+  }
+  if (q('#gcalEmbedFull')) {
+    q('#gcalEmbedFull').src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(currentCal)}&ctz=America%2FArgentina%2FBuenos_Aires`;
+  }
 
   function renderWeek(){
     label.textContent = weekStart.toLocaleDateString('es-AR',{day:'2-digit',month:'short'}) + ' — ' + new Date(weekStart.getTime()+6*864e5).toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
@@ -427,7 +488,15 @@
   q('#btnPrev').onclick=()=>{ weekStart.setDate(weekStart.getDate()-7); renderWeek(); paintAppointments(); };
   q('#btnNext').onclick=()=>{ weekStart.setDate(weekStart.getDate()+7); renderWeek(); paintAppointments(); };
   q('#btnToday').onclick=()=>{ weekStart=startOfWeek(new Date()); renderWeek(); paintAppointments(); };
-  q('#btnSync').onclick=()=>{ localStorage.setItem('gcal_id', gcalInput.value.trim()); syncCalendar(); };
+  q('#btnSync').onclick=()=>{
+    const newId = gcalInput.value.trim();
+    localStorage.setItem('gcal_id', newId);
+    currentCal = newId;
+    if (q('#gcalEmbedDash')) q('#gcalEmbedDash').src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(newId)}&ctz=America%2FArgentina%2FBuenos_Aires`;
+    if (q('#gcalLabelDash')) q('#gcalLabelDash').textContent = newId;
+    if (q('#gcalEmbedFull')) q('#gcalEmbedFull').src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(newId)}&ctz=America%2FArgentina%2FBuenos_Aires`;
+    syncCalendar();
+  };
   renderWeek();
 
   function eventPlacement(startISO, endISO){
@@ -470,6 +539,7 @@
         .select('id, client_id, service, date, start, "end", notes, clients(name)')
         .gte('date', from).lte('date', to)
         .order('date');
+      q('#kpiAppts').textContent = (data||[]).filter(r=> r.date === new Date().toISOString().slice(0,10)).length;
       (data||[]).forEach(r=>{
         const startISO = `${r.date}T${r.start}`;
         const endISO   = `${r.date}T${r.end}`;
@@ -523,7 +593,7 @@
   /* ========================= GASTOS (CRUD) ========================= */
   const expensesTbody = q('#expensesTbody');
   const mExp = q('#modalExpense');
-  let expenses=[]; let editingExpId=null;
+  let editingExpId=null;
 
   // KPI: recalcula el total de gastos del mes en curso
   function updateKpiExpenses(){
@@ -533,6 +603,7 @@
       .filter(e => (e.date||'').startsWith(ym))
       .reduce((s,e)=> s + (Number(e.amount)||0), 0);
     q('#kpiExpenses').textContent = fmtARS(total);
+    renderBalanceChart();
   }
 
   async function loadExpenses(){
@@ -610,7 +681,7 @@
     try {
       await Promise.all([loadClients(), loadExpenses()]);
       await paintAppointments();
-      const defCal = localStorage.getItem('gcal_id') || 'monacodetailingarg@gmail.com';
+      const defCal = localStorage.getItem('gcal_id') || defaultGCal;
       if (setCalendarId) setCalendarId.value = defCal;
       if (q('#gcalId')) q('#gcalId').value = defCal;
     } catch(e){ /* no-op */ }
