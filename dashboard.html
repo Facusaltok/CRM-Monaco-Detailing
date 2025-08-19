@@ -1,29 +1,25 @@
 <!DOCTYPE html>
-<html lang="es" x-data x-init="document.documentElement.classList.toggle('dark', (localStorage.getItem('md_theme')||'dark')==='dark')" class="dark">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Monaco Detailing — CRM (Alpine + Tailwind)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Monaco Detailing CRM — Dashboard</title>
 
-  <!-- Tailwind -->
+  <!-- Tailwind (CDN para simpleza del prototipo) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            bg: "#0a0a0a",
-            panel: "#0f1318",
-            border: "#1d2733",
-            text: "#e5e7eb",
-            mut: "#9fb0bf",
             brand: "#0a8d4b",
-            brand2: "#19c37d"
+            brand2: "#19c37d",
+            border: "#e5e7eb",
+            textmut: "#5b677a"
           },
           boxShadow: {
-            soft: "0 10px 30px rgba(0,0,0,.35)",
-            card: "0 12px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.03)"
+            card: "0 12px 24px rgba(20,30,40,.06)",
+            btn: "0 6px 0 #e3e8ef, 0 14px 24px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.7)"
           },
           borderRadius: { xl2: "14px" }
         }
@@ -31,441 +27,483 @@
     }
   </script>
 
-  <!-- Fuente + Alpine -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <!-- Alpine -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-  <!-- Supabase JS -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
   <style>
-    :root { --g1:#0a8d4b; --g2:#19c37d }
-    body{font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; background: radial-gradient(1200px 600px at 20% -10%, rgba(25,195,125,.07), transparent), var(--tw-bg-opacity) var(--tw-bg-opacity);}
-    .card{ background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); border:1px solid theme('colors.border'); border-radius:14px; box-shadow:var(--shadow, 0 10px 30px rgba(0,0,0,.35)); }
-    /* Botón 3D */
-    .btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; gap:.45rem;
-      padding:.65rem .9rem; border-radius:12px; border:1px solid theme('colors.border'); color:theme('colors.text');
-      background:#0f141a; box-shadow: 0 6px 0 #0a1016, 0 14px 24px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.04);
-      transform: translateY(0); transition: transform .06s ease, box-shadow .2s ease, background .2s ease;
-    }
-    .btn:focus-visible{ outline:2px solid var(--g2); outline-offset:2px }
-    .btn:hover{ background:#0f171f }
-    .btn:active{ transform: translateY(2px); box-shadow: 0 4px 0 #0a1016, 0 10px 16px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.02) }
-    .btn-primary{
-      background:linear-gradient(90deg, var(--g1), var(--g2)); border-color:transparent; color:#06140d; font-weight:800;
-      box-shadow: 0 6px 0 #055430, 0 18px 30px rgba(25,195,125,.35), inset 0 0 0 1px rgba(255,255,255,.1);
-    }
-    .btn-primary:hover{ filter:brightness(1.05) }
-    .btn-primary:active{ transform: translateY(2px); box-shadow: 0 4px 0 #055430, 0 12px 20px rgba(25,195,125,.45) }
-    .chip{ @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
-    .glass{ backdrop-filter: saturate(1.2) blur(6px) }
+    body{ background:#f6f8fb; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; box-shadow:0 12px 24px rgba(20,30,40,.06); }
+    .btn{ border:1px solid #d9e1ea; background:#fff; color:#0b1220; font-weight:700; border-radius:12px; padding:.6rem .9rem; box-shadow:0 6px 0 #e3e8ef, 0 14px 24px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.7); transition:all .15s ease; }
+    .btn:hover{ background:#f7fafc }
+    .btn:active{ box-shadow:0 4px 0 #e3e8ef, 0 10px 16px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.6) }
+    .btn-primary{ background:linear-gradient(90deg,#0a8d4b,#19c37d); color:#062015; border-color:#16a86a; }
+    .pill{ display:inline-flex; align-items:center; border-radius:999px; padding:.2rem .55rem; font-size:.75rem; font-weight:700 }
+    .input, select, textarea{ border:1px solid #d1d5db; border-radius:.6rem; padding:.55rem .7rem; width:100%; }
+    .input:focus, select:focus, textarea:focus{ outline:none; border-color:#19c37d; box-shadow:0 0 0 3px rgba(25,195,125,.20) }
+    .table th{ color:#5b677a }
     [x-cloak]{ display:none !important }
   </style>
 </head>
 
-<body class="bg-bg text-text">
-<div x-data="crm()" x-init="init()" class="min-h-screen">
+<body x-data="crm()" x-init="init()">
 
   <!-- Topbar -->
-  <header class="sticky top-0 z-50 glass border-b border-border">
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-border">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-3.5 h-3.5 rounded-full" style="background:linear-gradient(90deg,var(--g1),var(--g2)); box-shadow:0 0 12px rgba(25,195,125,.7)"></div>
-        <div class="font-extrabold tracking-wide">MONACO DETAILING — CRM</div>
+        <div class="w-3.5 h-3.5 rounded-full" style="background:linear-gradient(90deg,#0a8d4b,#19c37d)"></div>
+        <h1 class="font-extrabold tracking-wide">MONACO DETAILING — CRM</h1>
       </div>
       <div class="flex gap-2">
-        <button class="btn" type="button" @click="toggleTheme()" :aria-label="theme==='dark' ? 'Cambiar a claro' : 'Cambiar a oscuro'">
-          <span x-text="theme==='dark' ? '☾' : '☀'"></span> <span class="sr-only">Tema</span>
-        </button>
-        <button class="btn" type="button" @click="signOut()">Salir</button>
+        <button class="btn" @click="loadAll()">⟳ Actualizar</button>
+        <button class="btn" @click="logout()">Salir</button>
       </div>
     </div>
   </header>
 
-  <!-- Navbar -->
-  <nav class="sticky top-[60px] z-40 glass border-b border-border">
+  <!-- Nav tabs -->
+  <nav class="bg-white border-b border-border">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-2">
-      <button class="btn" :class="{'btn-primary':tab==='dashboard'}" @click="tab='dashboard'" type="button">Dashboard</button>
-      <button class="btn" :class="{'btn-primary':tab==='clientes'}"  @click="tab='clientes'" type="button">Clientes</button>
-      <button class="btn" :class="{'btn-primary':tab==='servicios'}" @click="tab='servicios'" type="button">Servicios</button>
-      <button class="btn" :class="{'btn-primary':tab==='cal'}" @click="tab='cal'" type="button">Calendario</button>
-      <button class="btn" :class="{'btn-primary':tab==='reportes'}" @click="tab='reportes'" type="button">Reportes</button>
+      <button class="btn" :class="{'btn-primary':tab==='home'}" @click="tab='home'">Dashboard</button>
+      <button class="btn" :class="{'btn-primary':tab==='clientes'}" @click="tab='clientes'">Clientes</button>
+      <button class="btn" :class="{'btn-primary':tab==='citas'}" @click="tab='citas'">Citas</button>
+      <button class="btn" :class="{'btn-primary':tab==='vehiculos'}" @click="tab='vehiculos'">Vehículos</button>
     </div>
   </nav>
 
   <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
     <!-- DASHBOARD -->
-    <section x-show="tab==='dashboard'" x-cloak>
+    <section x-show="tab==='home'" x-cloak>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="card p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-lg bg-emerald-900/25 flex items-center justify-center text-brand shadow-soft">👥</div>
-          <div><div class="text-sm text-mut">Clientes Totales</div><div class="text-2xl font-extrabold" x-text="stats.totalClientes"></div></div>
+          <div class="w-12 h-12 rounded-lg bg-emerald-100 text-brand flex items-center justify-center">👥</div>
+          <div>
+            <div class="text-sm text-textmut">Clientes</div>
+            <div class="text-2xl font-extrabold" x-text="stats.clientes"></div>
+          </div>
         </div>
         <div class="card p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-lg bg-emerald-900/25 flex items-center justify-center text-brand shadow-soft">🗓️</div>
-          <div><div class="text-sm text-mut">Servicios Hoy</div><div class="text-2xl font-extrabold" x-text="stats.serviciosHoy"></div></div>
+          <div class="w-12 h-12 rounded-lg bg-emerald-100 text-brand flex items-center justify-center">🗓️</div>
+          <div>
+            <div class="text-sm text-textmut">Citas hoy</div>
+            <div class="text-2xl font-extrabold" x-text="stats.citasHoy"></div>
+          </div>
         </div>
         <div class="card p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-lg bg-emerald-900/25 flex items-center justify-center text-brand shadow-soft">$</div>
-          <div><div class="text-sm text-mut">Ingresos Hoy</div><div class="text-2xl font-extrabold" x-text="fmtARS(stats.ingresosHoy)"></div></div>
+          <div class="w-12 h-12 rounded-lg bg-emerald-100 text-brand flex items-center justify-center">$</div>
+          <div>
+            <div class="text-sm text-textmut">Ingresos hoy</div>
+            <div class="text-2xl font-extrabold" x-text="fmtARS(stats.ingresosHoy)"></div>
+          </div>
         </div>
         <div class="card p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-lg bg-emerald-900/25 flex items-center justify-center text-brand shadow-soft">✅</div>
-          <div><div class="text-sm text-mut">Activos</div><div class="text-2xl font-extrabold" x-text="stats.activos"></div></div>
+          <div class="w-12 h-12 rounded-lg bg-emerald-100 text-brand flex items-center justify-center">🚗</div>
+          <div>
+            <div class="text-sm text-textmut">Vehículos</div>
+            <div class="text-2xl font-extrabold" x-text="stats.vehiculos"></div>
+          </div>
         </div>
       </div>
 
-      <div class="card p-5 mt-4 shadow-card">
-        <h2 class="text-brand font-bold mb-3">Agenda — Google Calendar</h2>
-        <div class="aspect-[4/3] w-full border border-border rounded-xl overflow-hidden bg-[#0f141a]">
-          <iframe class="w-full h-full" frameborder="0" scrolling="no"
-            src="https://calendar.google.com/calendar/embed?src=monacodetailingarg%40gmail.com&ctz=America%2FArgentina%2FBuenos_Aires"></iframe>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <div class="card p-5">
+          <h2 class="font-bold text-brand mb-3">Agenda — Google Calendar</h2>
+          <div class="aspect-[4/3] w-full border border-border rounded-xl overflow-hidden bg-white">
+            <iframe class="w-full h-full" frameborder="0" scrolling="no"
+              src="https://calendar.google.com/calendar/embed?src=monacodetailingarg%40gmail.com&ctz=America%2FArgentina%2FBuenos_Aires"></iframe>
+          </div>
+          <p class="text-sm text-textmut mt-2">Vista del calendario (solo lectura).</p>
         </div>
-        <p class="text-sm text-mut mt-2">Vista de <b>monacodetailingarg@gmail.com</b>.</p>
+
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-bold text-brand">Citas del día</h2>
+            <button class="btn" @click="openCita()">+ Nueva cita</button>
+          </div>
+          <ul class="divide-y">
+            <template x-for="a in citasHoy()" :key="a.id">
+              <li class="py-3 flex items-center justify-between">
+                <div>
+                  <div class="font-semibold" x-text="a.cliente_nombre || 'Cliente'"></div>
+                  <div class="text-sm text-textmut" x-text="a.servicio + ' — ' + fmtARS(a.precio || 0)"></div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="pill" :class="statusPill(a.estado)" x-text="a.estado"></span>
+                  <button class="btn" @click="openCita(a)">Editar</button>
+                </div>
+              </li>
+            </template>
+            <li x-show="citas.length===0" class="text-center py-6 text-textmut">Sin citas cargadas</li>
+          </ul>
+        </div>
       </div>
     </section>
 
     <!-- CLIENTES -->
-    <section x-show="tab==='clientes'" x-cloak class="space-y-4">
-      <div class="card p-5 shadow-card">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <h2 class="text-brand font-bold text-lg">Clientes</h2>
-          <div class="flex gap-2">
-            <input class="btn w-64" placeholder="Buscar..." x-model="cli.search">
-            <button class="btn btn-primary" @click="openClient()" type="button">+ Nuevo cliente</button>
+    <section x-show="tab==='clientes'" x-cloak>
+      <div class="card p-5">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <h2 class="font-bold text-brand text-lg">Clientes</h2>
+          <div class="flex gap-2 w-full md:w-auto">
+            <input class="input w-full md:w-72" placeholder="Buscar…" x-model="filtros.clientQ">
+            <button class="btn btn-primary" @click="openCliente()">+ Nuevo cliente</button>
           </div>
         </div>
 
         <div class="overflow-x-auto mt-4">
-          <table class="min-w-full text-sm">
+          <table class="min-w-full table text-sm">
             <thead>
-              <tr class="text-left text-mut border-b border-border">
-                <th class="py-2 px-3">Cliente</th>
-                <th class="py-2 px-3">Contacto</th>
-                <th class="py-2 px-3">Vehículo</th>
-                <th class="py-2 px-3">Notas</th>
-                <th class="py-2 px-3 text-right">Acciones</th>
+              <tr class="text-left border-b">
+                <th class="py-2 px-3">Nombre</th>
+                <th class="py-2 px-3">Email</th>
+                <th class="py-2 px-3">Teléfono</th>
+                <th class="py-2 px-3">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <template x-for="c in filteredClients()" :key="c.id">
-                <tr class="border-b border-border/60 hover:bg-[#0f171f]">
+              <template x-for="c in clientesFiltrados()" :key="c.id">
+                <tr class="border-b hover:bg-slate-50">
+                  <td class="py-2 px-3" x-text="c.nombre"></td>
+                  <td class="py-2 px-3" x-text="c.email || '—'"></td>
+                  <td class="py-2 px-3" x-text="c.telefono || '—'"></td>
                   <td class="py-2 px-3">
-                    <div class="font-semibold" x-text="c.name"></div>
-                    <div class="text-mut" x-text="c.email"></div>
-                  </td>
-                  <td class="py-2 px-3"><div x-text="c.phone"></div></td>
-                  <td class="py-2 px-3">
-                    <div x-text="(c.vehicle?.brand||'') + ' ' + (c.vehicle?.model||'')"></div>
-                    <div class="text-mut" x-text="(c.vehicle?.year||'') + ' · ' + (c.vehicle?.color||'')"></div>
-                  </td>
-                  <td class="py-2 px-3"><div class="truncate max-w-[280px]" x-text="c.notes||''"></div></td>
-                  <td class="py-2 px-3 text-right">
-                    <button class="btn" @click="openClient(c)" type="button">Editar</button>
-                    <button class="btn" @click="delClient(c.id)" type="button">Eliminar</button>
+                    <button class="btn" @click="openCliente(c)">Editar</button>
+                    <button class="btn" @click="delCliente(c.id)">Eliminar</button>
                   </td>
                 </tr>
               </template>
-              <tr x-show="clients.length===0"><td colspan="5" class="py-6 text-center text-mut">Sin clientes</td></tr>
+              <tr x-show="clientes.length===0"><td colspan="4" class="py-6 text-center text-textmut">Sin clientes</td></tr>
             </tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- SERVICIOS -->
-    <section x-show="tab==='servicios'" x-cloak class="space-y-4">
-      <div class="card p-5 shadow-card">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <h2 class="text-brand font-bold text-lg">Servicios / Citas</h2>
-          <div class="flex gap-2">
-            <input class="btn w-44" type="date" x-model="svc.dateFilter">
-            <select class="btn w-44" x-model="svc.statusFilter">
+    <!-- CITAS -->
+    <section x-show="tab==='citas'" x-cloak>
+      <div class="card p-5">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <h2 class="font-bold text-brand text-lg">Citas</h2>
+          <div class="flex gap-2 w-full md:w-auto">
+            <input class="input w-44" type="date" x-model="filtros.citaFecha">
+            <select class="input w-44" x-model="filtros.citaEstado">
               <option value="">Todos</option>
               <option value="pendiente">Pendiente</option>
               <option value="completado">Completado</option>
               <option value="cancelado">Cancelado</option>
             </select>
-            <button class="btn btn-primary" @click="openService()" type="button">+ Nueva cita</button>
+            <button class="btn btn-primary" @click="openCita()">+ Nueva cita</button>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-          <div class="lg:col-span-2 card shadow-soft">
-            <div class="border-b border-border px-4 py-3 text-mut">Listado</div>
-            <ul>
-              <template x-for="s in filteredServices()" :key="s.id">
-                <li class="px-4 py-3 border-b border-border/60 hover:bg-[#0f171f]">
-                  <div class="flex items-start justify-between gap-2">
-                    <div class="flex-1">
-                      <div class="flex items-center gap-2">
-                        <div class="font-semibold" x-text="s.client_name||'Cliente'"></div>
-                        <span class="chip"
-                          :class="{
-                            'bg-green-900/30 text-green-400': s.status==='completado',
-                            'bg-yellow-900/30 text-yellow-300': s.status==='pendiente',
-                            'bg-red-900/30 text-red-300': s.status==='cancelado'
-                          }" x-text="s.status"></span>
-                      </div>
-                      <div class="text-mut text-sm" x-text="(s.service||'') + ' — ' + fmtARS(s.price||0)"></div>
-                      <div class="text-xs text-mut mt-1" x-text="fmtDateTime(s.date, s.start)"></div>
-                    </div>
-                    <div class="flex gap-2">
-                      <button class="btn" @click="openService(s)" type="button">Editar</button>
-                      <button class="btn" @click="delService(s.id)" type="button">Eliminar</button>
-                    </div>
-                  </div>
-                </li>
+        <div class="overflow-x-auto mt-4">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left border-b">
+                <th class="py-2 px-3">Cliente</th>
+                <th class="py-2 px-3">Servicio</th>
+                <th class="py-2 px-3">Fecha/Hora</th>
+                <th class="py-2 px-3">Precio</th>
+                <th class="py-2 px-3">Estado</th>
+                <th class="py-2 px-3">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="a in citasFiltradas()" :key="a.id">
+                <tr class="border-b hover:bg-slate-50">
+                  <td class="py-2 px-3" x-text="a.cliente_nombre"></td>
+                  <td class="py-2 px-3" x-text="a.servicio"></td>
+                  <td class="py-2 px-3" x-text="fmtDateTime(a.fecha)"></td>
+                  <td class="py-2 px-3" x-text="fmtARS(a.precio || 0)"></td>
+                  <td class="py-2 px-3">
+                    <span class="pill" :class="statusPill(a.estado)" x-text="a.estado"></span>
+                  </td>
+                  <td class="py-2 px-3">
+                    <button class="btn" @click="openCita(a)">Editar</button>
+                    <button class="btn" @click="delCita(a.id)">Eliminar</button>
+                  </td>
+                </tr>
               </template>
-              <li x-show="services.length===0" class="px-4 py-6 text-center text-mut">Sin servicios</li>
-            </ul>
-          </div>
-
-          <div class="card p-4 space-y-3 shadow-soft">
-            <div class="font-semibold text-lg">Resumen del día</div>
-            <div class="flex justify-between"><span class="text-mut">Servicios hoy</span><span class="font-bold" x-text="stats.serviciosHoy"></span></div>
-            <div class="flex justify-between"><span class="text-mut">Completados</span><span class="font-bold text-emerald-400" x-text="servicesToday().filter(s=>s.status==='completado').length"></span></div>
-            <div class="flex justify-between"><span class="text-mut">Pendientes</span><span class="font-bold text-yellow-300" x-text="servicesToday().filter(s=>s.status==='pendiente').length"></span></div>
-            <div class="flex justify-between"><span class="text-mut">Ingresos</span><span class="font-bold" x-text="fmtARS(servicesToday().filter(s=>s.status==='completado').reduce((a,b)=>a+(+b.price||0),0))"></span></div>
-          </div>
+              <tr x-show="citas.length===0"><td colspan="6" class="py-6 text-center text-textmut">Sin citas</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
 
-    <!-- CALENDARIO -->
-    <section x-show="tab==='cal'" x-cloak>
-      <div class="card p-5 shadow-card">
-        <h2 class="text-brand font-bold mb-3">Calendario</h2>
-        <div class="aspect-[4/3] w-full border border-border rounded-xl overflow-hidden bg-[#0f141a]">
-          <iframe class="w-full h-full" frameborder="0" scrolling="no"
-            src="https://calendar.google.com/calendar/embed?src=monacodetailingarg%40gmail.com&ctz=America%2FArgentina%2FBuenos_Aires"></iframe>
+    <!-- VEHÍCULOS -->
+    <section x-show="tab==='vehiculos'" x-cloak>
+      <div class="card p-5">
+        <div class="flex items-center justify-between">
+          <h2 class="font-bold text-brand text-lg">Vehículos</h2>
+          <button class="btn btn-primary" @click="openVehiculo()">+ Nuevo vehículo</button>
         </div>
-      </div>
-    </section>
 
-    <!-- REPORTES (placeholder) -->
-    <section x-show="tab==='reportes'" x-cloak>
-      <div class="card p-6 shadow-card">
-        <h2 class="text-brand font-bold mb-2">Reportes (WIP)</h2>
-        <p class="text-mut">Sección lista para agregar gráficos (ingresos por mes, servicios por tipo, etc.).</p>
+        <div class="overflow-x-auto mt-4">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left border-b">
+                <th class="py-2 px-3">Cliente</th>
+                <th class="py-2 px-3">Marca/Modelo</th>
+                <th class="py-2 px-3">Patente</th>
+                <th class="py-2 px-3">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="v in vehiculos" :key="v.id">
+                <tr class="border-b hover:bg-slate-50">
+                  <td class="py-2 px-3" x-text="v.cliente_nombre || '—'"></td>
+                  <td class="py-2 px-3" x-text="v.marca + ' ' + (v.modelo || '')"></td>
+                  <td class="py-2 px-3" x-text="v.dominio || '—'"></td>
+                  <td class="py-2 px-3">
+                    <button class="btn" @click="openVehiculo(v)">Editar</button>
+                    <button class="btn" @click="delVehiculo(v.id)">Eliminar</button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="vehiculos.length===0"><td colspan="4" class="py-6 text-center text-textmut">Sin vehículos</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
   </main>
 
   <!-- MODAL CLIENTE -->
-  <div x-show="modals.client" x-transition.opacity x-cloak class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
-    <div class="card w-full max-w-lg p-5 shadow-card">
-      <h3 class="text-brand font-bold mb-3" x-text="formClient.id ? 'Editar cliente' : 'Nuevo cliente'"></h3>
+  <div x-show="modal.cliente" x-cloak
+       class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+       x-transition.opacity>
+    <div class="card w-full max-w-lg p-5">
+      <h3 class="font-bold text-brand mb-3" x-text="clienteForm.id ? 'Editar cliente' : 'Nuevo cliente'"></h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input class="btn" placeholder="Nombre" x-model="formClient.name">
-        <input class="btn" placeholder="Email" x-model="formClient.email" type="email">
-        <input class="btn" placeholder="Teléfono" x-model="formClient.phone">
-        <input class="btn" placeholder="Marca" x-model="formClient.vehicle.brand">
-        <input class="btn" placeholder="Modelo" x-model="formClient.vehicle.model">
-        <input class="btn" placeholder="Año" x-model="formClient.vehicle.year" type="number">
-        <input class="btn" placeholder="Color" x-model="formClient.vehicle.color">
-        <textarea class="btn md:col-span-2" rows="3" placeholder="Notas" x-model="formClient.notes"></textarea>
+        <input class="input" placeholder="Nombre" x-model="clienteForm.nombre">
+        <input class="input" placeholder="Email" x-model="clienteForm.email" type="email">
+        <input class="input" placeholder="Teléfono" x-model="clienteForm.telefono">
       </div>
       <div class="mt-4 flex justify-end gap-2">
-        <button class="btn" @click="modals.client=false" type="button">Cancelar</button>
-        <button class="btn btn-primary" @click="saveClient()" type="button">Guardar</button>
+        <button class="btn" @click="modal.cliente=false">Cancelar</button>
+        <button class="btn btn-primary" @click="saveCliente()">Guardar</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL SERVICIO -->
-  <div x-show="modals.service" x-transition.opacity x-cloak class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
-    <div class="card w-full max-w-lg p-5 space-y-3 shadow-card">
-      <h3 class="text-brand font-bold" x-text="formService.id ? 'Editar cita' : 'Nueva cita'"></h3>
+  <!-- MODAL CITA -->
+  <div x-show="modal.cita" x-cloak
+       class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+       x-transition.opacity>
+    <div class="card w-full max-w-lg p-5">
+      <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <select class="btn" x-model="formService.client_id">
+        <select class="input" x-model="citaForm.cliente_id">
           <option value="">Cliente…</option>
-          <template x-for="c in clients" :key="c.id">
-            <option :value="c.id" x-text="c.name"></option>
+          <template x-for="c in clientes" :key="c.id">
+            <option :value="c.id" x-text="c.nombre"></option>
           </template>
         </select>
-        <select class="btn" x-model="formService.service">
-          <option>Interior</option><option>Tratamiento Cerámico</option>
-          <option>Motor a Vapor</option><option>Paquete Completo</option>
-        </select>
-        <input class="btn" type="number" min="0" step="1" placeholder="Precio (ARS)" x-model="formService.price">
-        <input class="btn" type="date" x-model="formService.date">
-        <input class="btn" type="time" x-model="formService.start">
-        <input class="btn" type="time" x-model="formService.end">
-        <select class="btn" x-model="formService.status">
+        <input class="input" placeholder="Servicio" x-model="citaForm.servicio">
+        <input class="input" type="datetime-local" x-model="citaForm.fecha">
+        <input class="input" type="number" min="0" step="1" placeholder="Precio (ARS)" x-model="citaForm.precio">
+        <select class="input" x-model="citaForm.estado">
           <option value="pendiente">Pendiente</option>
           <option value="completado">Completado</option>
           <option value="cancelado">Cancelado</option>
         </select>
-        <textarea class="btn md:col-span-2" rows="3" placeholder="Notas" x-model="formService.notes"></textarea>
+        <textarea class="input md:col-span-2" rows="3" placeholder="Notas" x-model="citaForm.notas"></textarea>
       </div>
-      <div class="flex justify-end gap-2">
-        <button class="btn" @click="modals.service=false" type="button">Cancelar</button>
-        <button class="btn btn-primary" @click="saveService()" type="button">Guardar</button>
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="btn" @click="modal.cita=false">Cancelar</button>
+        <button class="btn btn-primary" @click="saveCita()">Guardar</button>
       </div>
     </div>
   </div>
 
-</div>
+  <!-- MODAL VEHÍCULO -->
+  <div x-show="modal.vehiculo" x-cloak
+       class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+       x-transition.opacity>
+    <div class="card w-full max-w-lg p-5">
+      <h3 class="font-bold text-brand mb-3" x-text="vehiculoForm.id ? 'Editar vehículo' : 'Nuevo vehículo'"></h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <select class="input" x-model="vehiculoForm.cliente_id">
+          <option value="">Cliente…</option>
+          <template x-for="c in clientes" :key="c.id">
+            <option :value="c.id" x-text="c.nombre"></option>
+          </template>
+        </select>
+        <input class="input" placeholder="Marca" x-model="vehiculoForm.marca">
+        <input class="input" placeholder="Modelo" x-model="vehiculoForm.modelo">
+        <input class="input" placeholder="Patente" x-model="vehiculoForm.dominio">
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="btn" @click="modal.vehiculo=false">Cancelar</button>
+        <button class="btn btn-primary" @click="saveVehiculo()">Guardar</button>
+      </div>
+    </div>
+  </div>
 
-<script>
-function crm(){
-  // === Supabase ===
-  const SUPABASE_URL  = "https://aewjhxdusrzluxpzmnxh.supabase.co";
-  const SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFld2poeGR1c3J6bHV4cHptbnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1MzA0NzIsImV4cCI6MjA3MTEwNjQ3Mn0.8DoJ0wjO9Z_X8f5VwsAYwWWWTfOpyX1IGEwjm4f6jhY";
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  <!-- Lógica -->
+  <script type="module">
+    import { supabase } from "./supabaseClient.js";
 
-  return {
-    // Tema
-    theme: (localStorage.getItem('md_theme') || 'dark'),
-    toggleTheme(){
-      this.theme = (this.theme==='dark') ? 'light':'dark';
-      document.documentElement.classList.toggle('dark', this.theme==='dark');
-      localStorage.setItem('md_theme', this.theme);
-    },
+    window.crm = function(){
+      return {
+        // Estado
+        tab: 'home',
+        clientes: [],
+        vehiculos: [],
+        citas: [],
+        modal: { cliente:false, cita:false, vehiculo:false },
+        clienteForm: { id:null, nombre:'', email:'', telefono:'' },
+        citaForm: { id:null, cliente_id:'', servicio:'', fecha:'', precio:'', estado:'pendiente', notas:'' },
+        vehiculoForm: { id:null, cliente_id:'', marca:'', modelo:'', dominio:'' },
 
-    // Navegación
-    tab: 'dashboard',
-    modals: { client:false, service:false },
+        filtros: { clientQ:'', citaFecha:'', citaEstado:'' },
 
-    // Helpers
-    fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
-    fmtDateTime(date, start){
-      if(!date) return '';
-      const d = new Date(date + (start?('T'+start):'T00:00'));
-      return d.toLocaleString('es-AR',{weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
-    },
+        stats: { clientes:0, citasHoy:0, ingresosHoy:0, vehiculos:0 },
 
-    // Datos
-    clients: [],
-    services: [],
-    stats: { totalClientes:0, serviciosHoy:0, ingresosHoy:0, activos:0 },
+        // Helpers
+        fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
+        fmtDateTime(iso){
+          if(!iso) return '';
+          const d=new Date(iso);
+          return d.toLocaleString('es-AR',{weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
+        },
+        statusPill(s){
+          return {
+            'bg-emerald-100 text-emerald-700': s==='completado',
+            'bg-yellow-100 text-yellow-700': s==='pendiente',
+            'bg-red-100 text-red-700': s==='cancelado'
+          };
+        },
 
-    cli:{ search:'' },
-    svc:{ dateFilter:'', statusFilter:'' },
+        // Init
+        async init(){
+          // si no hay sesión, volver al login
+          const { data: { session } } = await supabase.auth.getSession();
+          if(!session){ location.href='./index.html'; return; }
+          await this.loadAll();
+        },
+        async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); },
 
-    // Formularios
-    formClient: {
-      id:null, name:'', email:'', phone:'',
-      vehicle:{brand:'',model:'',year:'',color:''},
-      notes:''
-    },
-    formService:{
-      id:null, client_id:'', service:'Interior', price:'', date:'', start:'10:00', end:'11:00', status:'pendiente', notes:''
-    },
+        // Logout
+        async logout(){ await supabase.auth.signOut(); location.href='./index.html'; },
 
-    // Sesión mínima
-    async signOut(){ try{ await supabase.auth.signOut(); location.href='./index.html'; }catch{} },
+        // ----- Clientes -----
+        async loadClientes(){
+          const { data, error } = await supabase.from('clientes').select('*').order('creado_en',{ascending:false});
+          this.clientes = data || [];
+        },
+        openCliente(c){
+          this.clienteForm = c ? JSON.parse(JSON.stringify(c)) : { id:null, nombre:'', email:'', telefono:'' };
+          this.modal.cliente = true;
+        },
+        async saveCliente(){
+          const r = { nombre:this.clienteForm.nombre, email:this.clienteForm.email, telefono:this.clienteForm.telefono };
+          if(this.clienteForm.id) await supabase.from('clientes').update(r).eq('id', this.clienteForm.id);
+          else await supabase.from('clientes').insert(r);
+          this.modal.cliente=false; await this.loadClientes(); this.recalc();
+        },
+        async delCliente(id){
+          if(!confirm('¿Eliminar cliente?')) return;
+          await supabase.from('clientes').delete().eq('id', id);
+          await this.loadClientes(); this.recalc();
+        },
+        clientesFiltrados(){
+          const q=(this.filtros.clientQ||'').toLowerCase();
+          if(!q) return this.clientes;
+          return this.clientes.filter(c =>
+            (c.nombre||'').toLowerCase().includes(q) ||
+            (c.email||'').toLowerCase().includes(q) ||
+            (c.telefono||'').toLowerCase().includes(q)
+          );
+        },
 
-    // Init
-    async init(){
-      await Promise.all([this.loadClients(), this.loadServices()]);
-      this.recalcStats();
-    },
+        // ----- Vehículos -----
+        async loadVehiculos(){
+          const { data, error } = await supabase
+            .from('vehiculos')
+            .select('*, clientes(nombre)')
+            .order('creado_en',{ascending:false});
+          this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
+        },
+        openVehiculo(v){
+          this.vehiculoForm = v ? {id:v.id, cliente_id:v.cliente_id, marca:v.marca, modelo:v.modelo, dominio:v.dominio}
+                                : {id:null, cliente_id:'', marca:'', modelo:'', dominio:''};
+          this.modal.vehiculo = true;
+        },
+        async saveVehiculo(){
+          const r = { cliente_id:this.vehiculoForm.cliente_id || null, marca:this.vehiculoForm.marca, modelo:this.vehiculoForm.modelo, dominio:this.vehiculoForm.dominio };
+          if(this.vehiculoForm.id) await supabase.from('vehiculos').update(r).eq('id', this.vehiculoForm.id);
+          else await supabase.from('vehiculos').insert(r);
+          this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc();
+        },
+        async delVehiculo(id){
+          if(!confirm('¿Eliminar vehículo?')) return;
+          await supabase.from('vehiculos').delete().eq('id', id);
+          await this.loadVehiculos(); this.recalc();
+        },
 
-    // ---------- CLIENTES ----------
-    async loadClients(){
-      const { data } = await supabase.from('clients').select('*').order('created_at',{ascending:false});
-      this.clients = data || [];
-    },
-    filteredClients(){
-      const q = (this.cli.search||'').toLowerCase();
-      if(!q) return this.clients;
-      return this.clients.filter(c =>
-        (c.name||'').toLowerCase().includes(q) ||
-        (c.email||'').toLowerCase().includes(q) ||
-        (c.phone||'').toLowerCase().includes(q) ||
-        (c.vehicle?.brand||'').toLowerCase().includes(q) ||
-        (c.vehicle?.model||'').toLowerCase().includes(q)
-      );
-    },
-    openClient(c){
-      this.formClient = c ? JSON.parse(JSON.stringify(c)) : {
-        id:null, name:'', email:'', phone:'',
-        vehicle:{brand:'',model:'',year:'',color:''}, notes:''
-      };
-      this.modals.client = true;
-    },
-    async saveClient(){
-      const row = {
-        name:this.formClient.name, email:this.formClient.email, phone:this.formClient.phone,
-        vehicle:this.formClient.vehicle, notes:this.formClient.notes
-      };
-      if(this.formClient.id){
-        await supabase.from('clients').update(row).eq('id', this.formClient.id);
-      } else {
-        await supabase.from('clients').insert(row);
+        // ----- Citas -----
+        async loadCitas(){
+          const { data, error } = await supabase
+            .from('citas')
+            .select('*, clientes(nombre)')
+            .order('fecha',{ascending:false});
+          this.citas = (data||[]).map(a => ({...a, cliente_nombre: a.clientes?.nombre || ''}));
+        },
+        openCita(a){
+          this.citaForm = a ? { id:a.id, cliente_id:a.cliente_id, servicio:a.servicio, fecha:a.fecha?.slice(0,16), precio:a.precio||'', estado:a.estado||'pendiente', notas:a.notas||'' }
+                            : { id:null, cliente_id:'', servicio:'', fecha:new Date().toISOString().slice(0,16), precio:'', estado:'pendiente', notas:'' };
+          this.modal.cita = true;
+        },
+        async saveCita(){
+          // normalizo fecha a ISO con segundos
+          const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
+          const r = {
+            cliente_id: this.citaForm.cliente_id || null,
+            servicio: this.citaForm.servicio,
+            fecha: fechaISO ? fechaISO.toISOString() : null,
+            precio: +this.citaForm.precio || 0,
+            estado: this.citaForm.estado,
+            notas: this.citaForm.notas
+          };
+          if(this.citaForm.id) await supabase.from('citas').update(r).eq('id', this.citaForm.id);
+          else await supabase.from('citas').insert(r);
+          this.modal.cita=false; await this.loadCitas(); this.recalc();
+        },
+        async delCita(id){
+          if(!confirm('¿Eliminar cita?')) return;
+          await supabase.from('citas').delete().eq('id', id);
+          await this.loadCitas(); this.recalc();
+        },
+        citasFiltradas(){
+          let arr = this.citas.slice();
+          if(this.filtros.citaFecha) {
+            const d = this.filtros.citaFecha;
+            arr = arr.filter(x => (x.fecha||'').slice(0,10) === d);
+          }
+          if(this.filtros.citaEstado) arr = arr.filter(x => (x.estado||'') === this.filtros.citaEstado);
+          return arr;
+        },
+        citasHoy(){
+          const t = new Date().toISOString().slice(0,10);
+          return this.citas.filter(x => (x.fecha||'').slice(0,10) === t);
+        },
+
+        // KPIs
+        recalc(){
+          this.stats.clientes = this.clientes.length;
+          this.stats.vehiculos = this.vehiculos.length;
+          const hoy = this.citasHoy();
+          this.stats.citasHoy = hoy.length;
+          this.stats.ingresosHoy = hoy
+            .filter(x => x.estado==='completado')
+            .reduce((a,b)=>a+(+b.precio||0),0);
+        }
       }
-      this.modals.client=false;
-      await this.loadClients();   // refresca
-      this.recalcStats();         // KPIs al día
-    },
-    async delClient(id){
-      if(!confirm('¿Eliminar cliente?')) return;
-      await supabase.from('clients').delete().eq('id', id);
-      await this.loadClients(); this.recalcStats();
-    },
-
-    // ---------- SERVICIOS ----------
-    async loadServices(){
-      const { data } = await supabase.from('appointments')
-        .select('*, clients(name)').order('date',{ascending:false});
-      this.services = (data||[]).map(r=>({ ...r, client_name: r.clients?.name || '' }));
-    },
-    filteredServices(){
-      let s = this.services.slice();
-      if(this.svc.dateFilter) s = s.filter(x => x.date === this.svc.dateFilter);
-      if(this.svc.statusFilter) s = s.filter(x => (x.status||'') === this.svc.statusFilter);
-      return s;
-    },
-    servicesToday(){
-      const t = new Date().toISOString().slice(0,10);
-      return this.services.filter(x => x.date === t);
-    },
-    openService(s){
-      this.formService = s ? {
-        id:s.id, client_id:s.client_id, service:s.service, price:s.price||0,
-        date:s.date, start:s.start||'10:00', end:s.end||'11:00',
-        status:s.status||'pendiente', notes:s.notes||''
-      } : { id:null, client_id:'', service:'Interior', price:'', date:new Date().toISOString().slice(0,10), start:'10:00', end:'11:00', status:'pendiente', notes:'' };
-      this.modals.service = true;
-    },
-    async saveService(){
-      const row = {
-        client_id:this.formService.client_id, service:this.formService.service,
-        price:+this.formService.price||0, date:this.formService.date,
-        start:this.formService.start, end:this.formService.end,
-        status:this.formService.status, notes:this.formService.notes
-      };
-      if(this.formService.id){
-        await supabase.from('appointments').update(row).eq('id', this.formService.id);
-      } else {
-        await supabase.from('appointments').insert(row);
-      }
-      this.modals.service=false;
-      await this.loadServices();  // refresca
-      this.recalcStats();         // KPIs al día
-    },
-    async delService(id){
-      if(!confirm('¿Eliminar cita?')) return;
-      await supabase.from('appointments').delete().eq('id', id);
-      await this.loadServices(); this.recalcStats();
-    },
-
-    // ---------- KPIs ----------
-    recalcStats(){
-      this.stats.totalClientes = this.clients.length;
-      this.stats.activos = this.clients.filter(c=> (c.status||'activo')==='activo').length;
-      const today = this.servicesToday();
-      this.stats.serviciosHoy = today.length;
-      this.stats.ingresosHoy = today
-        .filter(s=>s.status==='completado')
-        .reduce((a,b)=>a+(+b.price||0),0);
     }
-  }
-}
-</script>
+  </script>
 </body>
 </html>
