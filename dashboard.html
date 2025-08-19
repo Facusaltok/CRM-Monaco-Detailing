@@ -1,620 +1,452 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="dark">
+<html lang="es" class="dark">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Monaco Detailing CRM — Panel</title>
-<meta name="theme-color" content="#0a8d4b" />
-<style>
-  html, body { overscroll-behavior: none; }
-  :root{ --bg:#0a0a0a; --panel:#101317; --border:#1f2937; --text:#e5e7eb; --mut:#9fb0bf; --accent:#0a8d4b; --accent2:#19c37d }
-  :root[data-theme="light"]{ --bg:#f6f8fb; --panel:#ffffff; --border:#d9e1ea; --text:#0b1220; --mut:#465366 }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial}
-  header{position:sticky;top:0;z-index:100;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(16,19,23,.9);border-bottom:1px solid var(--border)}
-  :root[data-theme="light"] header{background:#fff}
-  nav{position:sticky;top:56px;z-index:90;display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--panel);flex-wrap:wrap}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800}
-  .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 14px rgba(25,195,125,.7)}
-  .actions{display:flex;gap:8px;flex-wrap:wrap}
-  .btn{border:1px solid var(--border);background:#0f141a;color:var(--text);padding:.55rem .8rem;border-radius:10px;cursor:pointer}
-  .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#07150f;border-color:transparent;font-weight:800}
-  :root[data-theme="light"] .btn{background:#f7f9fc}
-  .tabbtn{border:1px solid var(--border);background:var(--panel);color:var(--text);padding:.55rem .8rem;border-radius:10px;cursor:pointer}
-  .tabbtn.active{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#0a120c;border-color:transparent;font-weight:800}
-  .container{max-width:1300px;margin:14px auto;padding:0 12px 24px}
-  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
-  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
-  .card h2{margin:.2rem 0 .6rem;font-size:1.05rem;color:var(--accent)}
-  .drag-handle{cursor:grab; user-select:none; opacity:.9; font-size:.9rem; color:var(--mut)}
-  table{width:100%;border-collapse:collapse}
-  th,td{border:1px solid var(--border);padding:.5rem;text-align:left}
-  th{background:rgba(255,255,255,.04)}
-  input,select,textarea{width:100%;padding:.55rem .6rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text)}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-  .mut{color:var(--mut)}
-  .week{display:grid;grid-template-columns:80px repeat(7,1fr);gap:6px}
-  .hours{display:grid;grid-template-rows:repeat(24,36px);gap:6px}
-  .daycol{display:grid;grid-template-rows:repeat(24,36px);gap:6px;position:relative}
-  .slot{border:1px dashed rgba(255,255,255,.06);border-radius:8px}
-  :root[data-theme="light"] .slot{border-color:#e8edf4}
-  .event{position:relative;margin:2px;border:1px solid rgba(25,195,125,.45);background:linear-gradient(90deg,var(--accent),var(--accent2));color:#07150f;font-weight:800;font-size:12px;border-radius:8px;padding:6px 8px;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}
-  .modalBack{position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:200; pointer-events:none;}
-  .modalBack.show{ display:flex; pointer-events:auto; }
-  .modal{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px}
-  .modal h3{margin:.2rem 0 .6rem;color:var(--accent)}
-  .row{display:grid;grid-template-columns:1fr 1fr; gap:8px}
-  .cal-embed{ position:relative; width:100%; aspect-ratio: 4 / 3; background:#0f141a; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
-  .cal-embed iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Monaco Detailing — CRM (Alpine + Tailwind)</title>
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bg: "#0a0a0a",
+            panel: "#101317",
+            border: "#1f2937",
+            text: "#e5e7eb",
+            mut: "#9fb0bf",
+            brand: "#0a8d4b"
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Fuente e Alpine -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Supabase JS -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <style>
+    body{font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial}
+    .card{ @apply bg-panel border border-border rounded-xl shadow-sm; }
+    .btn{ @apply px-3 py-2 rounded-lg border border-border bg-[#0f141a] text-text hover:bg-[#101820] transition; }
+    .btn-primary{ background:linear-gradient(90deg,#0a8d4b,#19c37d); color:#06130d; border-color:transparent; font-weight:800;}
+    .chip{ @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
+  </style>
 </head>
-<body>
+<body class="bg-bg text-text">
+<div x-data="crm()" class="min-h-screen">
 
-<header>
-  <div class="brand"><div class="dot"></div><div>MONACO DETAILING — CRM</div></div>
-  <div class="actions">
-    <button id="btnTheme" class="btn" title="Claro/Oscuro" type="button">☾/☀</button>
-    <button id="btnSignOut" class="btn" type="button">Salir</button>
+  <!-- Topbar -->
+  <header class="sticky top-0 z-50 bg-panel/90 backdrop-blur border-b border-border">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-3.5 h-3.5 rounded-full" style="background:linear-gradient(90deg,#0a8d4b,#19c37d); box-shadow:0 0 12px rgba(25,195,125,.7)"></div>
+        <div class="font-extrabold">MONACO DETAILING — CRM</div>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn" @click="toggleTheme()">☾/☀</button>
+        <button class="btn" @click="signOut()">Salir</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navbar -->
+  <nav class="sticky top-[56px] z-40 bg-panel border-b border-border">
+    <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap gap-2">
+      <button class="btn" :class="{'btn-primary':tab==='dashboard'}" @click="tab='dashboard'" type="button">Dashboard</button>
+      <button class="btn" :class="{'btn-primary':tab==='clientes'}"  @click="tab='clientes'" type="button">Clientes</button>
+      <button class="btn" :class="{'btn-primary':tab==='servicios'}" @click="tab='servicios'" type="button">Servicios</button>
+      <button class="btn" :class="{'btn-primary':tab==='cal'}" @click="tab='cal'" type="button">Calendario</button>
+      <button class="btn" :class="{'btn-primary':tab==='reportes'}" @click="tab='reportes'" type="button">Reportes</button>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- DASHBOARD -->
+    <section x-show="tab==='dashboard'" x-cloak>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="card p-5 flex items-center gap-4">
+          <div class="w-12 h-12 rounded-lg bg-emerald-900/20 flex items-center justify-center text-brand">👥</div>
+          <div><div class="text-sm text-mut">Clientes Totales</div><div class="text-2xl font-extrabold" x-text="stats.totalClientes"></div></div>
+        </div>
+        <div class="card p-5 flex items-center gap-4">
+          <div class="w-12 h-12 rounded-lg bg-emerald-900/20 flex items-center justify-center text-brand">🗓️</div>
+          <div><div class="text-sm text-mut">Servicios Hoy</div><div class="text-2xl font-extrabold" x-text="stats.serviciosHoy"></div></div>
+        </div>
+        <div class="card p-5 flex items-center gap-4">
+          <div class="w-12 h-12 rounded-lg bg-emerald-900/20 flex items-center justify-center text-brand">$</div>
+          <div><div class="text-sm text-mut">Ingresos Hoy</div><div class="text-2xl font-extrabold" x-text="fmtARS(stats.ingresosHoy)"></div></div>
+        </div>
+        <div class="card p-5 flex items-center gap-4">
+          <div class="w-12 h-12 rounded-lg bg-emerald-900/20 flex items-center justify-center text-brand">✅</div>
+          <div><div class="text-sm text-mut">Activos</div><div class="text-2xl font-extrabold" x-text="stats.activos"></div></div>
+        </div>
+      </div>
+
+      <div class="card p-5 mt-4">
+        <h2 class="text-brand font-bold mb-3">Agenda — Google Calendar</h2>
+        <div class="aspect-[4/3] w-full border border-border rounded-xl overflow-hidden bg-[#0f141a]">
+          <iframe class="w-full h-full" frameborder="0" scrolling="no"
+            src="https://calendar.google.com/calendar/embed?src=monacodetailingarg%40gmail.com&ctz=America%2FArgentina%2FBuenos_Aires"></iframe>
+        </div>
+        <p class="text-sm text-mut mt-2">Vista de <b>monacodetailingarg@gmail.com</b>.</p>
+      </div>
+    </section>
+
+    <!-- CLIENTES -->
+    <section x-show="tab==='clientes'" x-cloak class="space-y-4">
+      <div class="card p-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <h2 class="text-brand font-bold">Clientes</h2>
+          <div class="flex gap-2">
+            <input class="btn w-64" placeholder="Buscar..." x-model="cli.search">
+            <button class="btn-primary px-4 py-2 rounded-lg" @click="openClient()"
+              type="button">+ Nuevo cliente</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left text-mut border-b border-border">
+                <th class="py-2 px-3">Cliente</th>
+                <th class="py-2 px-3">Contacto</th>
+                <th class="py-2 px-3">Vehículo</th>
+                <th class="py-2 px-3">Notas</th>
+                <th class="py-2 px-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="c in filteredClients()" :key="c.id">
+                <tr class="border-b border-border/60 hover:bg-[#0f141a]">
+                  <td class="py-2 px-3">
+                    <div class="font-semibold" x-text="c.name"></div>
+                    <div class="text-mut" x-text="c.email"></div>
+                  </td>
+                  <td class="py-2 px-3">
+                    <div x-text="c.phone"></div>
+                  </td>
+                  <td class="py-2 px-3">
+                    <div x-text="(c.vehicle?.brand||'') + ' ' + (c.vehicle?.model||'')"></div>
+                    <div class="text-mut" x-text="(c.vehicle?.year||'') + ' · ' + (c.vehicle?.color||'')"></div>
+                  </td>
+                  <td class="py-2 px-3">
+                    <div class="truncate max-w-[280px]" x-text="c.notes||''"></div>
+                  </td>
+                  <td class="py-2 px-3 text-right">
+                    <button class="btn" @click="openClient(c)" type="button">Editar</button>
+                    <button class="btn" @click="delClient(c.id)" type="button">Eliminar</button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="clients.length===0"><td colspan="5" class="py-6 text-center text-mut">Sin clientes</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SERVICIOS -->
+    <section x-show="tab==='servicios'" x-cloak class="space-y-4">
+      <div class="card p-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <h2 class="text-brand font-bold">Servicios / Citas</h2>
+          <div class="flex gap-2">
+            <input class="btn w-44" type="date" x-model="svc.dateFilter">
+            <select class="btn w-44" x-model="svc.statusFilter">
+              <option value="">Todos</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="completado">Completado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+            <button class="btn-primary px-4 py-2 rounded-lg" @click="openService()" type="button">+ Nueva cita</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+          <div class="lg:col-span-2 card">
+            <div class="border-b border-border px-4 py-3 text-mut">Listado</div>
+            <ul>
+              <template x-for="s in filteredServices()" :key="s.id">
+                <li class="px-4 py-3 border-b border-border/60 hover:bg-[#0f141a]">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2">
+                        <div class="font-semibold" x-text="s.client_name||'Cliente'"></div>
+                        <span class="chip"
+                          :class="{
+                            'bg-green-900/30 text-green-400': s.status==='completado',
+                            'bg-yellow-900/30 text-yellow-300': s.status==='pendiente',
+                            'bg-red-900/30 text-red-300': s.status==='cancelado'
+                          }" x-text="s.status"></span>
+                      </div>
+                      <div class="text-mut text-sm" x-text="(s.service||'') + ' — $' + (s.price||0)"></div>
+                      <div class="text-xs text-mut mt-1" x-text="fmtDateTime(s.date, s.start)"></div>
+                    </div>
+                    <div class="flex gap-2">
+                      <button class="btn" @click="openService(s)" type="button">Editar</button>
+                      <button class="btn" @click="delService(s.id)" type="button">Eliminar</button>
+                    </div>
+                  </div>
+                </li>
+              </template>
+              <li x-show="services.length===0" class="px-4 py-6 text-center text-mut">Sin servicios</li>
+            </ul>
+          </div>
+
+          <div class="card p-4 space-y-3">
+            <div class="font-semibold text-lg">Resumen del día</div>
+            <div class="flex justify-between"><span class="text-mut">Servicios hoy</span><span class="font-bold" x-text="stats.serviciosHoy"></span></div>
+            <div class="flex justify-between"><span class="text-mut">Completados</span><span class="font-bold text-emerald-400" x-text="servicesToday().filter(s=>s.status==='completado').length"></span></div>
+            <div class="flex justify-between"><span class="text-mut">Pendientes</span><span class="font-bold text-yellow-300" x-text="servicesToday().filter(s=>s.status==='pendiente').length"></span></div>
+            <div class="flex justify-between"><span class="text-mut">Ingresos</span><span class="font-bold" x-text="fmtARS(servicesToday().filter(s=>s.status==='completado').reduce((a,b)=>a+(+b.price||0),0))"></span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CALENDARIO (iframe solo lectura) -->
+    <section x-show="tab==='cal'" x-cloak>
+      <div class="card p-5">
+        <h2 class="text-brand font-bold mb-3">Calendario</h2>
+        <div class="aspect-[4/3] w-full border border-border rounded-xl overflow-hidden bg-[#0f141a]">
+          <iframe class="w-full h-full" frameborder="0" scrolling="no"
+            src="https://calendar.google.com/calendar/embed?src=monacodetailingarg%40gmail.com&ctz=America%2FArgentina%2FBuenos_Aires"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- REPORTES (placeholder) -->
+    <section x-show="tab==='reportes'" x-cloak>
+      <div class="card p-6">
+        <h2 class="text-brand font-bold mb-2">Reportes (WIP)</h2>
+        <p class="text-mut">Acá podemos sumar gráficos (ingresos mensuales, servicios por tipo, etc.).</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL CLIENTE -->
+  <div x-show="modals.client" x-transition class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" x-cloak>
+    <div class="card w-full max-w-lg p-5">
+      <h3 class="text-brand font-bold mb-3" x-text="formClient.id ? 'Editar cliente' : 'Nuevo cliente'"></h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input class="btn" placeholder="Nombre" x-model="formClient.name">
+        <input class="btn" placeholder="Email" x-model="formClient.email" type="email">
+        <input class="btn" placeholder="Teléfono" x-model="formClient.phone">
+        <input class="btn" placeholder="Marca" x-model="formClient.vehicle.brand">
+        <input class="btn" placeholder="Modelo" x-model="formClient.vehicle.model">
+        <input class="btn" placeholder="Año" x-model="formClient.vehicle.year" type="number">
+        <input class="btn" placeholder="Color" x-model="formClient.vehicle.color">
+        <textarea class="btn md:col-span-2" rows="3" placeholder="Notas" x-model="formClient.notes"></textarea>
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="btn" @click="modals.client=false" type="button">Cancelar</button>
+        <button class="btn-primary px-4 py-2 rounded-lg" @click="saveClient()" type="button">Guardar</button>
+      </div>
+    </div>
   </div>
-</header>
 
-<nav>
-  <button class="tabbtn active" data-tab="dash" type="button">Dashboard</button>
-  <button class="tabbtn" data-tab="clientes" type="button">Clientes</button>
-  <button class="tabbtn" data-tab="agenda" type="button">Agenda</button>
-  <button class="tabbtn" data-tab="gastos" type="button">Gastos</button>
-  <button class="tabbtn" data-tab="ajustes" type="button">Ajustes</button>
-</nav>
-
-<div class="container">
-
-  <!-- DASHBOARD -->
-  <section id="tab-dash" class="tab" style="display:block">
-    <div class="grid" id="dashGrid" data-grid="dash">
-      <div class="card" data-id="kpis">
-        <div class="drag-handle">↕ KPIs</div>
-        <h2>Métricas</h2>
-        <div class="grid">
-          <div class="card"><div class="mut">Ingresos del mes</div><div id="kpiRevenue" style="font-size:26px;font-weight:800;margin-top:6px">$0</div></div>
-          <div class="card"><div class="mut">Citas hoy</div><div id="kpiAppts" style="font-size:26px;font-weight:800;margin-top:6px">0</div></div>
-          <div class="card"><div class="mut">Nuevos clientes</div><div id="kpiClients" style="font-size:26px;font-weight:800;margin-top:6px">0</div></div>
-          <!-- KPI actualizado: Gastos -->
-          <div class="card"><div class="mut">Gastos</div><div id="kpiExpenses" style="font-size:26px;font-weight:800;margin-top:6px">$0</div></div>
-        </div>
-      </div>
-
-      <!-- Google Calendar embebido en Dashboard -->
-      <div class="card" data-id="gcal">
-        <div class="drag-handle">↕ Agenda Google</div>
-        <h2>Agenda — Google Calendar</h2>
-        <div class="cal-embed">
-          <iframe
-            src="https://calendar.google.com/calendar/embed?src=monacodetailingarg%40gmail.com&ctz=America%2FArgentina%2FBuenos_Aires"
-            frameborder="0" scrolling="no" allowfullscreen>
-          </iframe>
-        </div>
-        <small class="mut">Agenda en vivo de <b>monacodetailingarg@gmail.com</b>.</small>
-      </div>
-
-      <!-- Se eliminaron: Leads y Servicios (ranking) -->
-    </div>
-  </section>
-
-  <!-- CLIENTES -->
-  <section id="tab-clientes" class="tab" style="display:none">
-    <div class="card">
-      <h2>Clientes</h2>
-      <div class="toolbar">
-        <input id="cliSearch" placeholder="Buscar por nombre, email o teléfono" />
-        <button id="btnNewClient" class="btn primary" type="button">+ Nuevo cliente</button>
-      </div>
-      <table>
-        <thead><tr><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Vehículo</th><th></th></tr></thead>
-        <tbody id="clientsTbody"><tr><td colspan="5" class="mut">Cargando…</td></tr></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- AGENDA -->
-  <section id="tab-agenda" class="tab" style="display:none">
-    <div class="card">
-      <h2>Agenda semanal</h2>
-      <div class="toolbar">
-        <button class="btn" id="btnPrev" type="button">◀︎ Semana</button>
-        <button class="btn" id="btnToday" type="button">Hoy</button>
-        <button class="btn" id="btnNext" type="button">Semana ▶︎</button>
-        <input id="gcalId" placeholder="tu-cal@group.calendar.google.com" style="min-width:280px"/>
-        <button class="btn" id="btnSync" type="button">Actualizar GCal</button>
-        <button class="btn primary" id="btnNewAppt" type="button">+ Nueva cita</button>
-        <span id="rangeLabel" class="mut"></span>
-      </div>
-      <div class="week" id="weekGrid">
-        <div class="hours" id="hours"></div>
-        <div class="daycol" data-day="1"></div>
-        <div class="daycol" data-day="2"></div>
-        <div class="daycol" data-day="3"></div>
-        <div class="daycol" data-day="4"></div>
-        <div class="daycol" data-day="5"></div>
-        <div class="daycol" data-day="6"></div>
-        <div class="daycol" data-day="7"></div>
-      </div>
-    </div>
-
-    <!-- Google Calendar embebido también en Agenda -->
-    <div class="card">
-      <h2>Google Calendar (vista completa)</h2>
-      <div class="cal-embed">
-        <iframe
-          src="https://calendar.google.com/calendar/embed?src=monacodetailingarg%40gmail.com&ctz=America%2FArgentina%2FBuenos_Aires"
-          frameborder="0" scrolling="no" allowfullscreen>
-        </iframe>
-      </div>
-    </div>
-  </section>
-
-  <!-- GASTOS (NUEVA PESTAÑA) -->
-  <section id="tab-gastos" class="tab" style="display:none">
-    <div class="card">
-      <h2>Gastos</h2>
-      <div class="toolbar">
-        <button id="btnNewExpense" class="btn primary" type="button">+ Nuevo gasto</button>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Descripción</th>
-            <th>Monto</th>
-            <th>Categoría</th>
-            <th>Estado</th>
-            <th style="width:140px"></th>
-          </tr>
-        </thead>
-        <tbody id="expensesTbody"><tr><td colspan="6" class="mut">Cargando…</td></tr></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- AJUSTES -->
-  <section id="tab-ajustes" class="tab" style="display:none">
-    <div class="card">
-      <h2>Ajustes</h2>
-      <div class="grid">
-        <div class="card">
-          <h3>Google Calendar</h3>
-          <label>Calendar ID</label><input id="setCalendarId" placeholder="tu-cal@group.calendar.google.com" />
-          <label><input type="checkbox" id="setCreateGCal"/> Crear evento en Google al guardar cita</label>
-          <div class="toolbar"><button id="btnSaveSettings" class="btn primary" type="button">Guardar ajustes</button></div>
-          <small class="mut">Para crear eventos reales en Google, implementa <code>/api/calendar-create</code> con OAuth.</small>
-        </div>
-      </div>
-    </div>
-  </section>
-
-</div>
-
-<!-- MODALES -->
-<div class="modalBack" id="modalClient">
-  <div class="modal">
-    <h3 id="cliTitle">Cliente</h3>
-    <label>Nombre</label><input id="cliName" />
-    <label>Teléfono</label><input id="cliPhone" />
-    <label>Email</label><input id="cliEmail" type="email" />
-    <div class="row">
-      <div><label>Marca</label><input id="cliBrand" placeholder="Toyota"/></div>
-      <div><label>Modelo</label><input id="cliModel" placeholder="Corolla"/></div>
-    </div>
-    <div class="row">
-      <div><label>Año</label><input id="cliYear" type="number" placeholder="2022"/></div>
-      <div><label>Color</label><input id="cliColor" placeholder="Negro"/></div>
-    </div>
-    <label>Notas</label><textarea id="cliNotes" rows="3"></textarea>
-    <div class="toolbar" style="justify-content:flex-end">
-      <button class="btn" id="cliCancel" type="button">Cancelar</button>
-      <button class="btn primary" id="cliSave" type="button">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modalBack" id="modalAppt">
-  <div class="modal">
-    <h3 id="apptTitle">Cita</h3>
-    <label>Cliente</label>
-    <select id="apptClient"></select>
-    <div class="row">
-      <div><label>Servicio</label>
-        <select id="apptService">
+  <!-- MODAL SERVICIO -->
+  <div x-show="modals.service" x-transition class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" x-cloak>
+    <div class="card w-full max-w-lg p-5 space-y-3">
+      <h3 class="text-brand font-bold" x-text="formService.id ? 'Editar cita' : 'Nueva cita'"></h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <select class="btn" x-model="formService.client_id">
+          <option value="">Cliente…</option>
+          <template x-for="c in clients" :key="c.id">
+            <option :value="c.id" x-text="c.name"></option>
+          </template>
+        </select>
+        <select class="btn" x-model="formService.service">
           <option>Interior</option><option>Tratamiento Cerámico</option>
           <option>Motor a Vapor</option><option>Paquete Completo</option>
         </select>
-      </div>
-      <div><label>Fecha</label><input id="apptDate" type="date"/></div>
-    </div>
-    <div class="row">
-      <div><label>Inicio</label><input id="apptStart" type="time"/></div>
-      <div><label>Fin</label><input id="apptEnd" type="time"/></div>
-    </div>
-    <label>Notas</label><textarea id="apptNotes" rows="3"></textarea>
-    <div class="toolbar" style="justify-content:flex-end">
-      <button class="btn" id="apptCancel" type="button">Cancelar</button>
-      <button class="btn primary" id="apptSave" type="button">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal GASTO -->
-<div class="modalBack" id="modalExpense">
-  <div class="modal">
-    <h3 id="expTitle">Gasto</h3>
-    <div class="row">
-      <div><label>Fecha</label><input id="expDate" type="date"/></div>
-      <div><label>Monto</label><input id="expAmount" type="number" step="0.01" /></div>
-    </div>
-    <label>Descripción</label><input id="expDesc" />
-    <div class="row">
-      <div><label>Categoría</label><input id="expCat" placeholder="Insumos / Alquiler / Publicidad / ..."/></div>
-      <div><label>Estado</label>
-        <select id="expStatus">
-          <option>Pendiente</option><option>Pagado</option><option>Programado</option>
+        <input class="btn" type="number" min="0" step="1" placeholder="Precio (ARS)" x-model="formService.price">
+        <input class="btn" type="date" x-model="formService.date">
+        <input class="btn" type="time" x-model="formService.start">
+        <input class="btn" type="time" x-model="formService.end">
+        <select class="btn" x-model="formService.status">
+          <option value="pendiente">Pendiente</option>
+          <option value="completado">Completado</option>
+          <option value="cancelado">Cancelado</option>
         </select>
+        <textarea class="btn md:col-span-2" rows="3" placeholder="Notas" x-model="formService.notes"></textarea>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button class="btn" @click="modals.service=false" type="button">Cancelar</button>
+        <button class="btn-primary px-4 py-2 rounded-lg" @click="saveService()" type="button">Guardar</button>
       </div>
     </div>
-    <div class="toolbar" style="justify-content:flex-end">
-      <button class="btn" id="expCancel" type="button">Cancelar</button>
-      <button class="btn primary" id="expSave" type="button">Guardar</button>
-    </div>
   </div>
+
 </div>
 
-<!-- Fallback de pestañas (funciona aunque el módulo falle) -->
 <script>
-(function(){
-  document.querySelectorAll('.modalBack').forEach(m => m.classList.remove('show'));
-  function activar(tab){
-    document.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-    document.querySelectorAll('.tab').forEach(sec=>sec.style.display = (sec.id==='tab-'+tab)?'block':'none');
-  }
-  document.addEventListener('click',(e)=>{
-    const btn=e.target.closest('.tabbtn'); if(!btn) return;
-    e.preventDefault(); activar(btn.dataset.tab);
-  });
-  activar(document.querySelector('.tabbtn.active')?.dataset.tab || 'dash');
-})();
-</script>
+function crm(){
+  // === Configuración Supabase (si ya tenés supabaseClient.js, reemplazá esto por tu import) ===
+  const SUPABASE_URL  = "https://aewjhxdusrzluxpzmnxh.supabase.co";
+  const SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFld2poeGR1c3J6bHV4cHptbnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1MzA0NzIsImV4cCI6MjA3MTEwNjQ3Mn0.8DoJ0wjO9Z_X8f5VwsAYwWWWTfOpyX1IGEwjm4f6jhY";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-<script type="module">
-  import { supabase } from "./supabaseClient.js";
+  return {
+    // UI
+    tab: 'dashboard',
+    modals: { client:false, service:false },
+    fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
+    fmtDateTime(date, start){
+      if(!date) return '';
+      const d = new Date(date + (start?('T'+start):'T00:00'));
+      return d.toLocaleString('es-AR',{weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
+    },
+    toggleTheme(){
+      const root = document.documentElement;
+      const next = root.classList.contains('dark') ? 'light':'dark';
+      root.classList.toggle('dark', next==='dark');
+      localStorage.setItem('md_theme', next);
+    },
 
-  // ===== Tema / Auth =====
-  const root=document.documentElement;
-  root.setAttribute('data-theme', localStorage.getItem('md_theme')||'dark');
-  document.getElementById('btnTheme').onclick=()=>{ const n=root.getAttribute('data-theme')==='dark'?'light':'dark'; root.setAttribute('data-theme',n); localStorage.setItem('md_theme',n); };
+    // Datos
+    clients: [],
+    services: [],
+    stats: { totalClientes:0, serviciosHoy:0, ingresosHoy:0, activos:0 },
 
-  try {
-    const { data: { session} } = await supabase.auth.getSession();
-    if (!session) location.href = "./index.html";
-    supabase.auth.onAuthStateChange((_e,s)=>{ if(!s) location.href="./index.html"; });
-    document.getElementById("btnSignOut").onclick = async ()=> { await supabase.auth.signOut(); };
-  } catch(e){ /* si supabase falla, igual la UI sigue */ }
+    cli:{ search:'' },
+    svc:{ dateFilter:'', statusFilter:'' },
 
-  // ===== Utils =====
-  const q = (s)=>document.querySelector(s);
-  const fmtARS = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n||0);
-  const show = (el, flag)=> el && el.classList.toggle('show', !!flag);
+    // Formularios
+    formClient: {
+      id:null, name:'', email:'', phone:'',
+      vehicle:{brand:'',model:'',year:'',color:''},
+      notes:''
+    },
+    formService:{
+      id:null, client_id:'', service:'Interior', price:'', date:'', start:'10:00', end:'11:00', status:'pendiente', notes:''
+    },
 
-  // ===== Drag & Drop sólo para dashboard =====
-  function enableDnD(gridEl, key) {
-    if(!gridEl) return;
-    let dragEl = null;
-    const saved = localStorage.getItem('layout_' + key);
-    if (saved) {
-      const ids = JSON.parse(saved);
-      const map = {};
-      Array.from(gridEl.children).forEach(c => map[c.dataset.id] = c);
-      ids.forEach(id => map[id] && gridEl.appendChild(map[id]));
+    // Auth mínima (si no hay sesión, igual deja ver — ajustá si querés forzar login)
+    async signOut(){ try{ await supabase.auth.signOut(); location.href='./index.html'; }catch{} },
+
+    // Carga inicial
+    async init(){
+      const theme = localStorage.getItem('md_theme') || 'dark';
+      document.documentElement.classList.toggle('dark', theme==='dark');
+
+      await Promise.all([this.loadClients(), this.loadServices()]);
+      this.recalcStats();
+    },
+
+    // ---------- CLIENTES ----------
+    async loadClients(){
+      const { data, error } = await supabase.from('clients').select('*').order('created_at',{ascending:false});
+      this.clients = data || [];
+    },
+    filteredClients(){
+      const q = (this.cli.search||'').toLowerCase();
+      if(!q) return this.clients;
+      return this.clients.filter(c =>
+        (c.name||'').toLowerCase().includes(q) ||
+        (c.email||'').toLowerCase().includes(q) ||
+        (c.phone||'').toLowerCase().includes(q) ||
+        (c.vehicle?.brand||'').toLowerCase().includes(q) ||
+        (c.vehicle?.model||'').toLowerCase().includes(q)
+      );
+    },
+    openClient(c){
+      this.formClient = c ? JSON.parse(JSON.stringify(c)) : {
+        id:null, name:'', email:'', phone:'',
+        vehicle:{brand:'',model:'',year:'',color:''}, notes:''
+      };
+      this.modals.client = true;
+    },
+    async saveClient(){
+      const row = {
+        name:this.formClient.name, email:this.formClient.email, phone:this.formClient.phone,
+        vehicle:this.formClient.vehicle, notes:this.formClient.notes
+      };
+      if(this.formClient.id){
+        await supabase.from('clients').update(row).eq('id', this.formClient.id);
+      } else {
+        await supabase.from('clients').insert(row);
+      }
+      this.modals.client=false; await this.loadClients(); this.recalcStats();
+    },
+    async delClient(id){
+      if(!confirm('¿Eliminar cliente?')) return;
+      await supabase.from('clients').delete().eq('id', id);
+      await this.loadClients(); this.recalcStats();
+    },
+
+    // ---------- SERVICIOS ----------
+    async loadServices(){
+      // appointments: id, client_id, service, price, date, start, end, status, notes
+      const { data, error } = await supabase.from('appointments')
+        .select('*, clients(name)').order('date',{ascending:false});
+      // aplanar client name
+      this.services = (data||[]).map(r=>({ ...r, client_name: r.clients?.name || '' }));
+    },
+    filteredServices(){
+      let s = this.services.slice();
+      if(this.svc.dateFilter){
+        const d = this.svc.dateFilter;
+        s = s.filter(x => x.date === d);
+      }
+      if(this.svc.statusFilter){
+        s = s.filter(x => (x.status||'') === this.svc.statusFilter);
+      }
+      return s;
+    },
+    servicesToday(){
+      const t = new Date().toISOString().slice(0,10);
+      return this.services.filter(x => x.date === t);
+    },
+    openService(s){
+      this.formService = s ? {
+        id:s.id, client_id:s.client_id, service:s.service, price:s.price||0,
+        date:s.date, start:s.start||'10:00', end:s.end||'11:00',
+        status:s.status||'pendiente', notes:s.notes||''
+      } : { id:null, client_id:'', service:'Interior', price:'', date:new Date().toISOString().slice(0,10), start:'10:00', end:'11:00', status:'pendiente', notes:'' };
+      this.modals.service = true;
+    },
+    async saveService(){
+      const row = {
+        client_id:this.formService.client_id, service:this.formService.service,
+        price:+this.formService.price||0, date:this.formService.date,
+        start:this.formService.start, end:this.formService.end,
+        status:this.formService.status, notes:this.formService.notes
+      };
+      if(this.formService.id){
+        await supabase.from('appointments').update(row).eq('id', this.formService.id);
+      } else {
+        await supabase.from('appointments').insert(row);
+      }
+      this.modals.service=false; await this.loadServices(); this.recalcStats();
+    },
+    async delService(id){
+      if(!confirm('¿Eliminar cita?')) return;
+      await supabase.from('appointments').delete().eq('id', id);
+      await this.loadServices(); this.recalcStats();
+    },
+
+    // ---------- KPIs ----------
+    recalcStats(){
+      this.stats.totalClientes = this.clients.length;
+      this.stats.activos = this.clients.filter(c=> (c.status||'activo')==='activo').length;
+      const today = this.servicesToday();
+      this.stats.serviciosHoy = today.length;
+      this.stats.ingresosHoy = today.filter(s=>s.status==='completado').reduce((a,b)=>a+(+b.price||0),0);
     }
-    Array.from(gridEl.children).forEach(card => {
-      const handle = card.querySelector('.drag-handle') || card.firstElementChild;
-      if (!handle) return;
-      handle.draggable = true;
-      handle.addEventListener('dragstart', (e) => {
-        dragEl = card; e.dataTransfer.effectAllowed = 'move'; card.style.opacity = 0.5;
-      });
-      handle.addEventListener('dragend', () => {
-        if (dragEl) dragEl.style.opacity = '';
-        dragEl = null;
-        const order = Array.from(gridEl.children).map(c => c.dataset.id);
-        localStorage.setItem('layout_' + key, JSON.stringify(order));
-      });
-    });
-    gridEl.addEventListener('dragover', (e) => {
-      if (!dragEl) return;
-      e.preventDefault();
-      const children = Array.from(gridEl.children);
-      const after = children.find(c => e.clientY <= c.getBoundingClientRect().top + c.offsetHeight / 2);
-      if (after === dragEl) return;
-      gridEl.insertBefore(dragEl, after || null);
-    });
   }
-  enableDnD(q('#dashGrid'),'dash');
-
-  // ===== KPIs demo (puedes reemplazar por queries reales a futuro) =====
-  q('#kpiRevenue').textContent = fmtARS(1200000);
-  q('#kpiAppts').textContent = 5;
-  q('#kpiClients').textContent = 3;
-
-  /* ========================= CLIENTES (CRUD) ========================= */
-  const clientsTbody = q('#clientsTbody');
-  let clients = []; let editingClientId = null;
-
-  async function loadClients(filter=''){
-    try{
-      const { data } = await supabase.from('clients').select('*').order('created_at',{ascending:false});
-      clients = data||[]; renderClients(filter);
-    }catch{ clients=[]; renderClients(); }
-  }
-  function renderClients(filter=''){
-    const f = (filter||'').toLowerCase();
-    clientsTbody.innerHTML = (clients.filter(c => !f || (c.name||'').toLowerCase().includes(f) || (c.email||'').toLowerCase().includes(f) || (c.phone||'').toLowerCase().includes(f))
-      .map(c=>{
-        const v = c.vehicle||{};
-        return `<tr>
-          <td>${c.name||''}</td>
-          <td>${c.phone||''}</td>
-          <td>${c.email||''}</td>
-          <td>${[v.brand,v.model,v.year,v.color].filter(Boolean).join(' / ')}</td>
-          <td style="text-align:right">
-            <button class="btn" data-ed="${c.id}" type="button">Editar</button>
-            <button class="btn" data-del="${c.id}" type="button">Borrar</button>
-          </td>
-        </tr>`; }).join('') || `<tr><td colspan="5" class="mut">Sin clientes</td></tr>`;
-  }
-  q('#cliSearch').addEventListener('input', e=> renderClients(e.target.value));
-  q('#btnNewClient').onclick=()=> openClientModal({});
-  clientsTbody.addEventListener('click', async (e)=>{
-    const id = e.target.dataset.ed || e.target.dataset.del;
-    if(!id) return;
-    if(e.target.dataset.ed){ const c = clients.find(x=>x.id===id); openClientModal(c); }
-    if(e.target.dataset.del){ if(confirm('¿Borrar cliente?')){ try{ await supabase.from('clients').delete().eq('id', id); }catch{} loadClients(); } }
-  });
-
-  const mCli = q('#modalClient'); 
-  const cliFields = {
-    name:q('#cliName'), phone:q('#cliPhone'), email:q('#cliEmail'),
-    brand:q('#cliBrand'), model:q('#cliModel'), year:q('#cliYear'), color:q('#cliColor'),
-    notes:q('#cliNotes')
-  };
-  function openClientModal(c){
-    editingClientId = c.id || null;
-    q('#cliTitle').textContent = editingClientId?'Editar cliente':'Nuevo cliente';
-    cliFields.name.value = c.name||''; cliFields.phone.value=c.phone||''; cliFields.email.value=c.email||'';
-    const v = c.vehicle||{}; cliFields.brand.value=v.brand||''; cliFields.model.value=v.model||''; cliFields.year.value=v.year||''; cliFields.color.value=v.color||'';
-    cliFields.notes.value = c.notes||'';
-    show(mCli,true);
-  }
-  q('#cliCancel').onclick=()=> show(mCli,false);
-  q('#cliSave').onclick= async ()=>{
-    const row = {
-      name: cliFields.name.value.trim(),
-      phone: cliFields.phone.value.trim(),
-      email: cliFields.email.value.trim(),
-      vehicle: { brand:cliFields.brand.value.trim(), model:cliFields.model.value.trim(), year:cliFields.year.value.trim(), color:cliFields.color.value.trim() },
-      notes: cliFields.notes.value.trim()
-    };
-    try{
-      if(editingClientId) await supabase.from('clients').update(row).eq('id', editingClientId);
-      else await supabase.from('clients').insert(row);
-    }catch{}
-    show(mCli,false); loadClients(q('#cliSearch').value);
-  };
-
-  /* ========================= AGENDA (CRUD + GCAL lectura) ========================= */
-  const hoursCol = q('#hours'); for(let i=0;i<24;i++){ const d=document.createElement('div'); d.className='mut'; d.textContent=(i<10?'0':'')+i+':00'; hoursCol.appendChild(d); }
-  const dayCols = [...document.querySelectorAll('.daycol')];
-
-  function startOfWeek(d){ const x=new Date(d); const day=(x.getDay()||7); x.setDate(x.getDate()-day+1); x.setHours(0,0,0,0); return x; }
-  let weekStart = startOfWeek(new Date());
-  const label = q('#rangeLabel'); 
-  const gcalInput = q('#gcalId'); 
-  const defaultGCal = "monacodetailingarg@gmail.com";
-  if (!localStorage.getItem('gcal_id')) localStorage.setItem('gcal_id', defaultGCal);
-  if (gcalInput) gcalInput.value = localStorage.getItem('gcal_id') || defaultGCal;
-
-  function renderWeek(){
-    label.textContent = weekStart.toLocaleDateString('es-AR',{day:'2-digit',month:'short'}) + ' — ' + new Date(weekStart.getTime()+6*864e5).toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
-    dayCols.forEach(col=>{ col.innerHTML=''; for(let r=0;r<24;r++){ const s=document.createElement('div'); s.className='slot'; col.appendChild(s); }});
-  }
-  q('#btnPrev').onclick=()=>{ weekStart.setDate(weekStart.getDate()-7); renderWeek(); paintAppointments(); };
-  q('#btnNext').onclick=()=>{ weekStart.setDate(weekStart.getDate()+7); renderWeek(); paintAppointments(); };
-  q('#btnToday').onclick=()=>{ weekStart=startOfWeek(new Date()); renderWeek(); paintAppointments(); };
-  q('#btnSync').onclick=()=>{ localStorage.setItem('gcal_id', gcalInput.value.trim()); syncCalendar(); };
-  renderWeek();
-
-  function eventPlacement(startISO, endISO){
-    const start = new Date(startISO); const end = new Date(endISO);
-    const dow = (start.getDay()||7); const rowStart = start.getHours()+1; const rowSpan = Math.max(1, Math.ceil((end-start)/3600000));
-    return {dow,rowStart,rowSpan,start};
-  }
-  function paintEvent({dow,rowStart,rowSpan,start}, title, meta={}){
-    const col = dayCols[dow-1]; if(!col) return;
-    const e = document.createElement('div'); e.className='event'; e.style.gridRow = `${rowStart} / span ${rowSpan}`;
-    e.textContent = `${title} (${start.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})})`;
-    e.dataset.meta = JSON.stringify(meta);
-    e.onclick = ()=> openApptModal(meta);
-    col.appendChild(e);
-  }
-
-  async function syncCalendar(){
-    const calendarId = (gcalInput.value||'').trim(); if(!calendarId){ alert('Ingresá Calendar ID'); return; }
-    const timeMin = new Date(weekStart).toISOString(); const timeMax = new Date(weekStart.getTime()+7*864e5).toISOString();
-    try{
-      const res = await fetch(`/api/calendar?calendarId=${encodeURIComponent(calendarId)}&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`);
-      const json = await res.json();
-      renderWeek();
-      (json.items||[]).forEach(ev=>{
-        const startISO = ev.start.dateTime || (ev.start.date + "T00:00:00");
-        const endISO   = ev.end?.dateTime   || (ev.end?.date   + "T23:59:00");
-        paintEvent(eventPlacement(startISO,endISO), ev.summary||'Evento', { source:'gcal', title:ev.summary||'', startISO, endISO });
-      });
-    }catch(e){ /* API no configurada: sólo seguimos con citas propias */ }
-    await paintAppointments();
-  }
-
-  async function paintAppointments(){
-    const weekEnd = new Date(weekStart.getTime()+6*864e5);
-    const from = weekStart.toISOString().slice(0,10);
-    const to   = weekEnd.toISOString().slice(0,10);
-    try{
-      const { data } = await supabase
-        .from('appointments')
-        .select('id, client_id, service, date, start, "end", notes, clients(name)')
-        .gte('date', from).lte('date', to)
-        .order('date');
-      (data||[]).forEach(r=>{
-        const startISO = `${r.date}T${r.start}`;
-        const endISO   = `${r.date}T${r.end}`;
-        const title = `${r.service} — ${r.clients?.name||'Cliente'}`;
-        paintEvent(eventPlacement(startISO,endISO), title, {
-          source:'supa', supaId:r.id, client_id:r.client_id, service:r.service,
-          date:r.date, start:r.start, end:r.end, notes:r.notes||''
-        });
-      });
-    }catch{}
-  }
-
-  // Modal cita
-  const mAppt = q('#modalAppt'); let editingApptId = null;
-  const apptFields = { client:q('#apptClient'), service:q('#apptService'), date:q('#apptDate'), start:q('#apptStart'), end:q('#apptEnd'), notes:q('#apptNotes') };
-  async function loadClientOptions(){
-    try{
-      const { data } = await supabase.from('clients').select('id,name').order('name');
-      apptFields.client.innerHTML = (data||[]).map(c=> `<option value="${c.id}">${c.name}</option>`).join('');
-    }catch{ apptFields.client.innerHTML = ''; }
-  }
-  function openApptModal(meta={}){
-    editingApptId = meta.supaId || null;
-    q('#apptTitle').textContent = editingApptId?'Editar cita':'Nueva cita';
-    loadClientOptions().then(()=>{ if(meta.client_id) apptFields.client.value = meta.client_id; });
-    apptFields.service.value = meta.service || 'Interior';
-    apptFields.date.value    = meta.date    || new Date().toISOString().slice(0,10);
-    apptFields.start.value   = meta.start   || '10:00';
-    apptFields.end.value     = meta.end     || '11:00';
-    apptFields.notes.value   = meta.notes   || '';
-    show(mAppt,true);
-  }
-  q('#btnNewAppt').onclick=()=> openApptModal({});
-  q('#apptCancel').onclick=()=> show(mAppt,false);
-  q('#apptSave').onclick= async ()=>{
-    const day = (new Date(apptFields.date.value)).getDay() || 7;
-    const row = {
-      client_id: apptFields.client.value,
-      service: apptFields.service.value,
-      date: apptFields.date.value,
-      day, start: apptFields.start.value, end: apptFields.end.value,
-      notes: apptFields.notes.value
-    };
-    try{
-      if(editingApptId) await supabase.from('appointments').update(row).eq('id', editingApptId);
-      else await supabase.from('appointments').insert(row);
-    }catch{}
-    show(mAppt,false); renderWeek(); paintAppointments();
-  };
-
-  /* ========================= GASTOS (CRUD) ========================= */
-  const expensesTbody = q('#expensesTbody');
-  const mExp = q('#modalExpense');
-  let expenses=[]; let editingExpId=null;
-
-  // KPI: recalcula el total de gastos del mes en curso
-  function updateKpiExpenses(){
-    const now = new Date();
-    const ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-    const total = (expenses||[])
-      .filter(e => (e.date||'').startsWith(ym))
-      .reduce((s,e)=> s + (Number(e.amount)||0), 0);
-    q('#kpiExpenses').textContent = fmtARS(total);
-  }
-
-  async function loadExpenses(){
-    try{
-      const { data } = await supabase.from('expenses').select('*').order('date',{ascending:false});
-      expenses = data||[];
-    }catch{ expenses=[]; }
-    renderExpenses(); updateKpiExpenses();
-  }
-  function renderExpenses(){
-    expensesTbody.innerHTML = (expenses||[]).map(e=>`<tr>
-      <td>${e.date || ''}</td>
-      <td>${e.description || ''}</td>
-      <td>${fmtARS(e.amount || 0)}</td>
-      <td>${e.category || ''}</td>
-      <td>${e.status || ''}</td>
-      <td style="text-align:right">
-        <button class="btn" data-ed="${e.id}" type="button">Editar</button>
-        <button class="btn" data-del="${e.id}" type="button">Eliminar</button>
-      </td>
-    </tr>`).join('') || `<tr><td colspan="6" class="mut">Sin gastos</td></tr>`;
-  }
-
-  // Abrir/cerrar modal gasto
-  const expFields = {
-    date:q('#expDate'), amount:q('#expAmount'), desc:q('#expDesc'), cat:q('#expCat'), status:q('#expStatus')
-  };
-  function openExpenseModal(e={}){
-    editingExpId = e.id || null;
-    q('#expTitle').textContent = editingExpId ? 'Editar gasto' : 'Nuevo gasto';
-    expFields.date.value = e.date || new Date().toISOString().slice(0,10);
-    expFields.amount.value = e.amount || '';
-    expFields.desc.value = e.description || '';
-    expFields.cat.value = e.category || '';
-    expFields.status.value = e.status || 'Pendiente';
-    show(mExp,true);
-  }
-  q('#btnNewExpense').onclick = ()=> openExpenseModal({});
-  q('#expCancel').onclick = ()=> show(mExp,false);
-
-  // Guardar gasto
-  q('#expSave').onclick = async ()=>{
-    const row = {
-      date: expFields.date.value,
-      description: expFields.desc.value.trim(),
-      amount: Number(expFields.amount.value||0),
-      category: expFields.cat.value.trim(),
-      status: expFields.status.value
-    };
-    try{
-      if(editingExpId) await supabase.from('expenses').update(row).eq('id', editingExpId);
-      else await supabase.from('expenses').insert(row);
-    }catch{}
-    show(mExp,false); await loadExpenses();
-  };
-
-  // Acciones tabla gastos
-  expensesTbody.addEventListener('click', async (e)=>{
-    const id = e.target.dataset.ed || e.target.dataset.del; if(!id) return;
-    if(e.target.dataset.ed){ const r = expenses.find(x=>x.id===id); openExpenseModal(r||{}); }
-    if(e.target.dataset.del){ if(confirm('¿Eliminar gasto?')){ try{ await supabase.from('expenses').delete().eq('id', id); }catch{} loadExpenses(); } }
-  });
-
-  /* ========================= AJUSTES ========================= */
-  const setCalendarId = q('#setCalendarId');
-  const setCreateGCal = q('#setCreateGCal');
-  q('#btnSaveSettings').onclick=()=>{
-    if (setCalendarId) localStorage.setItem('gcal_id', (setCalendarId.value||'').trim());
-    if (setCreateGCal) localStorage.setItem('create_gcal', setCreateGCal.checked ? '1' : '0');
-    alert('Ajustes guardados');
-  };
-
-  /* ========================= INICIALIZACIÓN ========================= */
-  (async function init(){
-    try {
-      await Promise.all([loadClients(), loadExpenses()]);
-      await paintAppointments();
-      const defCal = localStorage.getItem('gcal_id') || 'monacodetailingarg@gmail.com';
-      if (setCalendarId) setCalendarId.value = defCal;
-      if (q('#gcalId')) q('#gcalId').value = defCal;
-    } catch(e){ /* no-op */ }
-  })();
+}
+document.addEventListener('alpine:init', ()=>{} );
 </script>
 </body>
 </html>
