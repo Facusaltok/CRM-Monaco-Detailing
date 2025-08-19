@@ -16,7 +16,6 @@
     .actions{display:flex;flex-direction:column;gap:.6rem;margin-top:1rem}
     button{border:none;border-radius:8px;padding:.65rem .8rem;cursor:pointer}
     .green{background:#0a8d4b;color:#fff}
-    .dark{background:#1f2937;color:#e5e7eb}
     .muted{font-size:.9rem;opacity:.8;margin-top:.5rem;text-align:center}
     .link{color:#a7f3d0;cursor:pointer}
     .msg{margin-top:.6rem;font-size:.9rem;text-align:center;opacity:.95}
@@ -53,6 +52,7 @@
     <label for="pass">Contraseña</label>
     <input id="pass" type="password" placeholder="••••••••" />
 
+    <!-- se mantiene recuperación si llega con token -->
     <div id="newPassWrap">
       <label for="newpass">Nueva contraseña</label>
       <input id="newpass" type="password" placeholder="Nueva contraseña" />
@@ -61,8 +61,6 @@
 
     <div class="actions">
       <button id="btnSignIn" class="green" type="button">Ingresar</button>
-      <button id="btnSignUp" class="dark"  type="button">Crear cuenta</button>
-      <button id="btnMagic"  class="dark"  type="button">Enviar Magic Link</button>
     </div>
 
     <div class="muted">
@@ -91,31 +89,22 @@
     const { data: { session } } = await supabase.auth.getSession();
     if (session) location.href = "./dashboard.html";
 
+    // Si vino desde "recovery" permite setear nueva pass
     const params = new URLSearchParams(location.hash.replace("#","?"));
     if (params.get("type") === "recovery" || params.get("type") === "invite") newPassWrap.style.display = "block";
 
     document.getElementById("btnSignIn").addEventListener("click", async () => {
       msg.textContent = "Ingresando…"; msg.classList.remove("error");
       const { error } = await supabase.auth.signInWithPassword({ email: emailEl.value.trim(), password: passEl.value });
-      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } else { location.href="./dashboard.html"; }
-    });
-
-    document.getElementById("btnSignUp").addEventListener("click", async () => {
-      msg.textContent = "Creando cuenta…"; msg.classList.remove("error");
-      const { error } = await supabase.auth.signUp({ email: emailEl.value.trim(), password: passEl.value, options:{ emailRedirectTo: redirectTo } });
-      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } else { msg.textContent = "Revisá tu correo para confirmar la cuenta"; }
-    });
-
-    document.getElementById("btnMagic").addEventListener("click", async () => {
-      msg.textContent = "Enviando link…"; msg.classList.remove("error");
-      const { error } = await supabase.auth.signInWithOtp({ email: emailEl.value.trim(), options:{ emailRedirectTo: redirectTo } });
-      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } else { msg.textContent = "Revisá tu correo para continuar"; }
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } 
+      else { location.href="./dashboard.html"; }
     });
 
     document.getElementById("btnForgot").addEventListener("click", async () => {
       msg.textContent = "Enviando email de recuperación…"; msg.classList.remove("error");
       const { error } = await supabase.auth.resetPasswordForEmail(emailEl.value.trim(), { redirectTo });
-      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } else { msg.textContent = "Revisá tu correo para cambiar la contraseña"; }
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } 
+      else { msg.textContent = "Revisá tu correo para cambiar la contraseña"; }
     });
 
     document.getElementById("btnSetNewPass").addEventListener("click", async () => {
