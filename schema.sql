@@ -5,6 +5,10 @@ create table if not exists clients (
   phone text,
   email text,
   vehicle jsonb,     -- {brand,model,year,color}
+  service text,
+  duration text,
+  maintenance text,
+  price numeric,
   notes text,
   created_at timestamptz default now()
 );
@@ -18,6 +22,17 @@ create table if not exists appointments (
   start time not null,
   "end" time not null,
   notes text,
+  created_at timestamptz default now()
+);
+
+-- GASTOS
+create table if not exists expenses (
+  id uuid primary key default gen_random_uuid(),
+  date date,
+  description text,
+  amount numeric,
+  category text,
+  status text,
   created_at timestamptz default now()
 );
 
@@ -44,6 +59,7 @@ create table if not exists campaigns (
 -- RLS
 alter table clients enable row level security;
 alter table appointments enable row level security;
+alter table expenses enable row level security;
 alter table leads enable row level security;
 alter table campaigns enable row level security;
 
@@ -57,6 +73,11 @@ create policy "auth read appts" on appointments for select to authenticated usin
 create policy "auth write appts" on appointments for insert with check (true);
 create policy "auth update appts" on appointments for update using (true) with check (true);
 create policy "auth delete appts" on appointments for delete using (true);
+
+create policy "auth read expenses" on expenses for select to authenticated using (true);
+create policy "auth write expenses" on expenses for insert with check (true);
+create policy "auth update expenses" on expenses for update using (true) with check (true);
+create policy "auth delete expenses" on expenses for delete using (true);
 
 create policy "auth read leads" on leads for select to authenticated using (true);
 create policy "auth write leads" on leads for insert with check (true);

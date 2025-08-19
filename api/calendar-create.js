@@ -1,6 +1,6 @@
 // /api/calendar-create.js
 import { google } from 'googleapis';
-import { getOAuthClient } from './_google.js';
+import { getGoogleAuth } from './_google.js';
 
 export default async function handler(req, res) {
   try {
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    const auth = getOAuthClient();
+    const auth = getGoogleAuth();
     const calendar = google.calendar({ version: 'v3', auth });
 
     const event = {
