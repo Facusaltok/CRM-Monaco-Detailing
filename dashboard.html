@@ -36,7 +36,7 @@
   .mut{color:var(--mut)}
   canvas,svg{width:100%;height:260px;display:block}
 
-  /* Agenda */
+  /* Agenda (cuadrícula) */
   .week{display:grid;grid-template-columns:80px repeat(7,1fr);gap:6px}
   .hours{display:grid;grid-template-rows:repeat(24,36px);gap:6px}
   .daycol{display:grid;grid-template-rows:repeat(24,36px);gap:6px;position:relative}
@@ -53,7 +53,7 @@
 
   /* Calendar embed responsive */
   .cal-embed{
-    position:relative; width:100%; aspect-ratio: 4 / 3; /* 800x600 */
+    position:relative; width:100%; aspect-ratio: 4 / 3;
     background:#0f141a; border:1px solid var(--border); border-radius:12px; overflow:hidden;
   }
   .cal-embed iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
@@ -93,7 +93,7 @@
         </div>
       </div>
 
-      <!-- NUEVO: Google Calendar embebido -->
+      <!-- Google Calendar embebido en Dashboard -->
       <div class="card" data-id="gcal">
         <div class="drag-handle">↕ Agenda Google</div>
         <h2>Agenda — Google Calendar</h2>
@@ -103,7 +103,7 @@
             frameborder="0" scrolling="no" allowfullscreen>
           </iframe>
         </div>
-        <small class="mut">Se muestra la agenda en vivo de <b>monacodetailingarg@gmail.com</b>.</small>
+        <small class="mut">Agenda en vivo de <b>monacodetailingarg@gmail.com</b>.</small>
       </div>
 
       <div class="card" data-id="leads"><div class="drag-handle">↕ Leads</div><h2>Fuentes de leads</h2><canvas id="chartLeads"></canvas></div>
@@ -140,6 +140,8 @@
         <button class="btn primary" id="btnNewAppt" type="button">+ Nueva cita</button>
         <span id="rangeLabel" class="mut"></span>
       </div>
+
+      <!-- cuadrícula interna -->
       <div class="week" id="weekGrid">
         <div class="hours" id="hours"></div>
         <div class="daycol" data-day="1"></div>
@@ -149,6 +151,17 @@
         <div class="daycol" data-day="5"></div>
         <div class="daycol" data-day="6"></div>
         <div class="daycol" data-day="7"></div>
+      </div>
+    </div>
+
+    <!-- Google Calendar embebido también en la pestaña Agenda -->
+    <div class="card">
+      <h2>Google Calendar (vista completa)</h2>
+      <div class="cal-embed">
+        <iframe
+          src="https://calendar.google.com/calendar/embed?src=monacodetailingarg%40gmail.com&ctz=America%2FArgentina%2FBuenos_Aires"
+          frameborder="0" scrolling="no" allowfullscreen>
+        </iframe>
       </div>
     </div>
   </section>
@@ -199,11 +212,85 @@
 
 </div>
 
-<!-- MODALES (clientes, citas, leads, campañas) -->
-<!-- … (igual que versión anterior; sin cambios) … -->
+<!-- MODALES -->
+<div class="modalBack" id="modalClient">
+  <div class="modal">
+    <h3 id="cliTitle">Cliente</h3>
+    <label>Nombre</label><input id="cliName" />
+    <label>Teléfono</label><input id="cliPhone" />
+    <label>Email</label><input id="cliEmail" type="email" />
+    <div class="row">
+      <div><label>Marca</label><input id="cliBrand" placeholder="Toyota"/></div>
+      <div><label>Modelo</label><input id="cliModel" placeholder="Corolla"/></div>
+    </div>
+    <div class="row">
+      <div><label>Año</label><input id="cliYear" type="number" placeholder="2022"/></div>
+      <div><label>Color</label><input id="cliColor" placeholder="Negro"/></div>
+    </div>
+    <label>Notas</label><textarea id="cliNotes" rows="3"></textarea>
+    <div class="toolbar" style="justify-content:flex-end">
+      <button class="btn" id="cliCancel" type="button">Cancelar</button>
+      <button class="btn primary" id="cliSave" type="button">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modalBack" id="modalAppt">
+  <div class="modal">
+    <h3 id="apptTitle">Cita</h3>
+    <label>Cliente</label>
+    <select id="apptClient"></select>
+    <div class="row">
+      <div><label>Servicio</label>
+        <select id="apptService"><option>Interior</option><option>Tratamiento Cerámico</option><option>Motor a Vapor</option><option>Paquete Completo</option></select>
+      </div>
+      <div><label>Fecha</label><input id="apptDate" type="date"/></div>
+    </div>
+    <div class="row">
+      <div><label>Inicio</label><input id="apptStart" type="time"/></div>
+      <div><label>Fin</label><input id="apptEnd" type="time"/></div>
+    </div>
+    <label>Notas</label><textarea id="apptNotes" rows="3"></textarea>
+    <div class="toolbar" style="justify-content:flex-end">
+      <button class="btn" id="apptCancel" type="button">Cancelar</button>
+      <button class="btn primary" id="apptSave" type="button">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modalBack" id="modalLead">
+  <div class="modal">
+    <h3 id="leadTitle">Lead</h3>
+    <label>Cliente (opcional)</label><input id="leadClient" placeholder="Nombre del contacto"/>
+    <div class="row">
+      <div><label>Fuente</label><select id="leadSource"><option>Instagram</option><option>Facebook</option><option>Web</option><option>WhatsApp</option><option>Referido</option></select></div>
+      <div><label>Estado</label><select id="leadStatus"><option>Nuevo</option><option>Contactado</option><option>Calificado</option><option>Ganado</option><option>Perdido</option></select></div>
+    </div>
+    <label>Notas</label><textarea id="leadNotes" rows="3"></textarea>
+    <div class="toolbar" style="justify-content:flex-end">
+      <button class="btn" id="leadCancel" type="button">Cancelar</button>
+      <button class="btn primary" id="leadSave" type="button">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modalBack" id="modalCamp">
+  <div class="modal">
+    <h3 id="campTitle">Campaña</h3>
+    <label>Nombre</label><input id="campName" />
+    <div class="row">
+      <div><label>Canal</label><input id="campChannel" placeholder="Instagram / Google Ads / etc."/></div>
+      <div><label>Presupuesto</label><input id="campBudget" type="number" step="0.01" /></div>
+    </div>
+    <label>Conversiones</label><input id="campConv" type="number" />
+    <div class="toolbar" style="justify-content:flex-end">
+      <button class="btn" id="campCancel" type="button">Cancelar</button>
+      <button class="btn primary" id="campSave" type="button">Guardar</button>
+    </div>
+  </div>
+</div>
 
 <script>
-  // Limpia hash Supabase (anti-salto)
   if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
     history.replaceState(null, document.title, location.pathname + location.search);
   }
@@ -220,7 +307,7 @@
   root.setAttribute('data-theme', localStorage.getItem('md_theme')||'dark');
   document.getElementById('btnTheme').onclick=()=>{ const n=root.getAttribute('data-theme')==='dark'?'light':'dark'; root.setAttribute('data-theme',n); localStorage.setItem('md_theme',n); };
 
-  // ===== Auth guard
+  // ===== Auth
   const { data: { session} } = await supabase.auth.getSession();
   if (!session) location.href = "./index.html";
   supabase.auth.onAuthStateChange((_e,s)=>{ if(!s) location.href="./index.html"; });
@@ -280,31 +367,69 @@
     });
   }
   enableDnD(q('#dashGrid'),'dash');
+  enableDnD(q('#mktGrid'),'mkt');
 
   // ===== KPIs demo
-  document.getElementById('kpiRevenue').textContent = fmtARS(1200000);
-  document.getElementById('kpiAppts').textContent = 5;
-  document.getElementById('kpiClients').textContent = 3;
-  document.getElementById('kpiRetention').textContent = '85%';
+  q('#kpiRevenue').textContent = fmtARS(1200000);
+  q('#kpiAppts').textContent = 5;
+  q('#kpiClients').textContent = 3;
+  q('#kpiRetention').textContent = '85%';
 
   // ===== Charts demo
   new Chart(q('#chartLeads'), { type:'doughnut', data:{ labels:['Instagram','Facebook','Web','WhatsApp','Referido'], datasets:[{ data:[40,25,20,10,5] }]}, options:{responsive:true, maintainAspectRatio:false}});
   new Chart(q('#chartServices'), { type:'bar', data:{ labels:['Interior','Cerámico','Motor','Paquete'], datasets:[{ data:[72,48,34,28], backgroundColor:'#0a8d4b'}]}, options:{responsive:true, maintainAspectRatio:false}});
 
-  // ======= (resto de CRUDs y Agenda como ya lo tenías) =======
-  // Para brevedad no repito aquí todo el JS de clientes/leads/campañas/agenda.
-  // Usa exactamente el mismo JS funcional que ya te pasé en el mensaje anterior.
-  // Solo agrego el default del Calendar ID a tu correo.
+  /* ========================= CLIENTES (CRUD) ========================= */
+  const clientsTbody = q('#clientsTbody');
+  let clients = []; let editingClientId = null;
 
-  // Defaults de Calendar ID a tu correo:
-  const defaultGCal = "monacodetailingarg@gmail.com";
-  const gcalInput = q('#gcalId');
-  if (gcalInput) {
-    if (!localStorage.getItem('gcal_id')) localStorage.setItem('gcal_id', defaultGCal);
-    gcalInput.value = localStorage.getItem('gcal_id') || defaultGCal;
+  async function loadClients(filter=''){
+    const { data } = await supabase.from('clients').select('*').order('created_at',{ascending:false});
+    clients = data||[]; renderClients(filter);
   }
-  const setCalendarId = q('#setCalendarId');
-  if (setCalendarId) setCalendarId.value = localStorage.getItem('setCalendarId') || (localStorage.getItem('gcal_id') || defaultGCal);
-</script>
-</body>
-</html>
+  function renderClients(filter=''){
+    const f = (filter||'').toLowerCase();
+    clientsTbody.innerHTML = (clients.filter(c => !f || (c.name||'').toLowerCase().includes(f) || (c.email||'').toLowerCase().includes(f) || (c.phone||'').toLowerCase().includes(f))
+      .map(c=>{
+        const v = c.vehicle||{};
+        return `<tr>
+          <td>${c.name||''}</td>
+          <td>${c.phone||''}</td>
+          <td>${c.email||''}</td>
+          <td>${[v.brand,v.model,v.year,v.color].filter(Boolean).join(' / ')}</td>
+          <td style="text-align:right">
+            <button class="btn" data-ed="${c.id}" type="button">Editar</button>
+            <button class="btn" data-del="${c.id}" type="button">Borrar</button>
+          </td>
+        </tr>`; }).join('') || `<tr><td colspan="5" class="mut">Sin clientes</td></tr>`;
+  }
+  q('#cliSearch').addEventListener('input', e=> renderClients(e.target.value));
+  q('#btnNewClient').onclick=()=> openClientModal({});
+  clientsTbody.addEventListener('click', async (e)=>{
+    const id = e.target.dataset.ed || e.target.dataset.del;
+    if(!id) return;
+    if(e.target.dataset.ed){ const c = clients.find(x=>x.id===id); openClientModal(c); }
+    if(e.target.dataset.del){ if(confirm('¿Borrar cliente?')){ await supabase.from('clients').delete().eq('id', id); loadClients(); } }
+  });
+
+  const mCli = q('#modalClient'); 
+  const cliFields = {
+    name:q('#cliName'), phone:q('#cliPhone'), email:q('#cliEmail'),
+    brand:q('#cliBrand'), model:q('#cliModel'), year:q('#cliYear'), color:q('#cliColor'),
+    notes:q('#cliNotes')
+  };
+  function openClientModal(c){
+    editingClientId = c.id || null;
+    q('#cliTitle').textContent = editingClientId?'Editar cliente':'Nuevo cliente';
+    cliFields.name.value = c.name||''; cliFields.phone.value=c.phone||''; cliFields.email.value=c.email||'';
+    const v = c.vehicle||{}; cliFields.brand.value=v.brand||''; cliFields.model.value=v.model||''; cliFields.year.value=v.year||''; cliFields.color.value=v.color||'';
+    cliFields.notes.value = c.notes||'';
+    show(mCli,true);
+  }
+  q('#cliCancel').onclick=()=> show(mCli,false);
+  q('#cliSave').onclick= async ()=>{
+    const row = {
+      name: cliFields.name.value.trim(),
+      phone: cliFields.phone.value.trim(),
+      email: cliFields.email.value.trim(),
+      vehicle: { brand:cliFields.brand.value.trim(), model:cliFields.model.value.trim
