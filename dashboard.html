@@ -33,7 +33,6 @@
   input,select,textarea{width:100%;padding:.55rem .6rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text)}
   .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
   .mut{color:var(--mut)}
-  canvas,svg{width:100%;height:260px;display:block}
   .week{display:grid;grid-template-columns:80px repeat(7,1fr);gap:6px}
   .hours{display:grid;grid-template-rows:repeat(24,36px);gap:6px}
   .daycol{display:grid;grid-template-rows:repeat(24,36px);gap:6px;position:relative}
@@ -63,7 +62,7 @@
   <button class="tabbtn active" data-tab="dash" type="button">Dashboard</button>
   <button class="tabbtn" data-tab="clientes" type="button">Clientes</button>
   <button class="tabbtn" data-tab="agenda" type="button">Agenda</button>
-  <button class="tabbtn" data-tab="marketing" type="button">Marketing</button>
+  <button class="tabbtn" data-tab="gastos" type="button">Gastos</button>
   <button class="tabbtn" data-tab="ajustes" type="button">Ajustes</button>
 </nav>
 
@@ -79,7 +78,8 @@
           <div class="card"><div class="mut">Ingresos del mes</div><div id="kpiRevenue" style="font-size:26px;font-weight:800;margin-top:6px">$0</div></div>
           <div class="card"><div class="mut">Citas hoy</div><div id="kpiAppts" style="font-size:26px;font-weight:800;margin-top:6px">0</div></div>
           <div class="card"><div class="mut">Nuevos clientes</div><div id="kpiClients" style="font-size:26px;font-weight:800;margin-top:6px">0</div></div>
-          <div class="card"><div class="mut">Retención</div><div id="kpiRetention" style="font-size:26px;font-weight:800;margin-top:6px">0%</div></div>
+          <!-- KPI actualizado: Gastos -->
+          <div class="card"><div class="mut">Gastos</div><div id="kpiExpenses" style="font-size:26px;font-weight:800;margin-top:6px">$0</div></div>
         </div>
       </div>
 
@@ -96,9 +96,7 @@
         <small class="mut">Agenda en vivo de <b>monacodetailingarg@gmail.com</b>.</small>
       </div>
 
-      <div class="card" data-id="leads"><div class="drag-handle">↕ Leads</div><h2>Fuentes de leads</h2><canvas id="chartLeads"></canvas></div>
-      <div class="card" data-id="services"><div class="drag-handle">↕ Servicios</div><h2>Servicios (ranking)</h2><canvas id="chartServices"></canvas></div>
-      <div class="card" data-id="funnel"><div class="drag-handle">↕ Embudo</div><h2>Embudo</h2><svg id="funnel"></svg></div>
+      <!-- Se eliminaron: Leads y Servicios (ranking) -->
     </div>
   </section>
 
@@ -154,31 +152,26 @@
     </div>
   </section>
 
-  <!-- MARKETING -->
-  <section id="tab-marketing" class="tab" style="display:none">
-    <div class="grid" id="mktGrid" data-grid="mkt">
-      <div class="card" data-id="leadsTbl">
-        <div class="drag-handle">↕ Leads</div>
-        <h2>Leads</h2>
-        <div class="toolbar">
-          <button id="btnNewLead" class="btn primary" type="button">+ Nuevo lead</button>
-        </div>
-        <table>
-          <thead><tr><th>Fecha</th><th>Cliente</th><th>Fuente</th><th>Estado</th><th></th></tr></thead>
-          <tbody id="leadsTbody"><tr><td colspan="5" class="mut">Cargando…</td></tr></tbody>
-        </table>
+  <!-- GASTOS (NUEVA PESTAÑA) -->
+  <section id="tab-gastos" class="tab" style="display:none">
+    <div class="card">
+      <h2>Gastos</h2>
+      <div class="toolbar">
+        <button id="btnNewExpense" class="btn primary" type="button">+ Nuevo gasto</button>
       </div>
-      <div class="card" data-id="campTbl">
-        <div class="drag-handle">↕ Campañas</div>
-        <h2>Campañas</h2>
-        <div class="toolbar">
-          <button id="btnNewCamp" class="btn primary" type="button">+ Nueva campaña</button>
-        </div>
-        <table>
-          <thead><tr><th>Nombre</th><th>Canal</th><th>Presupuesto</th><th>Conversiones</th><th></th></tr></thead>
-          <tbody id="campTbody"><tr><td colspan="5" class="mut">Cargando…</td></tr></tbody>
-        </table>
-      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Descripción</th>
+            <th>Monto</th>
+            <th>Categoría</th>
+            <th>Estado</th>
+            <th style="width:140px"></th>
+          </tr>
+        </thead>
+        <tbody id="expensesTbody"><tr><td colspan="6" class="mut">Cargando…</td></tr></tbody>
+      </table>
     </div>
   </section>
 
@@ -249,34 +242,26 @@
   </div>
 </div>
 
-<div class="modalBack" id="modalLead">
+<!-- Modal GASTO -->
+<div class="modalBack" id="modalExpense">
   <div class="modal">
-    <h3 id="leadTitle">Lead</h3>
-    <label>Cliente (opcional)</label><input id="leadClient" placeholder="Nombre del contacto"/>
+    <h3 id="expTitle">Gasto</h3>
     <div class="row">
-      <div><label>Fuente</label><select id="leadSource"><option>Instagram</option><option>Facebook</option><option>Web</option><option>WhatsApp</option><option>Referido</option></select></div>
-      <div><label>Estado</label><select id="leadStatus"><option>Nuevo</option><option>Contactado</option><option>Calificado</option><option>Ganado</option><option>Perdido</option></select></div>
+      <div><label>Fecha</label><input id="expDate" type="date"/></div>
+      <div><label>Monto</label><input id="expAmount" type="number" step="0.01" /></div>
     </div>
-    <label>Notas</label><textarea id="leadNotes" rows="3"></textarea>
-    <div class="toolbar" style="justify-content:flex-end">
-      <button class="btn" id="leadCancel" type="button">Cancelar</button>
-      <button class="btn primary" id="leadSave" type="button">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modalBack" id="modalCamp">
-  <div class="modal">
-    <h3 id="campTitle">Campaña</h3>
-    <label>Nombre</label><input id="campName" />
+    <label>Descripción</label><input id="expDesc" />
     <div class="row">
-      <div><label>Canal</label><input id="campChannel" placeholder="Instagram / Google Ads / etc."/></div>
-      <div><label>Presupuesto</label><input id="campBudget" type="number" step="0.01" /></div>
+      <div><label>Categoría</label><input id="expCat" placeholder="Insumos / Alquiler / Publicidad / ..."/></div>
+      <div><label>Estado</label>
+        <select id="expStatus">
+          <option>Pendiente</option><option>Pagado</option><option>Programado</option>
+        </select>
+      </div>
     </div>
-    <label>Conversiones</label><input id="campConv" type="number" />
     <div class="toolbar" style="justify-content:flex-end">
-      <button class="btn" id="campCancel" type="button">Cancelar</button>
-      <button class="btn primary" id="campSave" type="button">Guardar</button>
+      <button class="btn" id="expCancel" type="button">Cancelar</button>
+      <button class="btn primary" id="expSave" type="button">Guardar</button>
     </div>
   </div>
 </div>
@@ -299,7 +284,6 @@
 
 <script type="module">
   import { supabase } from "./supabaseClient.js";
-  import "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
 
   // ===== Tema / Auth =====
   const root=document.documentElement;
@@ -318,7 +302,7 @@
   const fmtARS = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n||0);
   const show = (el, flag)=> el && el.classList.toggle('show', !!flag);
 
-  // ===== Drag & Drop =====
+  // ===== Drag & Drop sólo para dashboard =====
   function enableDnD(gridEl, key) {
     if(!gridEl) return;
     let dragEl = null;
@@ -353,15 +337,11 @@
     });
   }
   enableDnD(q('#dashGrid'),'dash');
-  enableDnD(q('#mktGrid'),'mkt');
 
-  // ===== KPIs demo + Charts demo =====
+  // ===== KPIs demo (puedes reemplazar por queries reales a futuro) =====
   q('#kpiRevenue').textContent = fmtARS(1200000);
   q('#kpiAppts').textContent = 5;
   q('#kpiClients').textContent = 3;
-  q('#kpiRetention').textContent = '85%';
-  new Chart(q('#chartLeads'), { type:'doughnut', data:{ labels:['Instagram','Facebook','Web','WhatsApp','Referido'], datasets:[{ data:[40,25,20,10,5] }]}, options:{responsive:true, maintainAspectRatio:false}});
-  new Chart(q('#chartServices'), { type:'bar', data:{ labels:['Interior','Cerámico','Motor','Paquete'], datasets:[{ data:[72,48,34,28], backgroundColor:'#0a8d4b'}]}, options:{responsive:true, maintainAspectRatio:false}});
 
   /* ========================= CLIENTES (CRUD) ========================= */
   const clientsTbody = q('#clientsTbody');
@@ -476,7 +456,7 @@
         const endISO   = ev.end?.dateTime   || (ev.end?.date   + "T23:59:00");
         paintEvent(eventPlacement(startISO,endISO), ev.summary||'Evento', { source:'gcal', title:ev.summary||'', startISO, endISO });
       });
-    }catch(e){ alert('No se pudo leer Google Calendar (API no configurada).'); }
+    }catch(e){ /* API no configurada: sólo seguimos con citas propias */ }
     await paintAppointments();
   }
 
@@ -509,9 +489,7 @@
     try{
       const { data } = await supabase.from('clients').select('id,name').order('name');
       apptFields.client.innerHTML = (data||[]).map(c=> `<option value="${c.id}">${c.name}</option>`).join('');
-    }catch{
-      apptFields.client.innerHTML = '';
-    }
+    }catch{ apptFields.client.innerHTML = ''; }
   }
   function openApptModal(meta={}){
     editingApptId = meta.supaId || null;
@@ -542,87 +520,81 @@
     show(mAppt,false); renderWeek(); paintAppointments();
   };
 
-  /* ========================= LEADS (CRUD) ========================= */
-  const leadsTbody = q('#leadsTbody'); let leads=[];
-  async function loadLeads(){ try{ const { data } = await supabase.from('leads').select('*').order('created_at',{ascending:false}); leads=data||[]; }catch{ leads=[]; } renderLeads(); }
-  function renderLeads(){
-    leadsTbody.innerHTML = (leads||[]).map(l=>`<tr>
-      <td>${new Date(l.created_at).toLocaleDateString('es-AR')}</td>
-      <td>${l.client_name||'—'}</td>
-      <td>${l.source||'—'}</td>
-      <td>
-        <select data-upd="${l.id}">
-          ${['Nuevo','Contactado','Calificado','Ganado','Perdido'].map(s=>`<option ${l.status===s?'selected':''}>${s}</option>`).join('')}
-        </select>
-      </td>
-      <td style="text-align:right"><button class="btn" data-del="${l.id}" type="button">Borrar</button></td>
-    </tr>`).join('') || `<tr><td colspan="5" class="mut">Sin leads</td></tr>`;
-  }
-  q('#btnNewLead').onclick=()=>{ q('#leadTitle').textContent='Nuevo lead'; q('#leadClient').value=''; q('#leadSource').value='Instagram'; q('#leadStatus').value='Nuevo'; q('#leadNotes').value=''; show(q('#modalLead'),true); };
-  q('#leadCancel').onclick=()=> show(q('#modalLead'),false);
-  q('#leadSave').onclick= async ()=>{
-    const row = { client_name:q('#leadClient').value.trim(), source:q('#leadSource').value, status:q('#leadStatus').value, notes:q('#leadNotes').value };
-    try{ await supabase.from('leads').insert(row); }catch{}
-    show(q('#modalLead'),false); loadLeads(); refreshLeadCharts();
-  };
-  leadsTbody.addEventListener('change', async (e)=>{ const id=e.target.dataset.upd; if(!id) return; try{ await supabase.from('leads').update({status:e.target.value}).eq('id',id); const L = leads.find(x=>x.id===id); if(L) L.status=e.target.value; refreshLeadCharts(); }catch{} });
-  leadsTbody.addEventListener('click', async (e)=>{ const id=e.target.dataset.del; if(!id) return; if(confirm('¿Borrar lead?')){ try{ await supabase.from('leads').delete().eq('id',id); }catch{} loadLeads(); refreshLeadCharts(); }});
-  function refreshLeadCharts(){
-    const agg = (leads||[]).reduce((m,l)=> (m[l.source]= (m[l.source]||0)+1, m), {});
-    const ch = Chart.getChart('chartLeads'); if(!ch) return;
-    ch.data.labels = Object.keys(agg); ch.data.datasets[0].data = Object.values(agg); ch.update();
+  /* ========================= GASTOS (CRUD) ========================= */
+  const expensesTbody = q('#expensesTbody');
+  const mExp = q('#modalExpense');
+  let expenses=[]; let editingExpId=null;
+
+  // KPI: recalcula el total de gastos del mes en curso
+  function updateKpiExpenses(){
+    const now = new Date();
+    const ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    const total = (expenses||[])
+      .filter(e => (e.date||'').startsWith(ym))
+      .reduce((s,e)=> s + (Number(e.amount)||0), 0);
+    q('#kpiExpenses').textContent = fmtARS(total);
   }
 
-  /* ========================= CAMPAÑAS (CRUD) ========================= */
-  const campTbody = q('#campTbody'); 
-  let campaigns=[];
-  async function loadCampaigns(){
-    try{ const { data } = await supabase.from('campaigns').select('*').order('created_at',{ascending:false}); campaigns=data||[]; }
-    catch{ campaigns=[]; }
-    renderCampaigns();
+  async function loadExpenses(){
+    try{
+      const { data } = await supabase.from('expenses').select('*').order('date',{ascending:false});
+      expenses = data||[];
+    }catch{ expenses=[]; }
+    renderExpenses(); updateKpiExpenses();
   }
-  function renderCampaigns(){
-    campTbody.innerHTML = (campaigns||[]).map(c=>`<tr>
-      <td>${c.name||''}</td>
-      <td>${c.channel||''}</td>
-      <td>${fmtARS(c.budget||0)}</td>
-      <td>${c.conversions||0}</td>
+  function renderExpenses(){
+    expensesTbody.innerHTML = (expenses||[]).map(e=>`<tr>
+      <td>${e.date || ''}</td>
+      <td>${e.description || ''}</td>
+      <td>${fmtARS(e.amount || 0)}</td>
+      <td>${e.category || ''}</td>
+      <td>${e.status || ''}</td>
       <td style="text-align:right">
-        <button class="btn" data-ed="${c.id}" type="button">Editar</button>
-        <button class="btn" data-del="${c.id}" type="button">Borrar</button>
+        <button class="btn" data-ed="${e.id}" type="button">Editar</button>
+        <button class="btn" data-del="${e.id}" type="button">Eliminar</button>
       </td>
-    </tr>`).join('') || `<tr><td colspan="5" class="mut">Sin campañas</td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="6" class="mut">Sin gastos</td></tr>`;
   }
-  q('#btnNewCamp').onclick=()=> openCampModal({});
-  campTbody.addEventListener('click', async (e)=>{
-    const id = e.target.dataset.ed || e.target.dataset.del; if(!id) return;
-    if(e.target.dataset.ed){ const c=campaigns.find(x=>x.id===id); openCampModal(c); }
-    if(e.target.dataset.del){ if(confirm('¿Borrar campaña?')){ try{ await supabase.from('campaigns').delete().eq('id',id); }catch{} loadCampaigns(); } }
-  });
-  const mCamp=q('#modalCamp'); 
-  let editingCampId=null;
-  const campFields={ name:q('#campName'), channel:q('#campChannel'), budget:q('#campBudget'), conv:q('#campConv') };
-  function openCampModal(c){
-    editingCampId=c?.id||null;
-    q('#campTitle').textContent = editingCampId?'Editar campaña':'Nueva campaña';
-    campFields.name.value=c?.name||''; campFields.channel.value=c?.channel||'';
-    campFields.budget.value=c?.budget||0; campFields.conv.value=c?.conversions||0;
-    show(mCamp,true);
+
+  // Abrir/cerrar modal gasto
+  const expFields = {
+    date:q('#expDate'), amount:q('#expAmount'), desc:q('#expDesc'), cat:q('#expCat'), status:q('#expStatus')
+  };
+  function openExpenseModal(e={}){
+    editingExpId = e.id || null;
+    q('#expTitle').textContent = editingExpId ? 'Editar gasto' : 'Nuevo gasto';
+    expFields.date.value = e.date || new Date().toISOString().slice(0,10);
+    expFields.amount.value = e.amount || '';
+    expFields.desc.value = e.description || '';
+    expFields.cat.value = e.category || '';
+    expFields.status.value = e.status || 'Pendiente';
+    show(mExp,true);
   }
-  q('#campCancel').onclick=()=> show(mCamp,false);
-  q('#campSave').onclick= async ()=>{
+  q('#btnNewExpense').onclick = ()=> openExpenseModal({});
+  q('#expCancel').onclick = ()=> show(mExp,false);
+
+  // Guardar gasto
+  q('#expSave').onclick = async ()=>{
     const row = {
-      name: campFields.name.value.trim(),
-      channel: campFields.channel.value.trim(),
-      budget: Number(campFields.budget.value||0),
-      conversions: Number(campFields.conv.value||0)
+      date: expFields.date.value,
+      description: expFields.desc.value.trim(),
+      amount: Number(expFields.amount.value||0),
+      category: expFields.cat.value.trim(),
+      status: expFields.status.value
     };
     try{
-      if(editingCampId) await supabase.from('campaigns').update(row).eq('id', editingCampId);
-      else await supabase.from('campaigns').insert(row);
+      if(editingExpId) await supabase.from('expenses').update(row).eq('id', editingExpId);
+      else await supabase.from('expenses').insert(row);
     }catch{}
-    show(mCamp,false); loadCampaigns();
+    show(mExp,false); await loadExpenses();
   };
+
+  // Acciones tabla gastos
+  expensesTbody.addEventListener('click', async (e)=>{
+    const id = e.target.dataset.ed || e.target.dataset.del; if(!id) return;
+    if(e.target.dataset.ed){ const r = expenses.find(x=>x.id===id); openExpenseModal(r||{}); }
+    if(e.target.dataset.del){ if(confirm('¿Eliminar gasto?')){ try{ await supabase.from('expenses').delete().eq('id', id); }catch{} loadExpenses(); } }
+  });
 
   /* ========================= AJUSTES ========================= */
   const setCalendarId = q('#setCalendarId');
@@ -636,7 +608,7 @@
   /* ========================= INICIALIZACIÓN ========================= */
   (async function init(){
     try {
-      await Promise.all([loadClients(), loadLeads(), loadCampaigns()]);
+      await Promise.all([loadClients(), loadExpenses()]);
       await paintAppointments();
       const defCal = localStorage.getItem('gcal_id') || 'monacodetailingarg@gmail.com';
       if (setCalendarId) setCalendarId.value = defCal;
