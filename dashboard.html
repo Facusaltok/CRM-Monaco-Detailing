@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es" x-data x-init="document.documentElement.classList.toggle('dark', (localStorage.getItem('md_theme')||'dark')==='dark')" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Monaco Detailing — CRM (Alpine + Tailwind)</title>
 
-  <!-- Tailwind (CDN) -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -14,18 +14,24 @@
         extend: {
           colors: {
             bg: "#0a0a0a",
-            panel: "#101317",
-            border: "#1f2937",
+            panel: "#0f1318",
+            border: "#1d2733",
             text: "#e5e7eb",
             mut: "#9fb0bf",
-            brand: "#0a8d4b"
-          }
+            brand: "#0a8d4b",
+            brand2: "#19c37d"
+          },
+          boxShadow: {
+            soft: "0 10px 30px rgba(0,0,0,.35)",
+            card: "0 12px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.03)"
+          },
+          borderRadius: { xl2: "14px" }
         }
       }
     }
   </script>
 
-  <!-- Fuente e Alpine -->
+  <!-- Fuente + Alpine -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
@@ -33,33 +39,52 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
-    body{font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial}
-    .card{ @apply bg-panel border border-border rounded-xl shadow-sm; }
-    .btn{ @apply px-3 py-2 rounded-lg border border-border bg-[#0f141a] text-text hover:bg-[#101820] transition; }
-    .btn-primary{ background:linear-gradient(90deg,#0a8d4b,#19c37d); color:#06130d; border-color:transparent; font-weight:800;}
+    :root { --g1:#0a8d4b; --g2:#19c37d }
+    body{font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; background: radial-gradient(1200px 600px at 20% -10%, rgba(25,195,125,.07), transparent), var(--tw-bg-opacity) var(--tw-bg-opacity);}
+    .card{ background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); border:1px solid theme('colors.border'); border-radius:14px; box-shadow:var(--shadow, 0 10px 30px rgba(0,0,0,.35)); }
+    /* Botón 3D */
+    .btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; gap:.45rem;
+      padding:.65rem .9rem; border-radius:12px; border:1px solid theme('colors.border'); color:theme('colors.text');
+      background:#0f141a; box-shadow: 0 6px 0 #0a1016, 0 14px 24px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.04);
+      transform: translateY(0); transition: transform .06s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .btn:focus-visible{ outline:2px solid var(--g2); outline-offset:2px }
+    .btn:hover{ background:#0f171f }
+    .btn:active{ transform: translateY(2px); box-shadow: 0 4px 0 #0a1016, 0 10px 16px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.02) }
+    .btn-primary{
+      background:linear-gradient(90deg, var(--g1), var(--g2)); border-color:transparent; color:#06140d; font-weight:800;
+      box-shadow: 0 6px 0 #055430, 0 18px 30px rgba(25,195,125,.35), inset 0 0 0 1px rgba(255,255,255,.1);
+    }
+    .btn-primary:hover{ filter:brightness(1.05) }
+    .btn-primary:active{ transform: translateY(2px); box-shadow: 0 4px 0 #055430, 0 12px 20px rgba(25,195,125,.45) }
     .chip{ @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
+    .glass{ backdrop-filter: saturate(1.2) blur(6px) }
+    [x-cloak]{ display:none !important }
   </style>
 </head>
+
 <body class="bg-bg text-text">
-<div x-data="crm()" class="min-h-screen">
+<div x-data="crm()" x-init="init()" class="min-h-screen">
 
   <!-- Topbar -->
-  <header class="sticky top-0 z-50 bg-panel/90 backdrop-blur border-b border-border">
+  <header class="sticky top-0 z-50 glass border-b border-border">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-3.5 h-3.5 rounded-full" style="background:linear-gradient(90deg,#0a8d4b,#19c37d); box-shadow:0 0 12px rgba(25,195,125,.7)"></div>
-        <div class="font-extrabold">MONACO DETAILING — CRM</div>
+        <div class="w-3.5 h-3.5 rounded-full" style="background:linear-gradient(90deg,var(--g1),var(--g2)); box-shadow:0 0 12px rgba(25,195,125,.7)"></div>
+        <div class="font-extrabold tracking-wide">MONACO DETAILING — CRM</div>
       </div>
       <div class="flex gap-2">
-        <button class="btn" @click="toggleTheme()">☾/☀</button>
-        <button class="btn" @click="signOut()">Salir</button>
+        <button class="btn" type="button" @click="toggleTheme()" :aria-label="theme==='dark' ? 'Cambiar a claro' : 'Cambiar a oscuro'">
+          <span x-text="theme==='dark' ? '☾' : '☀'"></span> <span class="sr-only">Tema</span>
+        </button>
+        <button class="btn" type="button" @click="signOut()">Salir</button>
       </div>
     </div>
   </header>
 
   <!-- Navbar -->
-  <nav class="sticky top-[56px] z-40 bg-panel border-b border-border">
-    <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap gap-2">
+  <nav class="sticky top-[60px] z-40 glass border-b border-border">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-2">
       <button class="btn" :class="{'btn-primary':tab==='dashboard'}" @click="tab='dashboard'" type="button">Dashboard</button>
       <button class="btn" :class="{'btn-primary':tab==='clientes'}"  @click="tab='clientes'" type="button">Clientes</button>
       <button class="btn" :class="{'btn-primary':tab==='servicios'}" @click="tab='servicios'" type="button">Servicios</button>
@@ -74,24 +99,24 @@
     <section x-show="tab==='dashboard'" x-cloak>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="card p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-lg bg-emerald-900/20 flex items-center justify-center text-brand">👥</div>
+          <div class="w-12 h-12 rounded-lg bg-emerald-900/25 flex items-center justify-center text-brand shadow-soft">👥</div>
           <div><div class="text-sm text-mut">Clientes Totales</div><div class="text-2xl font-extrabold" x-text="stats.totalClientes"></div></div>
         </div>
         <div class="card p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-lg bg-emerald-900/20 flex items-center justify-center text-brand">🗓️</div>
+          <div class="w-12 h-12 rounded-lg bg-emerald-900/25 flex items-center justify-center text-brand shadow-soft">🗓️</div>
           <div><div class="text-sm text-mut">Servicios Hoy</div><div class="text-2xl font-extrabold" x-text="stats.serviciosHoy"></div></div>
         </div>
         <div class="card p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-lg bg-emerald-900/20 flex items-center justify-center text-brand">$</div>
+          <div class="w-12 h-12 rounded-lg bg-emerald-900/25 flex items-center justify-center text-brand shadow-soft">$</div>
           <div><div class="text-sm text-mut">Ingresos Hoy</div><div class="text-2xl font-extrabold" x-text="fmtARS(stats.ingresosHoy)"></div></div>
         </div>
         <div class="card p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-lg bg-emerald-900/20 flex items-center justify-center text-brand">✅</div>
+          <div class="w-12 h-12 rounded-lg bg-emerald-900/25 flex items-center justify-center text-brand shadow-soft">✅</div>
           <div><div class="text-sm text-mut">Activos</div><div class="text-2xl font-extrabold" x-text="stats.activos"></div></div>
         </div>
       </div>
 
-      <div class="card p-5 mt-4">
+      <div class="card p-5 mt-4 shadow-card">
         <h2 class="text-brand font-bold mb-3">Agenda — Google Calendar</h2>
         <div class="aspect-[4/3] w-full border border-border rounded-xl overflow-hidden bg-[#0f141a]">
           <iframe class="w-full h-full" frameborder="0" scrolling="no"
@@ -103,13 +128,12 @@
 
     <!-- CLIENTES -->
     <section x-show="tab==='clientes'" x-cloak class="space-y-4">
-      <div class="card p-5">
+      <div class="card p-5 shadow-card">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <h2 class="text-brand font-bold">Clientes</h2>
+          <h2 class="text-brand font-bold text-lg">Clientes</h2>
           <div class="flex gap-2">
             <input class="btn w-64" placeholder="Buscar..." x-model="cli.search">
-            <button class="btn-primary px-4 py-2 rounded-lg" @click="openClient()"
-              type="button">+ Nuevo cliente</button>
+            <button class="btn btn-primary" @click="openClient()" type="button">+ Nuevo cliente</button>
           </div>
         </div>
 
@@ -126,21 +150,17 @@
             </thead>
             <tbody>
               <template x-for="c in filteredClients()" :key="c.id">
-                <tr class="border-b border-border/60 hover:bg-[#0f141a]">
+                <tr class="border-b border-border/60 hover:bg-[#0f171f]">
                   <td class="py-2 px-3">
                     <div class="font-semibold" x-text="c.name"></div>
                     <div class="text-mut" x-text="c.email"></div>
                   </td>
-                  <td class="py-2 px-3">
-                    <div x-text="c.phone"></div>
-                  </td>
+                  <td class="py-2 px-3"><div x-text="c.phone"></div></td>
                   <td class="py-2 px-3">
                     <div x-text="(c.vehicle?.brand||'') + ' ' + (c.vehicle?.model||'')"></div>
                     <div class="text-mut" x-text="(c.vehicle?.year||'') + ' · ' + (c.vehicle?.color||'')"></div>
                   </td>
-                  <td class="py-2 px-3">
-                    <div class="truncate max-w-[280px]" x-text="c.notes||''"></div>
-                  </td>
+                  <td class="py-2 px-3"><div class="truncate max-w-[280px]" x-text="c.notes||''"></div></td>
                   <td class="py-2 px-3 text-right">
                     <button class="btn" @click="openClient(c)" type="button">Editar</button>
                     <button class="btn" @click="delClient(c.id)" type="button">Eliminar</button>
@@ -156,9 +176,9 @@
 
     <!-- SERVICIOS -->
     <section x-show="tab==='servicios'" x-cloak class="space-y-4">
-      <div class="card p-5">
+      <div class="card p-5 shadow-card">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <h2 class="text-brand font-bold">Servicios / Citas</h2>
+          <h2 class="text-brand font-bold text-lg">Servicios / Citas</h2>
           <div class="flex gap-2">
             <input class="btn w-44" type="date" x-model="svc.dateFilter">
             <select class="btn w-44" x-model="svc.statusFilter">
@@ -167,16 +187,16 @@
               <option value="completado">Completado</option>
               <option value="cancelado">Cancelado</option>
             </select>
-            <button class="btn-primary px-4 py-2 rounded-lg" @click="openService()" type="button">+ Nueva cita</button>
+            <button class="btn btn-primary" @click="openService()" type="button">+ Nueva cita</button>
           </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-          <div class="lg:col-span-2 card">
+          <div class="lg:col-span-2 card shadow-soft">
             <div class="border-b border-border px-4 py-3 text-mut">Listado</div>
             <ul>
               <template x-for="s in filteredServices()" :key="s.id">
-                <li class="px-4 py-3 border-b border-border/60 hover:bg-[#0f141a]">
+                <li class="px-4 py-3 border-b border-border/60 hover:bg-[#0f171f]">
                   <div class="flex items-start justify-between gap-2">
                     <div class="flex-1">
                       <div class="flex items-center gap-2">
@@ -188,7 +208,7 @@
                             'bg-red-900/30 text-red-300': s.status==='cancelado'
                           }" x-text="s.status"></span>
                       </div>
-                      <div class="text-mut text-sm" x-text="(s.service||'') + ' — $' + (s.price||0)"></div>
+                      <div class="text-mut text-sm" x-text="(s.service||'') + ' — ' + fmtARS(s.price||0)"></div>
                       <div class="text-xs text-mut mt-1" x-text="fmtDateTime(s.date, s.start)"></div>
                     </div>
                     <div class="flex gap-2">
@@ -202,7 +222,7 @@
             </ul>
           </div>
 
-          <div class="card p-4 space-y-3">
+          <div class="card p-4 space-y-3 shadow-soft">
             <div class="font-semibold text-lg">Resumen del día</div>
             <div class="flex justify-between"><span class="text-mut">Servicios hoy</span><span class="font-bold" x-text="stats.serviciosHoy"></span></div>
             <div class="flex justify-between"><span class="text-mut">Completados</span><span class="font-bold text-emerald-400" x-text="servicesToday().filter(s=>s.status==='completado').length"></span></div>
@@ -213,9 +233,9 @@
       </div>
     </section>
 
-    <!-- CALENDARIO (iframe solo lectura) -->
+    <!-- CALENDARIO -->
     <section x-show="tab==='cal'" x-cloak>
-      <div class="card p-5">
+      <div class="card p-5 shadow-card">
         <h2 class="text-brand font-bold mb-3">Calendario</h2>
         <div class="aspect-[4/3] w-full border border-border rounded-xl overflow-hidden bg-[#0f141a]">
           <iframe class="w-full h-full" frameborder="0" scrolling="no"
@@ -226,17 +246,17 @@
 
     <!-- REPORTES (placeholder) -->
     <section x-show="tab==='reportes'" x-cloak>
-      <div class="card p-6">
+      <div class="card p-6 shadow-card">
         <h2 class="text-brand font-bold mb-2">Reportes (WIP)</h2>
-        <p class="text-mut">Acá podemos sumar gráficos (ingresos mensuales, servicios por tipo, etc.).</p>
+        <p class="text-mut">Sección lista para agregar gráficos (ingresos por mes, servicios por tipo, etc.).</p>
       </div>
     </section>
 
   </main>
 
   <!-- MODAL CLIENTE -->
-  <div x-show="modals.client" x-transition class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" x-cloak>
-    <div class="card w-full max-w-lg p-5">
+  <div x-show="modals.client" x-transition.opacity x-cloak class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+    <div class="card w-full max-w-lg p-5 shadow-card">
       <h3 class="text-brand font-bold mb-3" x-text="formClient.id ? 'Editar cliente' : 'Nuevo cliente'"></h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <input class="btn" placeholder="Nombre" x-model="formClient.name">
@@ -250,14 +270,14 @@
       </div>
       <div class="mt-4 flex justify-end gap-2">
         <button class="btn" @click="modals.client=false" type="button">Cancelar</button>
-        <button class="btn-primary px-4 py-2 rounded-lg" @click="saveClient()" type="button">Guardar</button>
+        <button class="btn btn-primary" @click="saveClient()" type="button">Guardar</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL SERVICIO -->
-  <div x-show="modals.service" x-transition class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" x-cloak>
-    <div class="card w-full max-w-lg p-5 space-y-3">
+  <div x-show="modals.service" x-transition.opacity x-cloak class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+    <div class="card w-full max-w-lg p-5 space-y-3 shadow-card">
       <h3 class="text-brand font-bold" x-text="formService.id ? 'Editar cita' : 'Nueva cita'"></h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <select class="btn" x-model="formService.client_id">
@@ -283,7 +303,7 @@
       </div>
       <div class="flex justify-end gap-2">
         <button class="btn" @click="modals.service=false" type="button">Cancelar</button>
-        <button class="btn-primary px-4 py-2 rounded-lg" @click="saveService()" type="button">Guardar</button>
+        <button class="btn btn-primary" @click="saveService()" type="button">Guardar</button>
       </div>
     </div>
   </div>
@@ -292,26 +312,30 @@
 
 <script>
 function crm(){
-  // === Configuración Supabase (si ya tenés supabaseClient.js, reemplazá esto por tu import) ===
+  // === Supabase ===
   const SUPABASE_URL  = "https://aewjhxdusrzluxpzmnxh.supabase.co";
   const SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFld2poeGR1c3J6bHV4cHptbnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1MzA0NzIsImV4cCI6MjA3MTEwNjQ3Mn0.8DoJ0wjO9Z_X8f5VwsAYwWWWTfOpyX1IGEwjm4f6jhY";
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   return {
-    // UI
+    // Tema
+    theme: (localStorage.getItem('md_theme') || 'dark'),
+    toggleTheme(){
+      this.theme = (this.theme==='dark') ? 'light':'dark';
+      document.documentElement.classList.toggle('dark', this.theme==='dark');
+      localStorage.setItem('md_theme', this.theme);
+    },
+
+    // Navegación
     tab: 'dashboard',
     modals: { client:false, service:false },
+
+    // Helpers
     fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
     fmtDateTime(date, start){
       if(!date) return '';
       const d = new Date(date + (start?('T'+start):'T00:00'));
       return d.toLocaleString('es-AR',{weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
-    },
-    toggleTheme(){
-      const root = document.documentElement;
-      const next = root.classList.contains('dark') ? 'light':'dark';
-      root.classList.toggle('dark', next==='dark');
-      localStorage.setItem('md_theme', next);
     },
 
     // Datos
@@ -332,21 +356,18 @@ function crm(){
       id:null, client_id:'', service:'Interior', price:'', date:'', start:'10:00', end:'11:00', status:'pendiente', notes:''
     },
 
-    // Auth mínima (si no hay sesión, igual deja ver — ajustá si querés forzar login)
+    // Sesión mínima
     async signOut(){ try{ await supabase.auth.signOut(); location.href='./index.html'; }catch{} },
 
-    // Carga inicial
+    // Init
     async init(){
-      const theme = localStorage.getItem('md_theme') || 'dark';
-      document.documentElement.classList.toggle('dark', theme==='dark');
-
       await Promise.all([this.loadClients(), this.loadServices()]);
       this.recalcStats();
     },
 
     // ---------- CLIENTES ----------
     async loadClients(){
-      const { data, error } = await supabase.from('clients').select('*').order('created_at',{ascending:false});
+      const { data } = await supabase.from('clients').select('*').order('created_at',{ascending:false});
       this.clients = data || [];
     },
     filteredClients(){
@@ -377,7 +398,9 @@ function crm(){
       } else {
         await supabase.from('clients').insert(row);
       }
-      this.modals.client=false; await this.loadClients(); this.recalcStats();
+      this.modals.client=false;
+      await this.loadClients();   // refresca
+      this.recalcStats();         // KPIs al día
     },
     async delClient(id){
       if(!confirm('¿Eliminar cliente?')) return;
@@ -387,21 +410,14 @@ function crm(){
 
     // ---------- SERVICIOS ----------
     async loadServices(){
-      // appointments: id, client_id, service, price, date, start, end, status, notes
-      const { data, error } = await supabase.from('appointments')
+      const { data } = await supabase.from('appointments')
         .select('*, clients(name)').order('date',{ascending:false});
-      // aplanar client name
       this.services = (data||[]).map(r=>({ ...r, client_name: r.clients?.name || '' }));
     },
     filteredServices(){
       let s = this.services.slice();
-      if(this.svc.dateFilter){
-        const d = this.svc.dateFilter;
-        s = s.filter(x => x.date === d);
-      }
-      if(this.svc.statusFilter){
-        s = s.filter(x => (x.status||'') === this.svc.statusFilter);
-      }
+      if(this.svc.dateFilter) s = s.filter(x => x.date === this.svc.dateFilter);
+      if(this.svc.statusFilter) s = s.filter(x => (x.status||'') === this.svc.statusFilter);
       return s;
     },
     servicesToday(){
@@ -428,7 +444,9 @@ function crm(){
       } else {
         await supabase.from('appointments').insert(row);
       }
-      this.modals.service=false; await this.loadServices(); this.recalcStats();
+      this.modals.service=false;
+      await this.loadServices();  // refresca
+      this.recalcStats();         // KPIs al día
     },
     async delService(id){
       if(!confirm('¿Eliminar cita?')) return;
@@ -442,11 +460,12 @@ function crm(){
       this.stats.activos = this.clients.filter(c=> (c.status||'activo')==='activo').length;
       const today = this.servicesToday();
       this.stats.serviciosHoy = today.length;
-      this.stats.ingresosHoy = today.filter(s=>s.status==='completado').reduce((a,b)=>a+(+b.price||0),0);
+      this.stats.ingresosHoy = today
+        .filter(s=>s.status==='completado')
+        .reduce((a,b)=>a+(+b.price||0),0);
     }
   }
 }
-document.addEventListener('alpine:init', ()=>{} );
 </script>
 </body>
 </html>
