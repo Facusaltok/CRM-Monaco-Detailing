@@ -1,23 +1,33 @@
-// api/calendar.js
+// /api/calendar.js
+import { google } from 'googleapis';
+import { getOAuthClient } from './_google.js';
+
 export default async function handler(req, res) {
   try {
-    const { calendarId, timeMin, timeMax } = req.query;
-    if (!process.env.GOOGLE_API_KEY) {
-      return res.status(500).json({ error: "Falta GOOGLE_API_KEY" });
+    if (req.method !== 'GET') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
     }
-    if (!calendarId || !timeMin || !timeMax) {
-      return res.status(400).json({ error: "calendarId, timeMin, timeMax son requeridos" });
-    }
-    const url = new URL("https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(calendarId) + "/events");
-    url.searchParams.set("key", process.env.GOOGLE_API_KEY);
-    url.searchParams.set("timeMin", timeMin);
-    url.searchParams.set("timeMax", timeMax);
-    url.searchParams.set("singleEvents", "true");
-    url.searchParams.set("orderBy", "startTime");
 
-    const r = await fetch(url);
-    const json = await r.json();
-    res.status(200).json(json);
+    const { calendarId, timeMin, timeMax } = req.query;
+    if (!calendarId || !timeMin || !timeMax) {
+      res.status(400).json({ error: 'calendarId, timeMin y timeMax son requeridos' });
+      return;
+    }
+
+    const auth = getOAuthClient();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    const { data } = await calendar.events.list({
+      calendarId,
+      timeMin,
+      timeMax,
+      singleEvents: true,
+      orderBy: 'startTime'
+    });
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(200).json(data);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
