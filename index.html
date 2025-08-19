@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Monaco Detailing CRM — Acceso</title>
-  <link rel="manifest" href="./manifest.webmanifest" />
   <meta name="theme-color" content="#0a8d4b" />
   <style>
     html, body { overscroll-behavior: none; }
@@ -23,19 +22,17 @@
     #newPassWrap{display:none;margin-top:.75rem}
   </style>
   <script>
+    // Limpia hash de supabase para evitar scroll y URLs feas
     if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
       history.replaceState(null, document.title, location.pathname + location.search);
     }
+    // SW simple
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", async () => {
         try {
           const reg = await navigator.serviceWorker.register("./sw.js");
           reg.update();
-          let refreshing = false;
-          navigator.serviceWorker.addEventListener("controllerchange", () => {
-            if (refreshing) return; refreshing = true; location.reload();
-          });
-        } catch (e) { console.warn("SW register error", e); }
+        } catch (e) { /* no-op */ }
       });
     }
   </script>
@@ -70,13 +67,6 @@
   <script type="module">
     import { supabase } from "./supabaseClient.js";
 
-    document.querySelectorAll('button:not([type])').forEach(b => b.setAttribute('type','button'));
-
-    const PROD_REDIRECT  = "https://crm-monaco-detailing.vercel.app/dashboard.html";
-    const LOCAL_REDIRECT = "http://localhost:8080/dashboard.html";
-    const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
-    const redirectTo = isLocal ? LOCAL_REDIRECT : PROD_REDIRECT;
-
     const msg = document.getElementById("msg");
     const emailEl = document.getElementById("email");
     const passEl  = document.getElementById("pass");
@@ -98,6 +88,7 @@
 
     document.getElementById("btnForgot").addEventListener("click", async () => {
       msg.textContent = "Enviando email de recuperación…"; msg.classList.remove("error");
+      const redirectTo = location.origin + "/dashboard.html";
       const { error } = await supabase.auth.resetPasswordForEmail(emailEl.value.trim(), { redirectTo });
       if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } 
       else { msg.textContent = "Revisá tu correo para cambiar la contraseña"; }
@@ -107,7 +98,7 @@
       msg.textContent = "Actualizando contraseña…"; msg.classList.remove("error");
       const { error } = await supabase.auth.updateUser({ password: newPassEl.value });
       if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); }
-      else { msg.textContent = "Contraseña updated. Redirigiendo…"; setTimeout(()=> location.href="./dashboard.html", 600); }
+      else { msg.textContent = "Contraseña actualizada. Redirigiendo…"; setTimeout(()=> location.href="./dashboard.html", 500); }
     });
   </script>
 </body>
