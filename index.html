@@ -3,44 +3,41 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Test Supabase Login</title>
- <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script>
-  const supabase = window.supabase.createClient(URL, ANON_KEY);
-</script>
-
+  <title>Acceso — Monaco CRM</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <style>
+    :root{--bg:#0a0a0a;--panel:#111;--border:#1f2937;--text:#e5e7eb;--accent:#0a8d4b}
+    *{box-sizing:border-box} body{margin:0;height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial}
+    .box{width:320px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
+    h1{margin:.2rem 0 1rem;text-align:center;color:var(--accent);font-size:1.2rem}
+    input{width:100%;padding:.65rem;border:1px solid var(--border);border-radius:8px;background:#0f141a;color:var(--text);margin:.4rem 0}
+    button{width:100%;padding:.7rem;border:none;border-radius:10px;background:var(--accent);color:#04150a;font-weight:800;cursor:pointer;margin-top:.6rem}
+    .err{color:#f87171;font-size:.9rem;display:none;margin-top:.4rem;text-align:center}
+  </style>
 </head>
 <body>
-  <form id="f" style="max-width:340px;margin:40px auto;font:16px system-ui">
-    <h3>Login de prueba</h3>
-    <input id="email" type="email" placeholder="tu@correo.com" style="width:100%;padding:8px;margin:8px 0" />
-    <input id="pass"  type="password" placeholder="••••••••" style="width:100%;padding:8px;margin:8px 0" />
-    <button>Ingresar</button>
-    <pre id="out" style="background:#f6f8fb;padding:10px"></pre>
-  </form>
+  <div class="box">
+    <h1>Acceso a Monaco CRM</h1>
+    <input id="email" type="email" placeholder="tu@correo.com" />
+    <input id="pass" type="password" placeholder="Contraseña" />
+    <button id="loginBtn" type="button">Ingresar</button>
+    <div id="err" class="err">Credenciales inválidas</div>
+  </div>
 
-  <script>
-    const SUPABASE_URL  = "https://aewjhxdusrzluxpzmnxh.supabase.co";
-    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFld2poeGR1c3J6bHV4cHptbnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1MzA0NzIsImV4cCI6MjA3MTEwNjQ3Mn0.8DoJ0wjO9Z_X8f5VwsAYwWWWTfOpyX1IGEwjm4f6jhY";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-    const out = document.getElementById('out');
-    document.getElementById('f').addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      out.textContent = 'Probando…';
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('pass').value;
-
-      try{
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        out.textContent = 'OK: sesión iniciada. Redirigiendo a dashboard…';
-        location.href = 'dashboard.html';
-      }catch(err){
-        out.textContent = 'Error: ' + err.message;
-        console.log(err);
-      }
-    });
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script type="module" src="./supabaseClient.js"></script>
+  <script type="module">
+    import { supabase } from "./supabaseClient.js";
+    document.getElementById('loginBtn').onclick = async () => {
+      const email = emailInput.value.trim();
+      const password = pass.value;
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { err.style.display='block'; return; }
+      location.href = "./dashboard.html";
+    };
+    const emailInput = document.getElementById('email');
+    const pass = document.getElementById('pass');
+    const err = document.getElementById('err');
   </script>
 </body>
 </html>
