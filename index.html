@@ -7,40 +7,30 @@
   <meta name="theme-color" content="#0a8d4b" />
   <style>
     html, body { overscroll-behavior: none; }
-    body{
-      margin:0; height:100vh; display:flex; align-items:center; justify-content:center;
-      background:#0a0a0a; color:#e5e7eb; font-family:system-ui, Segoe UI, Roboto, Arial;
-    }
-    .card{
-      width:100%; max-width:380px; background:#111; border:1px solid #1f2937;
-      border-radius:12px; padding:20px; box-shadow:0 12px 32px rgba(0,0,0,.4)
-    }
-    h1{ margin:.2rem 0 1rem; font-size:1.25rem; color:#0a8d4b; text-align:center }
-    label{ display:block; font-size:.9rem; margin:.25rem 0 .25rem; opacity:.9 }
-    input{
-      width:100%; padding:.6rem .7rem; border-radius:8px; border:1px solid #2b3340;
-      background:#0f141a; color:#e5e7eb
-    }
-    .actions{ display:flex; flex-direction:column; gap:.6rem; margin-top:1rem }
-    button{ border:none; border-radius:8px; padding:.65rem .8rem; cursor:pointer }
-    .green{ background:#0a8d4b; color:#fff }
-    .muted{ font-size:.9rem; opacity:.8; margin-top:.5rem; text-align:center }
-    .link{ color:#a7f3d0; cursor:pointer }
-    .msg{ margin-top:.6rem; font-size:.9rem; text-align:center; opacity:.95 }
-    .error{ color:#f87171 }
-    #newPassWrap{ display:none; margin-top:.75rem }
+    body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;color:#e5e7eb;font-family:system-ui,Segoe UI,Roboto,Arial}
+    .card{width:100%;max-width:380px;background:#111;border:1px solid #1f2937;border-radius:12px;padding:20px;box-shadow:0 12px 32px rgba(0,0,0,.4)}
+    h1{margin:.2rem 0 1rem;font-size:1.25rem;color:#0a8d4b;text-align:center}
+    label{display:block;font-size:.9rem;margin:.25rem 0 .25rem;opacity:.9}
+    input{width:100%;padding:.6rem .7rem;border-radius:8px;border:1px solid #2b3340;background:#0f141a;color:#e5e7eb}
+    .actions{display:flex;flex-direction:column;gap:.6rem;margin-top:1rem}
+    button{border:none;border-radius:8px;padding:.65rem .8rem;cursor:pointer}
+    .green{background:#0a8d4b;color:#fff}
+    .muted{font-size:.9rem;opacity:.8;margin-top:.5rem;text-align:center}
+    .link{color:#a7f3d0;cursor:pointer}
+    .msg{margin-top:.6rem;font-size:.9rem;text-align:center;opacity:.95}
+    .error{color:#f87171}
+    #newPassWrap{display:none;margin-top:.75rem}
   </style>
   <script>
-    // Limpia hash de supabase tras auth (evita scroll raro/URLs largas)
     if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
       history.replaceState(null, document.title, location.pathname + location.search);
     }
-    // Service Worker opcional (silencioso)
-    if ("serviceWorker" in navigator) {
-      addEventListener("load", async () => {
-        try { const reg = await navigator.serviceWorker.register("./sw.js"); reg.update(); } catch {}
-      });
-    }
+    // TEMP: podés comentar esto mientras testeás
+    // if ("serviceWorker" in navigator) {
+    //   addEventListener("load", async () => {
+    //     try { const reg = await navigator.serviceWorker.register("./sw.js"); reg.update(); } catch {}
+    //   });
+    // }
   </script>
 </head>
 <body>
@@ -70,7 +60,6 @@
     <div id="msg" class="msg"></div>
   </div>
 
-  <!-- Usa el cliente centralizado con tus nuevas credenciales -->
   <script type="module">
     import { supabase } from "./supabaseClient.js";
 
@@ -81,45 +70,64 @@
     const newPassWrap = $("#newPassWrap");
     const newPassEl   = $("#newpass");
 
-    // Si ya hay sesión, entra directo
+    // Redirige si ya hay sesión
     const { data: { session } } = await supabase.auth.getSession();
     if (session) location.href = "./dashboard.html";
 
-    // Si viene desde link de recuperación/invite, muestra seteo de nueva pass
+    // Si viene de link de recovery/invite
     const params = new URLSearchParams(location.hash.replace("#","?"));
     if (params.get("type") === "recovery" || params.get("type") === "invite") {
       newPassWrap.style.display = "block";
     }
 
-    // Iniciar sesión
+    // Login
     $("#btnSignIn").addEventListener("click", async () => {
       msg.textContent = "Ingresando…"; msg.classList.remove("error");
       const email = (emailEl.value || "").trim();
       const password = passEl.value || "";
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); }
-      else { location.href = "./dashboard.html"; }
+      try{
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        location.href = "./dashboard.html";
+      }catch(err){
+        console.error("Auth error:", err); // ← mira la consola del navegador
+        msg.textContent = err.message || "Error de red (CORS). Revisá configuración de Auth/CORS en Supabase.";
+        msg.classList.add("error");
+      }
     });
 
-    // Olvidé mi contraseña → envía email de recuperación
+    // Forgot
     $("#btnForgot").addEventListener("click", async () => {
       msg.textContent = "Enviando email de recuperación…"; msg.classList.remove("error");
       const email = (emailEl.value || "").trim();
       if (!email) { msg.textContent = "Ingresá tu email arriba."; msg.classList.add("error"); return; }
-      const redirectTo = location.origin + "/index.html"; // vuelve aquí tras el link; luego setea nueva pass
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); }
-      else { msg.textContent = "Revisá tu correo para cambiar la contraseña."; }
+      const redirectTo = location.origin + "/index.html";
+      try{
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) throw error;
+        msg.textContent = "Revisá tu correo para cambiar la contraseña.";
+      }catch(err){
+        console.error("Reset error:", err);
+        msg.textContent = err.message || "Error de red (CORS).";
+        msg.classList.add("error");
+      }
     });
 
-    // Guardar nueva contraseña (cuando vino por recovery/invite)
+    // Set new pass
     $("#btnSetNewPass").addEventListener("click", async () => {
       msg.textContent = "Actualizando contraseña…"; msg.classList.remove("error");
       const newPass = newPassEl.value || "";
       if (newPass.length < 6) { msg.textContent = "La contraseña debe tener al menos 6 caracteres."; msg.classList.add("error"); return; }
-      const { error } = await supabase.auth.updateUser({ password: newPass });
-      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); }
-      else { msg.textContent = "Contraseña actualizada. Redirigiendo…"; setTimeout(()=> location.href="./dashboard.html", 600); }
+      try{
+        const { error } = await supabase.auth.updateUser({ password: newPass });
+        if (error) throw error;
+        msg.textContent = "Contraseña actualizada. Redirigiendo…";
+        setTimeout(()=> location.href="./dashboard.html", 600);
+      }catch(err){
+        console.error("Update pass error:", err);
+        msg.textContent = err.message || "Error de red (CORS).";
+        msg.classList.add("error");
+      }
     });
   </script>
 </body>
