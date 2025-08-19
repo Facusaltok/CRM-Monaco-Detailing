@@ -7,21 +7,20 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <meta name="theme-color" content="#0a8d4b" />
 <style>
-  html, body { overscroll-behavior: none; } /* FIX: anti-vaivén */
-
+  html, body { overscroll-behavior: none; }
   :root{ --bg:#0a0a0a; --panel:#101317; --border:#1f2937; --text:#e5e7eb; --mut:#9fb0bf; --accent:#0a8d4b; --accent2:#19c37d }
   :root[data-theme="light"]{ --bg:#f6f8fb; --panel:#ffffff; --border:#d9e1ea; --text:#0b1220; --mut:#465366 }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial}
-  header{position:sticky;top:0;z-index:20;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(16,19,23,.9);border-bottom:1px solid var(--border)}
+  header{position:sticky;top:0;z-index:100;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(16,19,23,.9);border-bottom:1px solid var(--border)}
   :root[data-theme="light"] header{background:#fff}
+  nav{position:sticky;top:56px;z-index:90;display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--panel);flex-wrap:wrap}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800}
   .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 14px rgba(25,195,125,.7)}
   .actions{display:flex;gap:8px;flex-wrap:wrap}
   .btn{border:1px solid var(--border);background:#0f141a;color:var(--text);padding:.55rem .8rem;border-radius:10px;cursor:pointer}
   .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#07150f;border-color:transparent;font-weight:800}
   :root[data-theme="light"] .btn{background:#f7f9fc}
-  nav{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:transparent;flex-wrap:wrap}
   .tabbtn{border:1px solid var(--border);background:var(--panel);color:var(--text);padding:.55rem .8rem;border-radius:10px;cursor:pointer}
   .tabbtn.active{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#0a120c;border-color:transparent;font-weight:800}
   .container{max-width:1300px;margin:14px auto;padding:0 12px 24px}
@@ -45,18 +44,15 @@
   :root[data-theme="light"] .slot{border-color:#e8edf4}
   .event{position:relative;margin:2px;border:1px solid rgba(25,195,125,.45);background:linear-gradient(90deg,var(--accent),var(--accent2));color:#07150f;font-weight:800;font-size:12px;border-radius:8px;padding:6px 8px;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}
 
-  /* Modales: parche para no bloquear la UI cuando están ocultos */
+  /* Modales: no bloquean cuando están ocultos */
   .modalBack{
     position:fixed; inset:0;
     background:rgba(0,0,0,.5);
     display:none;
-    align-items:center; justify-content:center; z-index:50;
-    pointer-events:none;        /* <- no captura eventos si está oculta */
+    align-items:center; justify-content:center; z-index:200;
+    pointer-events:none;
   }
-  .modalBack.show{
-    display:flex;
-    pointer-events:auto;        /* <- solo captura cuando está visible */
-  }
+  .modalBack.show{ display:flex; pointer-events:auto; }
   .modal{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px}
   .modal h3{margin:.2rem 0 .6rem;color:var(--accent)}
   .row{display:grid;grid-template-columns:1fr 1fr; gap:8px}
@@ -107,7 +103,7 @@
       <h2>Clientes</h2>
       <div class="toolbar">
         <input id="cliSearch" placeholder="Buscar por nombre, email o teléfono" />
-        <button id="btnNewClient" class="btn primary">+ Nuevo cliente</button>
+        <button id="btnNewClient" class="btn primary" type="button">+ Nuevo cliente</button>
       </div>
       <table>
         <thead><tr><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Vehículo</th><th></th></tr></thead>
@@ -121,12 +117,12 @@
     <div class="card">
       <h2>Agenda semanal</h2>
       <div class="toolbar">
-        <button class="btn" id="btnPrev">◀︎ Semana</button>
-        <button class="btn" id="btnToday">Hoy</button>
-        <button class="btn" id="btnNext">Semana ▶︎</button>
+        <button class="btn" id="btnPrev" type="button">◀︎ Semana</button>
+        <button class="btn" id="btnToday" type="button">Hoy</button>
+        <button class="btn" id="btnNext" type="button">Semana ▶︎</button>
         <input id="gcalId" placeholder="tu-cal@group.calendar.google.com" style="min-width:280px"/>
-        <button class="btn" id="btnSync">Actualizar GCal</button>
-        <button class="btn primary" id="btnNewAppt">+ Nueva cita</button>
+        <button class="btn" id="btnSync" type="button">Actualizar GCal</button>
+        <button class="btn primary" id="btnNewAppt" type="button">+ Nueva cita</button>
         <span id="rangeLabel" class="mut"></span>
       </div>
       <div class="week" id="weekGrid">
@@ -149,7 +145,7 @@
         <div class="drag-handle">↕ Leads</div>
         <h2>Leads</h2>
         <div class="toolbar">
-          <button id="btnNewLead" class="btn primary">+ Nuevo lead</button>
+          <button id="btnNewLead" class="btn primary" type="button">+ Nuevo lead</button>
         </div>
         <table>
           <thead><tr><th>Fecha</th><th>Cliente</th><th>Fuente</th><th>Estado</th><th></th></tr></thead>
@@ -160,7 +156,7 @@
         <div class="drag-handle">↕ Campañas</div>
         <h2>Campañas</h2>
         <div class="toolbar">
-          <button id="btnNewCamp" class="btn primary">+ Nueva campaña</button>
+          <button id="btnNewCamp" class="btn primary" type="button">+ Nueva campaña</button>
         </div>
         <table>
           <thead><tr><th>Nombre</th><th>Canal</th><th>Presupuesto</th><th>Conversiones</th><th></th></tr></thead>
@@ -179,7 +175,7 @@
           <h3>Google Calendar</h3>
           <label>Calendar ID</label><input id="setCalendarId" placeholder="tu-cal@group.calendar.google.com" />
           <label><input type="checkbox" id="setCreateGCal"/> Crear evento en Google al guardar cita</label>
-          <div class="toolbar"><button id="btnSaveSettings" class="btn primary">Guardar ajustes</button></div>
+          <div class="toolbar"><button id="btnSaveSettings" class="btn primary" type="button">Guardar ajustes</button></div>
           <small class="mut">Para crear en Google, configura `/api/calendar-create` con OAuth y variables en Vercel.</small>
         </div>
       </div>
@@ -205,8 +201,8 @@
     </div>
     <label>Notas</label><textarea id="cliNotes" rows="3"></textarea>
     <div class="toolbar" style="justify-content:flex-end">
-      <button class="btn" id="cliCancel">Cancelar</button>
-      <button class="btn primary" id="cliSave">Guardar</button>
+      <button class="btn" id="cliCancel" type="button">Cancelar</button>
+      <button class="btn primary" id="cliSave" type="button">Guardar</button>
     </div>
   </div>
 </div>
@@ -228,8 +224,8 @@
     </div>
     <label>Notas</label><textarea id="apptNotes" rows="3"></textarea>
     <div class="toolbar" style="justify-content:flex-end">
-      <button class="btn" id="apptCancel">Cancelar</button>
-      <button class="btn primary" id="apptSave">Guardar</button>
+      <button class="btn" id="apptCancel" type="button">Cancelar</button>
+      <button class="btn primary" id="apptSave" type="button">Guardar</button>
     </div>
   </div>
 </div>
@@ -244,8 +240,8 @@
     </div>
     <label>Notas</label><textarea id="leadNotes" rows="3"></textarea>
     <div class="toolbar" style="justify-content:flex-end">
-      <button class="btn" id="leadCancel">Cancelar</button>
-      <button class="btn primary" id="leadSave">Guardar</button>
+      <button class="btn" id="leadCancel" type="button">Cancelar</button>
+      <button class="btn primary" id="leadSave" type="button">Guardar</button>
     </div>
   </div>
 </div>
@@ -260,15 +256,14 @@
     </div>
     <label>Conversiones</label><input id="campConv" type="number" />
     <div class="toolbar" style="justify-content:flex-end">
-      <button class="btn" id="campCancel">Cancelar</button>
-      <button class="btn primary" id="campSave">Guardar</button>
+      <button class="btn" id="campCancel" type="button">Cancelar</button>
+      <button class="btn primary" id="campSave" type="button">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- Limpieza de hash ANTES del módulo -->
 <script>
-  // FIX: limpiar hash de Supabase (#access_token, #refresh_token, type=...)
+  // Limpia hash Supabase (anti-salto)
   if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
     history.replaceState(null, document.title, location.pathname + location.search);
   }
@@ -278,7 +273,6 @@
   import { supabase } from "./supabaseClient.js";
   import "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
 
-  // Forzar type="button" en todos los botones (evita submits accidentales)
   document.querySelectorAll('button:not([type])').forEach(b => b.setAttribute('type','button'));
 
   // ===== Tema
@@ -295,16 +289,15 @@
   // ===== Utils
   const q = (s)=>document.querySelector(s);
   const fmtARS = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n||0);
-  // Mostrar/ocultar modales con clase .show (no bloquean cuando están ocultos)
   function show(el, flag){ if(!el) return; el.classList.toggle('show', !!flag); }
   function closeAllModals(){ document.querySelectorAll('.modalBack.show').forEach(m => m.classList.remove('show')); }
 
-  // ===== Tabs robustas (cierran modales al cambiar)
+  // ===== Tabs robustas
   document.querySelectorAll('.tabbtn').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       e.preventDefault();
       closeAllModals();
-      const tab = btn.dataset.tab; // "dash", "clientes", ...
+      const tab = btn.dataset.tab;
       document.querySelectorAll('.tabbtn').forEach(x=>x.classList.remove('active'));
       document.querySelectorAll('.tab').forEach(x=>x.style.display='none');
       btn.classList.add('active');
@@ -316,8 +309,6 @@
   // ===== Drag & Drop robusto
   function enableDnD(gridEl, key) {
     let dragEl = null;
-
-    // Restaurar layout
     const saved = localStorage.getItem('layout_' + key);
     if (saved) {
       const ids = JSON.parse(saved);
@@ -325,19 +316,13 @@
       Array.from(gridEl.children).forEach(c => map[c.dataset.id] = c);
       ids.forEach(id => map[id] && gridEl.appendChild(map[id]));
     }
-
-    // Drag por tarjeta
     Array.from(gridEl.children).forEach(card => {
       const handle = card.querySelector('.drag-handle') || card.firstElementChild;
       if (!handle) return;
       handle.draggable = true;
-
       handle.addEventListener('dragstart', (e) => {
-        dragEl = card;
-        e.dataTransfer.effectAllowed = 'move';
-        card.style.opacity = 0.5;
+        dragEl = card; e.dataTransfer.effectAllowed = 'move'; card.style.opacity = 0.5;
       });
-
       handle.addEventListener('dragend', () => {
         if (dragEl) dragEl.style.opacity = '';
         dragEl = null;
@@ -345,14 +330,12 @@
         localStorage.setItem('layout_' + key, JSON.stringify(order));
       });
     });
-
-    // Reordenar SOLO si hay drag activo
     gridEl.addEventListener('dragover', (e) => {
-      if (!dragEl) return;                // evita reflows fantasma
+      if (!dragEl) return;
       e.preventDefault();
       const children = Array.from(gridEl.children);
       const after = children.find(c => e.clientY <= c.getBoundingClientRect().top + c.offsetHeight / 2);
-      if (after === dragEl) return;       // evita inserciones redundantes
+      if (after === dragEl) return;
       gridEl.insertBefore(dragEl, after || null);
     });
   }
@@ -387,8 +370,8 @@
           <td>${c.email||''}</td>
           <td>${[v.brand,v.model,v.year,v.color].filter(Boolean).join(' / ')}</td>
           <td style="text-align:right">
-            <button class="btn" data-ed="${c.id}">Editar</button>
-            <button class="btn" data-del="${c.id}">Borrar</button>
+            <button class="btn" data-ed="${c.id}" type="button">Editar</button>
+            <button class="btn" data-del="${c.id}" type="button">Borrar</button>
           </td>
         </tr>`; }).join('') || `<tr><td colspan="5" class="mut">Sin clientes</td></tr>`;
   }
@@ -429,7 +412,7 @@
     show(mCli,false); loadClients(q('#cliSearch').value);
   };
 
-  // ======= AGENDA (CRUD + lectura GCal)
+  // ======= AGENDA (CRUD + lectura GCal por fecha)
   const hoursCol = q('#hours'); for(let i=0;i<24;i++){ const d=document.createElement('div'); d.className='mut'; d.textContent=(i<10?'0':'')+i+':00'; hoursCol.appendChild(d); }
   const dayCols = [...document.querySelectorAll('.daycol')];
   function startOfWeek(d){ const x=new Date(d); const day=(x.getDay()||7); x.setDate(x.getDate()-day+1); x.setHours(0,0,0,0); return x; }
@@ -473,13 +456,22 @@
   }
 
   async function paintAppointments(){
-    const min = new Date(weekStart); const max = new Date(weekStart.getTime()+7*864e5);
-    const { data } = await supabase.from('appointments').select('id, client_id, service, day, start, "end", notes, clients(name)').gte('created_at', min.toISOString()).lte('created_at', max.toISOString()).order('day');
+    const weekEnd = new Date(weekStart.getTime()+6*864e5);
+    const from = weekStart.toISOString().slice(0,10);
+    const to   = weekEnd.toISOString().slice(0,10);
+    const { data } = await supabase
+      .from('appointments')
+      .select('id, client_id, service, date, start, "end", notes, clients(name)')
+      .gte('date', from).lte('date', to)
+      .order('date');
     (data||[]).forEach(r=>{
-      const startISO = new Date(weekStart.getTime() + (r.day-1)*864e5).toISOString().slice(0,10) + 'T' + r.start;
-      const endISO   = new Date(weekStart.getTime() + (r.day-1)*864e5).toISOString().slice(0,10) + 'T' + r.end;
+      const startISO = `${r.date}T${r.start}`;
+      const endISO   = `${r.date}T${r.end}`;
       const title = `${r.service} — ${r.clients?.name||'Cliente'}`;
-      paintEvent(eventPlacement(startISO,endISO), title, { source:'supa', supaId:r.id, client_id:r.client_id, service:r.service, date:startISO.slice(0,10), start:r.start, end:r.end, notes:r.notes||'' });
+      paintEvent(eventPlacement(startISO,endISO), title, {
+        source:'supa', supaId:r.id, client_id:r.client_id, service:r.service,
+        date:r.date, start:r.start, end:r.end, notes:r.notes||''
+      });
     });
   }
 
@@ -504,8 +496,14 @@
   q('#btnNewAppt').onclick=()=> openApptModal({});
   q('#apptCancel').onclick=()=> show(mAppt,false);
   q('#apptSave').onclick= async ()=>{
-    const day = (new Date(apptFields.date.value)).getDay() || 7;
-    const row = { client_id: apptFields.client.value, service: apptFields.service.value, day, start: apptFields.start.value, end: apptFields.end.value, notes: apptFields.notes.value };
+    const day = (new Date(apptFields.date.value)).getDay() || 7; // sigue guardando day por compatibilidad
+    const row = {
+      client_id: apptFields.client.value,
+      service: apptFields.service.value,
+      date: apptFields.date.value,      // fecha real
+      day, start: apptFields.start.value, end: apptFields.end.value,
+      notes: apptFields.notes.value
+    };
     let res;
     if(editingApptId) res = await supabase.from('appointments').update(row).eq('id', editingApptId).select().single();
     else res = await supabase.from('appointments').insert(row).select().single();
@@ -526,7 +524,7 @@
           ${['Nuevo','Contactado','Calificado','Ganado','Perdido'].map(s=>`<option ${l.status===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </td>
-      <td style="text-align:right"><button class="btn" data-del="${l.id}">Borrar</button></td>
+      <td style="text-align:right"><button class="btn" data-del="${l.id}" type="button">Borrar</button></td>
     </tr>`).join('') || `<tr><td colspan="5" class="mut">Sin leads</td></tr>`;
   }
   q('#btnNewLead').onclick=()=>{ q('#leadTitle').textContent='Nuevo lead'; q('#leadClient').value=''; q('#leadSource').value='Instagram'; q('#leadStatus').value='Nuevo'; q('#leadNotes').value=''; show(q('#modalLead'),true); };
@@ -554,8 +552,8 @@
       <td>${fmtARS(c.budget||0)}</td>
       <td>${c.conversions||0}</td>
       <td style="text-align:right">
-        <button class="btn" data-ed="${c.id}">Editar</button>
-        <button class="btn" data-del="${c.id}">Borrar</button>
+        <button class="btn" data-ed="${c.id}" type="button">Editar</button>
+        <button class="btn" data-del="${c.id}" type="button">Borrar</button>
       </td>
     </tr>`).join('') || `<tr><td colspan="5" class="mut">Sin campañas</td></tr>`;
   }
@@ -588,7 +586,7 @@
   loadSettings();
   q('#btnSaveSettings').onclick=()=>{ localStorage.setItem('setCalendarId', setCalendarId.value.trim()); localStorage.setItem('setCreateGCal', JSON.stringify(setCreateGCal.checked)); alert('Ajustes guardados'); };
 
-  // ======= Inicializa data
+  // ======= Inicializar data
   loadClients(); loadLeads(); loadCampaigns(); paintAppointments();
 
   // Embudo simple
