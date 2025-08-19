@@ -3,116 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Monaco Detailing CRM — Login</title>
-
-  <!-- Tailwind (opcional pero ayuda con estilos rápidos) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Supabase JS v2 -->
+  <title>Test Supabase Login</title>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
-  <style>
-    /* Tema claro por defecto + estilo limpio con relieve 3D */
-    body { background:#f6f8fb; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-    .card { background:#fff; border:1px solid #e5e7eb; border-radius:16px; padding:24px;
-            box-shadow:0 10px 24px rgba(20,30,40,.06); }
-    .btn {
-      width:100%; padding:.8rem 1rem; border-radius:12px; border:1px solid #d9e1ea;
-      background:#fff; color:#0b1220; font-weight:700; cursor:pointer;
-      box-shadow:0 6px 0 #e3e8ef, 0 14px 24px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.7);
-      transition:all .15s ease;
-    }
-    .btn:hover { background:#f7fafc; }
-    .btn:active { box-shadow:0 4px 0 #e3e8ef, 0 10px 16px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.6) }
-    .btn-primary {
-      background:#19c37d; color:#062015; border-color:#16a86a;
-      box-shadow:0 6px 0 #16a86a, 0 18px 30px rgba(25,195,125,.25), inset 0 0 0 1px rgba(255,255,255,.3);
-    }
-    .btn-primary:hover { filter:brightness(1.02); }
-    label { color:#475569; font-size:.9rem; font-weight:600; }
-    input[type="email"], input[type="password"] {
-      width:100%; padding:.7rem .8rem; border:1px solid #d1d5db; border-radius:.6rem; background:#fff; color:#0b1220;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
-      transition:border-color .15s ease, box-shadow .15s ease;
-    }
-    input:focus { outline:none; border-color:#19c37d; box-shadow:0 0 0 3px rgba(25,195,125,.2); }
-    .mut { color:#64748b; }
-  </style>
 </head>
-<body class="min-h-screen flex items-center justify-center px-4">
-
-  <div class="card w-full max-w-md">
-    <div class="text-center mb-6">
-      <div class="mx-auto mb-2 w-4 h-4 rounded-full" style="background:linear-gradient(90deg,#0a8d4b,#19c37d)"></div>
-      <h1 class="text-2xl font-extrabold text-slate-800">Monaco Detailing — CRM</h1>
-      <p class="mut text-sm">Acceso con email y contraseña</p>
-    </div>
-
-    <form id="login-form" class="space-y-4" autocomplete="on">
-      <div>
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" placeholder="tu@correo.com" required />
-      </div>
-      <div>
-        <label for="password">Contraseña</label>
-        <input id="password" name="password" type="password" placeholder="••••••••" required />
-      </div>
-      <button id="loginBtn" type="submit" class="btn btn-primary">Ingresar</button>
-      <p id="error" class="text-red-600 text-sm mt-2 hidden"></p>
-    </form>
-
-    <div class="mt-4 text-center">
-      <button id="toggleTheme" class="btn" type="button" style="width:auto; padding:.5rem 1rem">☾/☀</button>
-    </div>
-
-    <p class="mut text-xs mt-4 text-center">
-      ¿Aún no tenés usuario? Crealo desde <b>Supabase → Auth → Users</b>.
-    </p>
-  </div>
+<body>
+  <form id="f" style="max-width:340px;margin:40px auto;font:16px system-ui">
+    <h3>Login de prueba</h3>
+    <input id="email" type="email" placeholder="tu@correo.com" style="width:100%;padding:8px;margin:8px 0" />
+    <input id="pass"  type="password" placeholder="••••••••" style="width:100%;padding:8px;margin:8px 0" />
+    <button>Ingresar</button>
+    <pre id="out" style="background:#f6f8fb;padding:10px"></pre>
+  </form>
 
   <script>
-    // --- Supabase Config (TU proyecto) ---
-    const SUPABASE_URL = "https://aewjhxdusrzluxpzmnxh.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFld2poeGR1c3J6bHV4cHptbnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1MzA0NzIsImV4cCI6MjA3MTEwNjQ3Mn0.8DoJ0wjO9Z_X8f5VwsAYwWWWTfOpyX1IGEwjm4f6jhY";
+    const SUPABASE_URL  = "https://aewjhxdusrzluxpzmnxh.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFld2poeGR1c3J6bHV4cHptbnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1MzA0NzIsImV4cCI6MjA3MTEwNjQ3Mn0.8DoJ0wjO9Z_X8f5VwsAYwWWWTfOpyX1IGEwjm4f6jhY";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // Si ya hay sesión activa, ir directo al dashboard
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) window.location.href = "dashboard.html";
-    })();
-
-    // Login handler
-    const form = document.getElementById("login-form");
-    const errorBox = document.getElementById("error");
-
-    form.addEventListener("submit", async (e) => {
+    const out = document.getElementById('out');
+    document.getElementById('f').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      errorBox.classList.add("hidden");
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
+      out.textContent = 'Probando…';
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('pass').value;
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        errorBox.textContent = error.message || "No se pudo iniciar sesión";
-        errorBox.classList.remove("hidden");
-        return;
+      try{
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        out.textContent = 'OK: sesión iniciada. Redirigiendo a dashboard…';
+        location.href = 'dashboard.html';
+      }catch(err){
+        out.textContent = 'Error: ' + err.message;
+        console.log(err);
       }
-      window.location.href = "dashboard.html";
-    });
-
-    // Toggle claro/oscuro (opcional)
-    const toggle = document.getElementById("toggleTheme");
-    let theme = localStorage.getItem("md_theme") || "light"; // claro por defecto
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    toggle.addEventListener("click", () => {
-      theme = (theme === "dark") ? "light" : "dark";
-      document.documentElement.classList.toggle("dark", theme === "dark");
-      localStorage.setItem("md_theme", theme);
-      // Ajuste rápido de fondo
-      document.body.style.background = theme === "dark" ? "#0a0a0a" : "#f6f8fb";
     });
   </script>
 </body>
