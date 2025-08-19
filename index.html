@@ -1,104 +1,83 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" x-data="{ theme: (localStorage.getItem('md_theme') || 'light') }" 
+      x-init="document.documentElement.classList.toggle('dark', theme==='dark')">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Monaco Detailing CRM — Acceso</title>
-  <meta name="theme-color" content="#0a8d4b" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monaco Detailing CRM - Login</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Alpine.js -->
+  <script src="https://unpkg.com/alpinejs" defer></script>
+
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
   <style>
-    html, body { overscroll-behavior: none; }
-    body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;color:#e5e7eb;font-family:system-ui,Segoe UI,Roboto,Arial}
-    .card{width:100%;max-width:380px;background:#111;border:1px solid #1f2937;border-radius:12px;padding:20px;box-shadow:0 12px 32px rgba(0,0,0,.4)}
-    h1{margin:.2rem 0 1rem;font-size:1.25rem;color:#0a8d4b;text-align:center}
-    label{display:block;font-size:.9rem;margin:.25rem 0 .25rem;opacity:.9}
-    input{width:100%;padding:.6rem .7rem;border-radius:8px;border:1px solid #2b3340;background:#0f141a;color:#e5e7eb}
-    .actions{display:flex;flex-direction:column;gap:.6rem;margin-top:1rem}
-    button{border:none;border-radius:8px;padding:.65rem .8rem;cursor:pointer}
-    .green{background:#0a8d4b;color:#fff}
-    .muted{font-size:.9rem;opacity:.8;margin-top:.5rem;text-align:center}
-    .link{color:#a7f3d0;cursor:pointer}
-    .msg{margin-top:.6rem;font-size:.9rem;text-align:center;opacity:.95}
-    .error{color:#f87171}
-    #newPassWrap{display:none;margin-top:.75rem}
+    body { background: #f6f8fb; }
+    .card { background:#fff; border:1px solid #e5e7eb; 
+            border-radius: 1rem; box-shadow: 0 10px 24px rgba(20,30,40,.06); }
+    .btn { 
+      display:inline-block; padding:.6rem 1.2rem; border-radius:.7rem;
+      border:1px solid #d9e1ea; background:#fff; color:#0b1220;
+      font-weight:600; cursor:pointer; 
+      box-shadow:0 6px 0 #e3e8ef, 0 14px 24px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.7);
+      transition:all .15s ease;
+    }
+    .btn:hover { background:#f7fafc; }
+    .btn:active { box-shadow:0 4px 0 #e3e8ef, 0 10px 16px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.6) }
+    .btn-primary { 
+      background:#19c37d; color:white; border-color:#16a86a;
+      box-shadow:0 6px 0 #16a86a, 0 18px 30px rgba(25,195,125,.25), inset 0 0 0 1px rgba(255,255,255,.3);
+    }
+    .btn-primary:hover { background:#18b372; }
   </style>
-  <script>
-    // Limpia hash de supabase para evitar scroll y URLs feas
-    if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
-      history.replaceState(null, document.title, location.pathname + location.search);
-    }
-    // SW simple
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", async () => {
-        try {
-          const reg = await navigator.serviceWorker.register("./sw.js");
-          reg.update();
-        } catch (e) { /* no-op */ }
-      });
-    }
-  </script>
 </head>
-<body>
-  <div class="card">
-    <h1>Acceso a Monaco CRM</h1>
+<body class="flex items-center justify-center h-screen">
 
-    <label for="email">Email</label>
-    <input id="email" type="email" placeholder="tu@correo.com" />
+  <div class="card w-full max-w-md p-8">
+    <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">Monaco Detailing CRM</h1>
+    
+    <form id="login-form" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Email</label>
+        <input type="email" id="email" required 
+               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 p-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Contraseña</label>
+        <input type="password" id="password" required 
+               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 p-2">
+      </div>
+      <button type="submit" class="btn btn-primary w-full">Ingresar</button>
+    </form>
 
-    <label for="pass">Contraseña</label>
-    <input id="pass" type="password" placeholder="••••••••" />
-
-    <div id="newPassWrap">
-      <label for="newpass">Nueva contraseña</label>
-      <input id="newpass" type="password" placeholder="Nueva contraseña" />
-      <button id="btnSetNewPass" class="green" type="button">Guardar nueva contraseña</button>
-    </div>
-
-    <div class="actions">
-      <button id="btnSignIn" class="green" type="button">Ingresar</button>
-    </div>
-
-    <div class="muted">
-      <span id="btnForgot" class="link">Olvidé mi contraseña</span>
-    </div>
-
-    <div id="msg" class="msg"></div>
+    <p id="error" class="text-red-600 text-sm mt-4 hidden"></p>
   </div>
 
-  <script type="module">
-    import { supabase } from "./supabaseClient.js";
+  <script>
+    // --- CONFIG SUPABASE ---
+    const supabaseUrl = "https://aewjhxdusrzluxpzmnxh.supabase.co";
+    const supabaseKey = "TU_ANON_KEY_AQUI";  // 👈 reemplazá con la anon key
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    const msg = document.getElementById("msg");
-    const emailEl = document.getElementById("email");
-    const passEl  = document.getElementById("pass");
-    const newPassWrap = document.getElementById("newPassWrap");
-    const newPassEl   = document.getElementById("newpass");
+    // --- LOGIN ---
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) location.href = "./dashboard.html";
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    const params = new URLSearchParams(location.hash.replace("#","?"));
-    if (params.get("type") === "recovery" || params.get("type") === "invite") newPassWrap.style.display = "block";
-
-    document.getElementById("btnSignIn").addEventListener("click", async () => {
-      msg.textContent = "Ingresando…"; msg.classList.remove("error");
-      const { error } = await supabase.auth.signInWithPassword({ email: emailEl.value.trim(), password: passEl.value });
-      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } 
-      else { location.href="./dashboard.html"; }
-    });
-
-    document.getElementById("btnForgot").addEventListener("click", async () => {
-      msg.textContent = "Enviando email de recuperación…"; msg.classList.remove("error");
-      const redirectTo = location.origin + "/dashboard.html";
-      const { error } = await supabase.auth.resetPasswordForEmail(emailEl.value.trim(), { redirectTo });
-      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); } 
-      else { msg.textContent = "Revisá tu correo para cambiar la contraseña"; }
-    });
-
-    document.getElementById("btnSetNewPass").addEventListener("click", async () => {
-      msg.textContent = "Actualizando contraseña…"; msg.classList.remove("error");
-      const { error } = await supabase.auth.updateUser({ password: newPassEl.value });
-      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("error"); }
-      else { msg.textContent = "Contraseña actualizada. Redirigiendo…"; setTimeout(()=> location.href="./dashboard.html", 500); }
+      if (error) {
+        document.getElementById("error").innerText = error.message;
+        document.getElementById("error").classList.remove("hidden");
+      } else {
+        // Redirigir al dashboard
+        window.location.href = "dashboard.html";
+      }
     });
   </script>
 </body>
