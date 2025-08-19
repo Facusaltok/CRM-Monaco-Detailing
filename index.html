@@ -4,7 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Test Supabase Login</title>
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+ <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const supabase = window.supabase.createClient(URL, ANON_KEY);
+</script>
+
 </head>
 <body>
   <form id="f" style="max-width:340px;margin:40px auto;font:16px system-ui">
