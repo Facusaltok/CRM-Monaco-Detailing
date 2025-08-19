@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Monaco Detailing CRM — Panel</title>
-<link rel="manifest" href="./manifest.webmanifest" />
 <meta name="theme-color" content="#0a8d4b" />
 <style>
   html, body { overscroll-behavior: none; }
@@ -35,27 +34,18 @@
   .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
   .mut{color:var(--mut)}
   canvas,svg{width:100%;height:260px;display:block}
-
-  /* Agenda (cuadrícula) */
   .week{display:grid;grid-template-columns:80px repeat(7,1fr);gap:6px}
   .hours{display:grid;grid-template-rows:repeat(24,36px);gap:6px}
   .daycol{display:grid;grid-template-rows:repeat(24,36px);gap:6px;position:relative}
   .slot{border:1px dashed rgba(255,255,255,.06);border-radius:8px}
   :root[data-theme="light"] .slot{border-color:#e8edf4}
   .event{position:relative;margin:2px;border:1px solid rgba(25,195,125,.45);background:linear-gradient(90deg,var(--accent),var(--accent2));color:#07150f;font-weight:800;font-size:12px;border-radius:8px;padding:6px 8px;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}
-
-  /* Modales */
   .modalBack{position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:200; pointer-events:none;}
   .modalBack.show{ display:flex; pointer-events:auto; }
   .modal{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px}
   .modal h3{margin:.2rem 0 .6rem;color:var(--accent)}
   .row{display:grid;grid-template-columns:1fr 1fr; gap:8px}
-
-  /* Calendar embed responsive */
-  .cal-embed{
-    position:relative; width:100%; aspect-ratio: 4 / 3;
-    background:#0f141a; border:1px solid var(--border); border-radius:12px; overflow:hidden;
-  }
+  .cal-embed{ position:relative; width:100%; aspect-ratio: 4 / 3; background:#0f141a; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
   .cal-embed iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
 </style>
 </head>
@@ -64,17 +54,17 @@
 <header>
   <div class="brand"><div class="dot"></div><div>MONACO DETAILING — CRM</div></div>
   <div class="actions">
-    <button id="btnTheme" class="btn" title="Claro/Oscuro">☾/☀</button>
-    <button id="btnSignOut" class="btn">Salir</button>
+    <button id="btnTheme" class="btn" title="Claro/Oscuro" type="button">☾/☀</button>
+    <button id="btnSignOut" class="btn" type="button">Salir</button>
   </div>
 </header>
 
 <nav>
-  <button class="tabbtn active" data-tab="dash">Dashboard</button>
-  <button class="tabbtn" data-tab="clientes">Clientes</button>
-  <button class="tabbtn" data-tab="agenda">Agenda</button>
-  <button class="tabbtn" data-tab="marketing">Marketing</button>
-  <button class="tabbtn" data-tab="ajustes">Ajustes</button>
+  <button class="tabbtn active" data-tab="dash" type="button">Dashboard</button>
+  <button class="tabbtn" data-tab="clientes" type="button">Clientes</button>
+  <button class="tabbtn" data-tab="agenda" type="button">Agenda</button>
+  <button class="tabbtn" data-tab="marketing" type="button">Marketing</button>
+  <button class="tabbtn" data-tab="ajustes" type="button">Ajustes</button>
 </nav>
 
 <div class="container">
@@ -140,8 +130,6 @@
         <button class="btn primary" id="btnNewAppt" type="button">+ Nueva cita</button>
         <span id="rangeLabel" class="mut"></span>
       </div>
-
-      <!-- cuadrícula interna -->
       <div class="week" id="weekGrid">
         <div class="hours" id="hours"></div>
         <div class="daycol" data-day="1"></div>
@@ -154,7 +142,7 @@
       </div>
     </div>
 
-    <!-- Google Calendar embebido también en la pestaña Agenda -->
+    <!-- Google Calendar embebido también en Agenda -->
     <div class="card">
       <h2>Google Calendar (vista completa)</h2>
       <div class="cal-embed">
@@ -204,7 +192,7 @@
           <label>Calendar ID</label><input id="setCalendarId" placeholder="tu-cal@group.calendar.google.com" />
           <label><input type="checkbox" id="setCreateGCal"/> Crear evento en Google al guardar cita</label>
           <div class="toolbar"><button id="btnSaveSettings" class="btn primary" type="button">Guardar ajustes</button></div>
-          <small class="mut">Para crear en Google, configura `/api/calendar-create` con OAuth y variables en Vercel.</small>
+          <small class="mut">Para crear eventos reales en Google, implementa <code>/api/calendar-create</code> con OAuth.</small>
         </div>
       </div>
     </div>
@@ -242,7 +230,10 @@
     <select id="apptClient"></select>
     <div class="row">
       <div><label>Servicio</label>
-        <select id="apptService"><option>Interior</option><option>Tratamiento Cerámico</option><option>Motor a Vapor</option><option>Paquete Completo</option></select>
+        <select id="apptService">
+          <option>Interior</option><option>Tratamiento Cerámico</option>
+          <option>Motor a Vapor</option><option>Paquete Completo</option>
+        </select>
       </div>
       <div><label>Fecha</label><input id="apptDate" type="date"/></div>
     </div>
@@ -290,51 +281,46 @@
   </div>
 </div>
 
+<!-- Fallback de pestañas (funciona aunque el módulo falle) -->
 <script>
-  if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
-    history.replaceState(null, document.title, location.pathname + location.search);
+(function(){
+  document.querySelectorAll('.modalBack').forEach(m => m.classList.remove('show'));
+  function activar(tab){
+    document.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+    document.querySelectorAll('.tab').forEach(sec=>sec.style.display = (sec.id==='tab-'+tab)?'block':'none');
   }
+  document.addEventListener('click',(e)=>{
+    const btn=e.target.closest('.tabbtn'); if(!btn) return;
+    e.preventDefault(); activar(btn.dataset.tab);
+  });
+  activar(document.querySelector('.tabbtn.active')?.dataset.tab || 'dash');
+})();
 </script>
 
 <script type="module">
   import { supabase } from "./supabaseClient.js";
   import "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
 
-  document.querySelectorAll('button:not([type])').forEach(b => b.setAttribute('type','button'));
-
-  // ===== Tema
+  // ===== Tema / Auth =====
   const root=document.documentElement;
   root.setAttribute('data-theme', localStorage.getItem('md_theme')||'dark');
   document.getElementById('btnTheme').onclick=()=>{ const n=root.getAttribute('data-theme')==='dark'?'light':'dark'; root.setAttribute('data-theme',n); localStorage.setItem('md_theme',n); };
 
-  // ===== Auth
-  const { data: { session} } = await supabase.auth.getSession();
-  if (!session) location.href = "./index.html";
-  supabase.auth.onAuthStateChange((_e,s)=>{ if(!s) location.href="./index.html"; });
-  document.getElementById("btnSignOut").onclick = async ()=> { await supabase.auth.signOut(); };
+  try {
+    const { data: { session} } = await supabase.auth.getSession();
+    if (!session) location.href = "./index.html";
+    supabase.auth.onAuthStateChange((_e,s)=>{ if(!s) location.href="./index.html"; });
+    document.getElementById("btnSignOut").onclick = async ()=> { await supabase.auth.signOut(); };
+  } catch(e){ /* si supabase falla, igual la UI sigue */ }
 
-  // ===== Utils
+  // ===== Utils =====
   const q = (s)=>document.querySelector(s);
   const fmtARS = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n||0);
-  function show(el, flag){ if(!el) return; el.classList.toggle('show', !!flag); }
-  function closeAllModals(){ document.querySelectorAll('.modalBack.show').forEach(m => m.classList.remove('show')); }
+  const show = (el, flag)=> el && el.classList.toggle('show', !!flag);
 
-  // ===== Tabs
-  document.querySelectorAll('.tabbtn').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      e.preventDefault();
-      closeAllModals();
-      const tab = btn.dataset.tab;
-      document.querySelectorAll('.tabbtn').forEach(x=>x.classList.remove('active'));
-      document.querySelectorAll('.tab').forEach(x=>x.style.display='none');
-      btn.classList.add('active');
-      const target = document.getElementById('tab-'+tab);
-      if (target) target.style.display='block';
-    });
-  });
-
-  // ===== Drag & Drop
+  // ===== Drag & Drop =====
   function enableDnD(gridEl, key) {
+    if(!gridEl) return;
     let dragEl = null;
     const saved = localStorage.getItem('layout_' + key);
     if (saved) {
@@ -369,13 +355,11 @@
   enableDnD(q('#dashGrid'),'dash');
   enableDnD(q('#mktGrid'),'mkt');
 
-  // ===== KPIs demo
+  // ===== KPIs demo + Charts demo =====
   q('#kpiRevenue').textContent = fmtARS(1200000);
   q('#kpiAppts').textContent = 5;
   q('#kpiClients').textContent = 3;
   q('#kpiRetention').textContent = '85%';
-
-  // ===== Charts demo
   new Chart(q('#chartLeads'), { type:'doughnut', data:{ labels:['Instagram','Facebook','Web','WhatsApp','Referido'], datasets:[{ data:[40,25,20,10,5] }]}, options:{responsive:true, maintainAspectRatio:false}});
   new Chart(q('#chartServices'), { type:'bar', data:{ labels:['Interior','Cerámico','Motor','Paquete'], datasets:[{ data:[72,48,34,28], backgroundColor:'#0a8d4b'}]}, options:{responsive:true, maintainAspectRatio:false}});
 
@@ -384,8 +368,10 @@
   let clients = []; let editingClientId = null;
 
   async function loadClients(filter=''){
-    const { data } = await supabase.from('clients').select('*').order('created_at',{ascending:false});
-    clients = data||[]; renderClients(filter);
+    try{
+      const { data } = await supabase.from('clients').select('*').order('created_at',{ascending:false});
+      clients = data||[]; renderClients(filter);
+    }catch{ clients=[]; renderClients(); }
   }
   function renderClients(filter=''){
     const f = (filter||'').toLowerCase();
@@ -409,7 +395,7 @@
     const id = e.target.dataset.ed || e.target.dataset.del;
     if(!id) return;
     if(e.target.dataset.ed){ const c = clients.find(x=>x.id===id); openClientModal(c); }
-    if(e.target.dataset.del){ if(confirm('¿Borrar cliente?')){ await supabase.from('clients').delete().eq('id', id); loadClients(); } }
+    if(e.target.dataset.del){ if(confirm('¿Borrar cliente?')){ try{ await supabase.from('clients').delete().eq('id', id); }catch{} loadClients(); } }
   });
 
   const mCli = q('#modalClient'); 
@@ -432,4 +418,231 @@
       name: cliFields.name.value.trim(),
       phone: cliFields.phone.value.trim(),
       email: cliFields.email.value.trim(),
-      vehicle: { brand:cliFields.brand.value.trim(), model:cliFields.model.value.trim
+      vehicle: { brand:cliFields.brand.value.trim(), model:cliFields.model.value.trim(), year:cliFields.year.value.trim(), color:cliFields.color.value.trim() },
+      notes: cliFields.notes.value.trim()
+    };
+    try{
+      if(editingClientId) await supabase.from('clients').update(row).eq('id', editingClientId);
+      else await supabase.from('clients').insert(row);
+    }catch{}
+    show(mCli,false); loadClients(q('#cliSearch').value);
+  };
+
+  /* ========================= AGENDA (CRUD + GCAL lectura) ========================= */
+  const hoursCol = q('#hours'); for(let i=0;i<24;i++){ const d=document.createElement('div'); d.className='mut'; d.textContent=(i<10?'0':'')+i+':00'; hoursCol.appendChild(d); }
+  const dayCols = [...document.querySelectorAll('.daycol')];
+
+  function startOfWeek(d){ const x=new Date(d); const day=(x.getDay()||7); x.setDate(x.getDate()-day+1); x.setHours(0,0,0,0); return x; }
+  let weekStart = startOfWeek(new Date());
+  const label = q('#rangeLabel'); 
+  const gcalInput = q('#gcalId'); 
+  const defaultGCal = "monacodetailingarg@gmail.com";
+  if (!localStorage.getItem('gcal_id')) localStorage.setItem('gcal_id', defaultGCal);
+  if (gcalInput) gcalInput.value = localStorage.getItem('gcal_id') || defaultGCal;
+
+  function renderWeek(){
+    label.textContent = weekStart.toLocaleDateString('es-AR',{day:'2-digit',month:'short'}) + ' — ' + new Date(weekStart.getTime()+6*864e5).toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
+    dayCols.forEach(col=>{ col.innerHTML=''; for(let r=0;r<24;r++){ const s=document.createElement('div'); s.className='slot'; col.appendChild(s); }});
+  }
+  q('#btnPrev').onclick=()=>{ weekStart.setDate(weekStart.getDate()-7); renderWeek(); paintAppointments(); };
+  q('#btnNext').onclick=()=>{ weekStart.setDate(weekStart.getDate()+7); renderWeek(); paintAppointments(); };
+  q('#btnToday').onclick=()=>{ weekStart=startOfWeek(new Date()); renderWeek(); paintAppointments(); };
+  q('#btnSync').onclick=()=>{ localStorage.setItem('gcal_id', gcalInput.value.trim()); syncCalendar(); };
+  renderWeek();
+
+  function eventPlacement(startISO, endISO){
+    const start = new Date(startISO); const end = new Date(endISO);
+    const dow = (start.getDay()||7); const rowStart = start.getHours()+1; const rowSpan = Math.max(1, Math.ceil((end-start)/3600000));
+    return {dow,rowStart,rowSpan,start};
+  }
+  function paintEvent({dow,rowStart,rowSpan,start}, title, meta={}){
+    const col = dayCols[dow-1]; if(!col) return;
+    const e = document.createElement('div'); e.className='event'; e.style.gridRow = `${rowStart} / span ${rowSpan}`;
+    e.textContent = `${title} (${start.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})})`;
+    e.dataset.meta = JSON.stringify(meta);
+    e.onclick = ()=> openApptModal(meta);
+    col.appendChild(e);
+  }
+
+  async function syncCalendar(){
+    const calendarId = (gcalInput.value||'').trim(); if(!calendarId){ alert('Ingresá Calendar ID'); return; }
+    const timeMin = new Date(weekStart).toISOString(); const timeMax = new Date(weekStart.getTime()+7*864e5).toISOString();
+    try{
+      const res = await fetch(`/api/calendar?calendarId=${encodeURIComponent(calendarId)}&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`);
+      const json = await res.json();
+      renderWeek();
+      (json.items||[]).forEach(ev=>{
+        const startISO = ev.start.dateTime || (ev.start.date + "T00:00:00");
+        const endISO   = ev.end?.dateTime   || (ev.end?.date   + "T23:59:00");
+        paintEvent(eventPlacement(startISO,endISO), ev.summary||'Evento', { source:'gcal', title:ev.summary||'', startISO, endISO });
+      });
+    }catch(e){ alert('No se pudo leer Google Calendar (API no configurada).'); }
+    await paintAppointments();
+  }
+
+  async function paintAppointments(){
+    const weekEnd = new Date(weekStart.getTime()+6*864e5);
+    const from = weekStart.toISOString().slice(0,10);
+    const to   = weekEnd.toISOString().slice(0,10);
+    try{
+      const { data } = await supabase
+        .from('appointments')
+        .select('id, client_id, service, date, start, "end", notes, clients(name)')
+        .gte('date', from).lte('date', to)
+        .order('date');
+      (data||[]).forEach(r=>{
+        const startISO = `${r.date}T${r.start}`;
+        const endISO   = `${r.date}T${r.end}`;
+        const title = `${r.service} — ${r.clients?.name||'Cliente'}`;
+        paintEvent(eventPlacement(startISO,endISO), title, {
+          source:'supa', supaId:r.id, client_id:r.client_id, service:r.service,
+          date:r.date, start:r.start, end:r.end, notes:r.notes||''
+        });
+      });
+    }catch{}
+  }
+
+  // Modal cita
+  const mAppt = q('#modalAppt'); let editingApptId = null;
+  const apptFields = { client:q('#apptClient'), service:q('#apptService'), date:q('#apptDate'), start:q('#apptStart'), end:q('#apptEnd'), notes:q('#apptNotes') };
+  async function loadClientOptions(){
+    try{
+      const { data } = await supabase.from('clients').select('id,name').order('name');
+      apptFields.client.innerHTML = (data||[]).map(c=> `<option value="${c.id}">${c.name}</option>`).join('');
+    }catch{
+      apptFields.client.innerHTML = '';
+    }
+  }
+  function openApptModal(meta={}){
+    editingApptId = meta.supaId || null;
+    q('#apptTitle').textContent = editingApptId?'Editar cita':'Nueva cita';
+    loadClientOptions().then(()=>{ if(meta.client_id) apptFields.client.value = meta.client_id; });
+    apptFields.service.value = meta.service || 'Interior';
+    apptFields.date.value    = meta.date    || new Date().toISOString().slice(0,10);
+    apptFields.start.value   = meta.start   || '10:00';
+    apptFields.end.value     = meta.end     || '11:00';
+    apptFields.notes.value   = meta.notes   || '';
+    show(mAppt,true);
+  }
+  q('#btnNewAppt').onclick=()=> openApptModal({});
+  q('#apptCancel').onclick=()=> show(mAppt,false);
+  q('#apptSave').onclick= async ()=>{
+    const day = (new Date(apptFields.date.value)).getDay() || 7;
+    const row = {
+      client_id: apptFields.client.value,
+      service: apptFields.service.value,
+      date: apptFields.date.value,
+      day, start: apptFields.start.value, end: apptFields.end.value,
+      notes: apptFields.notes.value
+    };
+    try{
+      if(editingApptId) await supabase.from('appointments').update(row).eq('id', editingApptId);
+      else await supabase.from('appointments').insert(row);
+    }catch{}
+    show(mAppt,false); renderWeek(); paintAppointments();
+  };
+
+  /* ========================= LEADS (CRUD) ========================= */
+  const leadsTbody = q('#leadsTbody'); let leads=[];
+  async function loadLeads(){ try{ const { data } = await supabase.from('leads').select('*').order('created_at',{ascending:false}); leads=data||[]; }catch{ leads=[]; } renderLeads(); }
+  function renderLeads(){
+    leadsTbody.innerHTML = (leads||[]).map(l=>`<tr>
+      <td>${new Date(l.created_at).toLocaleDateString('es-AR')}</td>
+      <td>${l.client_name||'—'}</td>
+      <td>${l.source||'—'}</td>
+      <td>
+        <select data-upd="${l.id}">
+          ${['Nuevo','Contactado','Calificado','Ganado','Perdido'].map(s=>`<option ${l.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td style="text-align:right"><button class="btn" data-del="${l.id}" type="button">Borrar</button></td>
+    </tr>`).join('') || `<tr><td colspan="5" class="mut">Sin leads</td></tr>`;
+  }
+  q('#btnNewLead').onclick=()=>{ q('#leadTitle').textContent='Nuevo lead'; q('#leadClient').value=''; q('#leadSource').value='Instagram'; q('#leadStatus').value='Nuevo'; q('#leadNotes').value=''; show(q('#modalLead'),true); };
+  q('#leadCancel').onclick=()=> show(q('#modalLead'),false);
+  q('#leadSave').onclick= async ()=>{
+    const row = { client_name:q('#leadClient').value.trim(), source:q('#leadSource').value, status:q('#leadStatus').value, notes:q('#leadNotes').value };
+    try{ await supabase.from('leads').insert(row); }catch{}
+    show(q('#modalLead'),false); loadLeads(); refreshLeadCharts();
+  };
+  leadsTbody.addEventListener('change', async (e)=>{ const id=e.target.dataset.upd; if(!id) return; try{ await supabase.from('leads').update({status:e.target.value}).eq('id',id); const L = leads.find(x=>x.id===id); if(L) L.status=e.target.value; refreshLeadCharts(); }catch{} });
+  leadsTbody.addEventListener('click', async (e)=>{ const id=e.target.dataset.del; if(!id) return; if(confirm('¿Borrar lead?')){ try{ await supabase.from('leads').delete().eq('id',id); }catch{} loadLeads(); refreshLeadCharts(); }});
+  function refreshLeadCharts(){
+    const agg = (leads||[]).reduce((m,l)=> (m[l.source]= (m[l.source]||0)+1, m), {});
+    const ch = Chart.getChart('chartLeads'); if(!ch) return;
+    ch.data.labels = Object.keys(agg); ch.data.datasets[0].data = Object.values(agg); ch.update();
+  }
+
+  /* ========================= CAMPAÑAS (CRUD) ========================= */
+  const campTbody = q('#campTbody'); 
+  let campaigns=[];
+  async function loadCampaigns(){
+    try{ const { data } = await supabase.from('campaigns').select('*').order('created_at',{ascending:false}); campaigns=data||[]; }
+    catch{ campaigns=[]; }
+    renderCampaigns();
+  }
+  function renderCampaigns(){
+    campTbody.innerHTML = (campaigns||[]).map(c=>`<tr>
+      <td>${c.name||''}</td>
+      <td>${c.channel||''}</td>
+      <td>${fmtARS(c.budget||0)}</td>
+      <td>${c.conversions||0}</td>
+      <td style="text-align:right">
+        <button class="btn" data-ed="${c.id}" type="button">Editar</button>
+        <button class="btn" data-del="${c.id}" type="button">Borrar</button>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="5" class="mut">Sin campañas</td></tr>`;
+  }
+  q('#btnNewCamp').onclick=()=> openCampModal({});
+  campTbody.addEventListener('click', async (e)=>{
+    const id = e.target.dataset.ed || e.target.dataset.del; if(!id) return;
+    if(e.target.dataset.ed){ const c=campaigns.find(x=>x.id===id); openCampModal(c); }
+    if(e.target.dataset.del){ if(confirm('¿Borrar campaña?')){ try{ await supabase.from('campaigns').delete().eq('id',id); }catch{} loadCampaigns(); } }
+  });
+  const mCamp=q('#modalCamp'); 
+  let editingCampId=null;
+  const campFields={ name:q('#campName'), channel:q('#campChannel'), budget:q('#campBudget'), conv:q('#campConv') };
+  function openCampModal(c){
+    editingCampId=c?.id||null;
+    q('#campTitle').textContent = editingCampId?'Editar campaña':'Nueva campaña';
+    campFields.name.value=c?.name||''; campFields.channel.value=c?.channel||'';
+    campFields.budget.value=c?.budget||0; campFields.conv.value=c?.conversions||0;
+    show(mCamp,true);
+  }
+  q('#campCancel').onclick=()=> show(mCamp,false);
+  q('#campSave').onclick= async ()=>{
+    const row = {
+      name: campFields.name.value.trim(),
+      channel: campFields.channel.value.trim(),
+      budget: Number(campFields.budget.value||0),
+      conversions: Number(campFields.conv.value||0)
+    };
+    try{
+      if(editingCampId) await supabase.from('campaigns').update(row).eq('id', editingCampId);
+      else await supabase.from('campaigns').insert(row);
+    }catch{}
+    show(mCamp,false); loadCampaigns();
+  };
+
+  /* ========================= AJUSTES ========================= */
+  const setCalendarId = q('#setCalendarId');
+  const setCreateGCal = q('#setCreateGCal');
+  q('#btnSaveSettings').onclick=()=>{
+    if (setCalendarId) localStorage.setItem('gcal_id', (setCalendarId.value||'').trim());
+    if (setCreateGCal) localStorage.setItem('create_gcal', setCreateGCal.checked ? '1' : '0');
+    alert('Ajustes guardados');
+  };
+
+  /* ========================= INICIALIZACIÓN ========================= */
+  (async function init(){
+    try {
+      await Promise.all([loadClients(), loadLeads(), loadCampaigns()]);
+      await paintAppointments();
+      const defCal = localStorage.getItem('gcal_id') || 'monacodetailingarg@gmail.com';
+      if (setCalendarId) setCalendarId.value = defCal;
+      if (q('#gcalId')) q('#gcalId').value = defCal;
+    } catch(e){ /* no-op */ }
+  })();
+</script>
+</body>
+</html>
