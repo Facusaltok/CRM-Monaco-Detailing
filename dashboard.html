@@ -5,39 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Monaco Detailing CRM — Dashboard</title>
 
-  <!-- Supabase SDK GLOBAL (sin módulos) -->
+  <!-- Supabase GLOBAL -->
   <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
   <script>
-    // Cliente global: evita problemas de CORS/ESM en móviles
     window.supabaseClient = window.supabase.createClient(
       "https://nqokfvddbpjqrsfflntk.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xb2tmdmRkYnBqcXJzZmZsbnRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2NDE5OTgsImV4cCI6MjA3MTIxNzk5OH0.A5CzSNjHJ9y012vJjDunzYMTzoxGwu6RV88OmKYOUGo"
     );
   </script>
 
-  <!-- Tailwind (CDN) -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          colors: {
-            brand: "#0a8d4b",
-            brand2: "#19c37d",
-            border: "#e5e7eb",
-            textmut: "#5b677a"
-          },
-          boxShadow: {
-            card: "0 12px 24px rgba(20,30,40,.06)",
-            btn: "0 6px 0 #e3e8ef, 0 14px 24px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.7)"
-          },
-          borderRadius: { xl2: "14px" }
+          colors: { brand:"#0a8d4b", brand2:"#19c37d", border:"#e5e7eb", textmut:"#5b677a" },
+          boxShadow:{ card:"0 12px 24px rgba(20,30,40,.06)", btn:"0 6px 0 #e3e8ef, 0 14px 24px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.7)" },
+          borderRadius:{ xl2:"14px" }
         }
       }
     }
   </script>
-
-  <!-- Alpine -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
   <style>
@@ -50,8 +39,7 @@
     .pill{ display:inline-flex; align-items:center; border-radius:999px; padding:.2rem .55rem; font-size:.75rem; font-weight:700 }
     .input, select, textarea{ border:1px solid #d1d5db; border-radius:.6rem; padding:.55rem .7rem; width:100% }
     .input:focus, select:focus, textarea:focus{ outline:none; border-color:#19c37d; box-shadow:0 0 0 3px rgba(25,195,125,.20) }
-    .table th{ color:#5b677a }
-    [x-cloak]{ display:none !important }
+    [x-cloak]{ display:none!important }
   </style>
 </head>
 
@@ -71,7 +59,7 @@
     </div>
   </header>
 
-  <!-- Nav tabs -->
+  <!-- Tabs -->
   <nav class="bg-white border-b border-border">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-2">
       <button class="btn" :class="{'btn-primary':tab==='home'}" @click="tab='home'">Dashboard</button>
@@ -88,31 +76,19 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="card p-5 flex items-center gap-4">
           <div class="w-12 h-12 rounded-lg bg-emerald-100 text-brand flex items-center justify-center">👥</div>
-          <div>
-            <div class="text-sm text-textmut">Clientes</div>
-            <div class="text-2xl font-extrabold" x-text="stats.clientes"></div>
-          </div>
+          <div><div class="text-sm text-textmut">Clientes</div><div class="text-2xl font-extrabold" x-text="stats.clientes"></div></div>
         </div>
         <div class="card p-5 flex items-center gap-4">
           <div class="w-12 h-12 rounded-lg bg-emerald-100 text-brand flex items-center justify-center">🗓️</div>
-          <div>
-            <div class="text-sm text-textmut">Citas hoy</div>
-            <div class="text-2xl font-extrabold" x-text="stats.citasHoy"></div>
-          </div>
+          <div><div class="text-sm text-textmut">Citas hoy</div><div class="text-2xl font-extrabold" x-text="stats.citasHoy"></div></div>
         </div>
         <div class="card p-5 flex items-center gap-4">
           <div class="w-12 h-12 rounded-lg bg-emerald-100 text-brand flex items-center justify-center">$</div>
-          <div>
-            <div class="text-sm text-textmut">Ingresos hoy</div>
-            <div class="text-2xl font-extrabold" x-text="fmtARS(stats.ingresosHoy)"></div>
-          </div>
+          <div><div class="text-sm text-textmut">Ingresos hoy</div><div class="text-2xl font-extrabold" x-text="fmtARS(stats.ingresosHoy)"></div></div>
         </div>
         <div class="card p-5 flex items-center gap-4">
           <div class="w-12 h-12 rounded-lg bg-emerald-100 text-brand flex items-center justify-center">🚗</div>
-          <div>
-            <div class="text-sm text-textmut">Vehículos</div>
-            <div class="text-2xl font-extrabold" x-text="stats.vehiculos"></div>
-          </div>
+          <div><div class="text-sm text-textmut">Vehículos</div><div class="text-2xl font-extrabold" x-text="stats.vehiculos"></div></div>
         </div>
       </div>
 
@@ -160,17 +136,9 @@
             <button class="btn btn-primary" @click="openCliente()">+ Nuevo cliente</button>
           </div>
         </div>
-
         <div class="overflow-x-auto mt-4">
           <table class="min-w-full table text-sm">
-            <thead>
-              <tr class="text-left border-b">
-                <th class="py-2 px-3">Nombre</th>
-                <th class="py-2 px-3">Email</th>
-                <th class="py-2 px-3">Teléfono</th>
-                <th class="py-2 px-3">Acciones</th>
-              </tr>
-            </thead>
+            <thead><tr class="text-left border-b"><th class="py-2 px-3">Nombre</th><th class="py-2 px-3">Email</th><th class="py-2 px-3">Teléfono</th><th class="py-2 px-3">Acciones</th></tr></thead>
             <tbody>
               <template x-for="c in clientesFiltrados()" :key="c.id">
                 <tr class="border-b hover:bg-slate-50">
@@ -183,9 +151,7 @@
                   </td>
                 </tr>
               </template>
-              <tr x-show="clientes.length===0">
-                <td colspan="4" class="py-6 text-center text-textmut">Sin clientes</td>
-              </tr>
+              <tr x-show="clientes.length===0"><td colspan="4" class="py-6 text-center text-textmut">Sin clientes</td></tr>
             </tbody>
           </table>
         </div>
@@ -208,7 +174,6 @@
             <button class="btn btn-primary" @click="openCita()">+ Nueva cita</button>
           </div>
         </div>
-
         <div class="overflow-x-auto mt-4">
           <table class="min-w-full text-sm">
             <thead>
@@ -228,18 +193,14 @@
                   <td class="py-2 px-3" x-text="a.servicio"></td>
                   <td class="py-2 px-3" x-text="fmtDateTime(a.fecha)"></td>
                   <td class="py-2 px-3" x-text="fmtARS(a.precio || 0)"></td>
-                  <td class="py-2 px-3">
-                    <span class="pill" :class="statusPill(a.estado)" x-text="a.estado"></span>
-                  </td>
+                  <td class="py-2 px-3"><span class="pill" :class="statusPill(a.estado)" x-text="a.estado"></span></td>
                   <td class="py-2 px-3">
                     <button class="btn" @click="openCita(a)">Editar</button>
                     <button class="btn" @click="delCita(a.id)">Eliminar</button>
                   </td>
                 </tr>
               </template>
-              <tr x-show="citas.length===0">
-                <td colspan="6" class="py-6 text-center text-textmut">Sin citas</td>
-              </tr>
+              <tr x-show="citas.length===0"><td colspan="6" class="py-6 text-center text-textmut">Sin citas</td></tr>
             </tbody>
           </table>
         </div>
@@ -253,17 +214,9 @@
           <h2 class="font-bold text-brand text-lg">Vehículos</h2>
           <button class="btn btn-primary" @click="openVehiculo()">+ Nuevo vehículo</button>
         </div>
-
         <div class="overflow-x-auto mt-4">
           <table class="min-w-full text-sm">
-            <thead>
-              <tr class="text-left border-b">
-                <th class="py-2 px-3">Cliente</th>
-                <th class="py-2 px-3">Marca/Modelo</th>
-                <th class="py-2 px-3">Patente</th>
-                <th class="py-2 px-3">Acciones</th>
-              </tr>
-            </thead>
+            <thead><tr class="text-left border-b"><th class="py-2 px-3">Cliente</th><th class="py-2 px-3">Marca/Modelo</th><th class="py-2 px-3">Patente</th><th class="py-2 px-3">Acciones</th></tr></thead>
             <tbody>
               <template x-for="v in vehiculos" :key="v.id">
                 <tr class="border-b hover:bg-slate-50">
@@ -276,9 +229,7 @@
                   </td>
                 </tr>
               </template>
-              <tr x-show="vehiculos.length===0">
-                <td colspan="4" class="py-6 text-center text-textmut">Sin vehículos</td>
-              </tr>
+              <tr x-show="vehiculos.length===0"><td colspan="4" class="py-6 text-center text-textmut">Sin vehículos</td></tr>
             </tbody>
           </table>
         </div>
@@ -287,7 +238,7 @@
 
   </main>
 
-  <!-- MODAL CLIENTE -->
+  <!-- MODALES -->
   <div x-show="modal.cliente" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-lg p-5">
       <h3 class="font-bold text-brand mb-3" x-text="clienteForm.id ? 'Editar cliente' : 'Nuevo cliente'"></h3>
@@ -303,16 +254,13 @@
     </div>
   </div>
 
-  <!-- MODAL CITA -->
   <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-lg p-5">
       <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <select class="input" x-model="citaForm.cliente_id">
           <option value="">Cliente…</option>
-          <template x-for="c in clientes" :key="c.id">
-            <option :value="c.id" x-text="c.nombre"></option>
-          </template>
+          <template x-for="c in clientes" :key="c.id"><option :value="c.id" x-text="c.nombre"></option></template>
         </select>
         <input class="input" placeholder="Servicio" x-model="citaForm.servicio">
         <input class="input" type="datetime-local" x-model="citaForm.fecha">
@@ -331,16 +279,13 @@
     </div>
   </div>
 
-  <!-- MODAL VEHÍCULO -->
   <div x-show="modal.vehiculo" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-lg p-5">
       <h3 class="font-bold text-brand mb-3" x-text="vehiculoForm.id ? 'Editar vehículo' : 'Nuevo vehículo'"></h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <select class="input" x-model="vehiculoForm.cliente_id">
           <option value="">Cliente…</option>
-          <template x-for="c in clientes" :key="c.id">
-            <option :value="c.id" x-text="c.nombre"></option>
-          </template>
+          <template x-for="c in clientes" :key="c.id"><option :value="c.id" x-text="c.nombre"></option></template>
         </select>
         <input class="input" placeholder="Marca" x-model="vehiculoForm.marca">
         <input class="input" placeholder="Modelo" x-model="vehiculoForm.modelo">
@@ -353,7 +298,7 @@
     </div>
   </div>
 
-  <!-- Lógica (sin módulos) -->
+  <!-- LÓGICA -->
   <script>
     const supabase = window.supabaseClient;
 
@@ -361,6 +306,7 @@
       return {
         // Estado
         tab: 'home',
+        userId: null,
         clientes: [], vehiculos: [], citas: [],
         modal: { cliente:false, cita:false, vehiculo:false },
         clienteForm: { id:null, nombre:'', email:'', telefono:'' },
@@ -372,28 +318,32 @@
         // Helpers
         fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
         fmtDateTime(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleString('es-AR',{weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}); },
-        statusPill(s){
-          return {
-            'bg-emerald-100 text-emerald-700': s==='completado',
-            'bg-yellow-100 text-yellow-700': s==='pendiente',
-            'bg-red-100 text-red-700': s==='cancelado'
-          };
-        },
+        statusPill(s){ return {'bg-emerald-100 text-emerald-700':s==='completado','bg-yellow-100 text-yellow-700':s==='pendiente','bg-red-100 text-red-700':s==='cancelado'}; },
 
         // Init
         async init(){
           const { data: { session } } = await supabase.auth.getSession();
           if(!session){ location.href='./index.html'; return; }
-          await this.loadAll();
+          this.userId = session.user.id;
+
+          // Cargamos en orden para poder resolver nombres por ID sin depender de joins
+          await this.loadClientes();
+          await Promise.all([ this.loadVehiculos(), this.loadCitas() ]);
+          this.recalc();
         },
-        async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); },
+        async loadAll(){
+          await this.loadClientes();
+          await Promise.all([ this.loadVehiculos(), this.loadCitas() ]);
+          this.recalc();
+        },
 
         // Logout
         async logout(){ await supabase.auth.signOut(); location.href='./index.html'; },
 
         // ----- Clientes -----
         async loadClientes(){
-          const { data } = await supabase.from('clientes').select('*').order('creado_en',{ascending:false});
+          const { data, error } = await supabase.from('clientes').select('*').order('creado_en',{ascending:false});
+          if (error){ console.error('loadClientes:', error); alert('Error cargando clientes: '+error.message); }
           this.clientes = data || [];
         },
         openCliente(c){
@@ -401,14 +351,17 @@
           this.modal.cliente = true;
         },
         async saveCliente(){
-          const r = { nombre:this.clienteForm.nombre, email:this.clienteForm.email, telefono:this.clienteForm.telefono };
-          if(this.clienteForm.id) await supabase.from('clientes').update(r).eq('id', this.clienteForm.id);
-          else await supabase.from('clientes').insert(r);
+          const r = { nombre:this.clienteForm.nombre?.trim()||null, email:this.clienteForm.email?.trim()||null, telefono:this.clienteForm.telefono?.trim()||null, user_id:this.userId };
+          let resp;
+          if(this.clienteForm.id) resp = await supabase.from('clientes').update(r).eq('id', this.clienteForm.id);
+          else resp = await supabase.from('clientes').insert(r);
+          if(resp.error){ console.error('saveCliente:', resp.error); alert('No se pudo guardar el cliente: '+resp.error.message); return; }
           this.modal.cliente=false; await this.loadClientes(); this.recalc();
         },
         async delCliente(id){
           if(!confirm('¿Eliminar cliente?')) return;
-          await supabase.from('clientes').delete().eq('id', id);
+          const { error } = await supabase.from('clientes').delete().eq('id', id);
+          if(error){ console.error('delCliente:', error); alert('No se pudo eliminar: '+error.message); }
           await this.loadClientes(); this.recalc();
         },
         clientesFiltrados(){
@@ -423,42 +376,44 @@
 
         // ----- Vehículos -----
         async loadVehiculos(){
-          const { data } = await supabase
-            .from('vehiculos')
-            .select('*, clientes(nombre)')
-            .order('creado_en',{ascending:false});
-          this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
+          const { data, error } = await supabase.from('vehiculos').select('*').order('creado_en',{ascending:false});
+          if (error){ console.error('loadVehiculos:', error); alert('Error cargando vehículos: '+error.message); }
+          // Resolver nombre de cliente localmente
+          const map = Object.fromEntries(this.clientes.map(c=>[c.id,c.nombre]));
+          this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: map[v.cliente_id] || ''}));
         },
         openVehiculo(v){
-          this.vehiculoForm = v
-            ? {id:v.id, cliente_id:v.cliente_id, marca:v.marca, modelo:v.modelo, dominio:v.dominio}
-            : {id:null, cliente_id:'', marca:'', modelo:'', dominio:''};
+          this.vehiculoForm = v ? {id:v.id, cliente_id:v.cliente_id, marca:v.marca, modelo:v.modelo, dominio:v.dominio}
+                                : {id:null, cliente_id:'', marca:'', modelo:'', dominio:''};
           this.modal.vehiculo = true;
         },
         async saveVehiculo(){
           const r = {
             cliente_id:this.vehiculoForm.cliente_id || null,
-            marca:this.vehiculoForm.marca,
-            modelo:this.vehiculoForm.modelo,
-            dominio:this.vehiculoForm.dominio
+            marca:this.vehiculoForm.marca?.trim()||null,
+            modelo:this.vehiculoForm.modelo?.trim()||null,
+            dominio:this.vehiculoForm.dominio?.trim()||null,
+            user_id:this.userId
           };
-          if(this.vehiculoForm.id) await supabase.from('vehiculos').update(r).eq('id', this.vehiculoForm.id);
-          else await supabase.from('vehiculos').insert(r);
+          let resp;
+          if(this.vehiculoForm.id) resp = await supabase.from('vehiculos').update(r).eq('id', this.vehiculoForm.id);
+          else resp = await supabase.from('vehiculos').insert(r);
+          if(resp.error){ console.error('saveVehiculo:', resp.error); alert('No se pudo guardar el vehículo: '+resp.error.message); return; }
           this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc();
         },
         async delVehiculo(id){
           if(!confirm('¿Eliminar vehículo?')) return;
-          await supabase.from('vehiculos').delete().eq('id', id);
+          const { error } = await supabase.from('vehiculos').delete().eq('id', id);
+          if(error){ console.error('delVehiculo:', error); alert('No se pudo eliminar: '+error.message); }
           await this.loadVehiculos(); this.recalc();
         },
 
         // ----- Citas -----
         async loadCitas(){
-          const { data } = await supabase
-            .from('citas')
-            .select('*, clientes(nombre)')
-            .order('fecha',{ascending:false});
-          this.citas = (data||[]).map(a => ({...a, cliente_nombre: a.clientes?.nombre || ''}));
+          const { data, error } = await supabase.from('citas').select('*').order('fecha',{ascending:false});
+          if (error){ console.error('loadCitas:', error); alert('Error cargando citas: '+error.message); }
+          const map = Object.fromEntries(this.clientes.map(c=>[c.id,c.nombre]));
+          this.citas = (data||[]).map(a => ({...a, cliente_nombre: map[a.cliente_id] || ''}));
         },
         openCita(a){
           this.citaForm = a
@@ -470,19 +425,39 @@
           const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
           const r = {
             cliente_id: this.citaForm.cliente_id || null,
-            servicio: this.citaForm.servicio,
+            servicio: (this.citaForm.servicio||'').trim() || null,
             fecha: fechaISO ? fechaISO.toISOString() : null,
             precio: +this.citaForm.precio || 0,
-            estado: this.citaForm.estado,
-            notas: this.citaForm.notas
+            estado: this.citaForm.estado || 'pendiente',
+            notas: (this.citaForm.notas||'').trim() || null,
+            user_id: this.userId
           };
-          if(this.citaForm.id) await supabase.from('citas').update(r).eq('id', this.citaForm.id);
-          else await supabase.from('citas').insert(r);
-          this.modal.cita=false; await this.loadCitas(); this.recalc();
+
+          if(!r.cliente_id){ alert('Seleccioná un cliente.'); return; }
+          if(!r.servicio){ alert('Ingresá el servicio.'); return; }
+          if(!r.fecha){ alert('Elegí fecha y hora.'); return; }
+
+          let resp;
+          if(this.citaForm.id){
+            resp = await supabase.from('citas').update(r).eq('id', this.citaForm.id);
+          }else{
+            resp = await supabase.from('citas').insert(r).select();
+          }
+
+          if(resp.error){
+            console.error('saveCita:', resp.error);
+            alert('No se pudo guardar la cita: ' + resp.error.message);
+            return;
+          }
+
+          this.modal.cita=false;
+          await this.loadCitas();
+          this.recalc();
         },
         async delCita(id){
           if(!confirm('¿Eliminar cita?')) return;
-          await supabase.from('citas').delete().eq('id', id);
+          const { error } = await supabase.from('citas').delete().eq('id', id);
+          if(error){ console.error('delCita:', error); alert('No se pudo eliminar: '+error.message); }
           await this.loadCitas(); this.recalc();
         },
         citasFiltradas(){
@@ -505,9 +480,7 @@
           this.stats.vehiculos = this.vehiculos.length;
           const hoy = this.citasHoy();
           this.stats.citasHoy = hoy.length;
-          this.stats.ingresosHoy = hoy
-            .filter(x => x.estado==='completado')
-            .reduce((a,b)=>a+(+b.precio||0),0);
+          this.stats.ingresosHoy = hoy.filter(x => x.estado==='completado').reduce((a,b)=>a+(+b.precio||0),0);
         }
       }
     }
