@@ -257,42 +257,50 @@
     </section>
 
     <!-- REPORTE -->
-    <section x-show="tab==='reporte'" x-cloak>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="card p-5">
-          <div class="text-sm text-textmut">Total clientes</div>
-          <div class="text-3xl font-extrabold" x-text="statsTotales.totalClientes"></div>
-        </div>
-        <div class="card p-5">
-          <div class="text-sm text-textmut">Total citas</div>
-          <div class="text-3xl font-extrabold" x-text="statsTotales.totalCitas"></div>
-        </div>
-        <div class="card p-5">
-          <div class="text-sm text-textmut">Ingresos acumulados</div>
-          <div class="text-3xl font-extrabold" x-text="fmtARS(statsTotales.ingresosAcumulados)"></div>
-        </div>
-      </div>
+<section x-show="tab==='reporte'" x-cloak>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+    <div class="card p-5">
+      <div class="text-sm text-textmut">Clientes totales</div>
+      <div class="text-3xl font-extrabold" x-text="clientes.length"></div>
+    </div>
+    <div class="card p-5">
+      <div class="text-sm text-textmut">Ingresos totales</div>
+      <div class="text-3xl font-extrabold" x-text="fmtARS(totalIngresos())"></div>
+    </div>
+    <div class="card p-5">
+      <div class="text-sm text-textmut">Citas completadas</div>
+      <div class="text-3xl font-extrabold" x-text="citas.filter(c=>c.estado==='completado').length"></div>
+    </div>
+  </div>
 
-      <div class="card p-5 mt-4">
-        <h2 class="font-bold text-brand mb-3">Servicios más realizados</h2>
-        <div class="space-y-2">
+  <div class="card p-5">
+    <h3 class="font-bold text-brand mb-3">Servicios más realizados</h3>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="text-left border-b">
+            <th class="py-2 px-3">Servicio</th>
+            <th class="py-2 px-3">Cantidad</th>
+            <th class="py-2 px-3">Ingresos</th>
+          </tr>
+        </thead>
+        <tbody>
           <template x-for="s in rankingServicios()" :key="s.nombre">
-            <div class="flex items-center gap-3">
-              <div class="w-40 truncate" x-text="s.nombre || '—'"></div>
-              <div class="flex-1">
-                <div class="h-3 rounded bg-emerald-100 overflow-hidden">
-                  <div class="h-3 bg-emerald-500" :style="`width:${s.porcentaje}%`"></div>
-                </div>
-              </div>
-              <div class="w-16 text-right" x-text="s.cantidad"></div>
-            </div>
+            <tr class="border-b">
+              <td class="py-2 px-3" x-text="s.nombre || '—'"></td>
+              <td class="py-2 px-3" x-text="s.cantidad"></td>
+              <td class="py-2 px-3" x-text="fmtARS(s.ingresos)"></td>
+            </tr>
           </template>
-          <div x-show="citas.length===0" class="text-textmut">Sin datos de citas todavía.</div>
-        </div>
-      </div>
-    </section>
+          <tr x-show="rankingServicios().length===0">
+            <td colspan="3" class="py-4 text-center text-textmut">Sin datos suficientes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
 
-  </main>
 
   <!-- MODAL CLIENTE -->
   <div x-show="modal.cliente" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
@@ -403,11 +411,44 @@
           finally { this.loading = false; }
         },
 
-        async loadAll(){
-          await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]);
-          this.recalc();
-          this.recalcTotales();
-        },
+     // Reemplaza el manejador del botón Actualizar por este (ya existe en tu HTML)
+async loadAll(){
+  // muestra un mini “loading” en el botón (opcional)
+  this._loading = true;
+  try {
+    await Promise.all([
+      this.loadClientes(),
+      this.loadVehiculos(),
+      this.loadCitas()
+    ]);
+    this.recalc();
+  } finally {
+    this._loading = false;
+  }
+},
+
+// Total ingresos (todas las citas completadas)
+totalIngresos(){
+  return this.citas
+    .filter(c => c.estado === 'completado')
+    .reduce((acc, c) => acc + (+c.precio || 0), 0);
+},
+
+// Ranking por servicio (cantidad e ingresos)
+rankingServicios(){
+  const map = new Map();
+  for (const c of this.citas) {
+    const key = (c.servicio || '').trim();
+    if (!key) continue;
+    const curr = map.get(key) || { nombre:key, cantidad:0, ingresos:0 };
+    curr.cantidad += 1;
+    curr.ingresos += (+c.precio || 0);
+    map.set(key, curr);
+  }
+  // ordena por cantidad desc
+  return [...map.values()].sort((a,b)=> b.cantidad - a.cantidad);
+},
+
 
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
