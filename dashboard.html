@@ -23,6 +23,9 @@
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <!-- Chart.js para Reporte -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <!-- Exportar PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -62,14 +65,14 @@
     </div>
   </header>
 
-  <!-- Nav (orden solicitado) -->
+  <!-- Nav -->
   <nav class="bg-white border-b border-border">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-2">
       <button class="btn" :class="{'btn-primary':tab==='home'}" @click="tab='home'">Dashboard</button>
       <button class="btn" :class="{'btn-primary':tab==='clientes'}" @click="tab='clientes'">Clientes</button>
-      <button class="btn" :class="{'btn-primary':tab==='vehiculos'}" @click="tab='vehiculos'">Vehículos</button>
       <button class="btn" :class="{'btn-primary':tab==='citas'}" @click="tab='citas'">Citas</button>
-      <button class="btn" :class="{'btn-primary':tab==='reporte'}" @click="tab='reporte'; $nextTick(()=>renderCharts())">Reportes</button>
+      <button class="btn" :class="{'btn-primary':tab==='vehiculos'}" @click="tab='vehiculos'">Vehículos</button>
+      <button class="btn" :class="{'btn-primary':tab==='reporte'}" @click="tab='reporte'; $nextTick(()=>renderCharts())">Reporte</button>
     </div>
   </nav>
 
@@ -141,6 +144,11 @@
           </div>
         </div>
 
+        <!-- Aviso si por RLS no regresan filas (no rompe nada) -->
+        <div x-show="clientes.length===0" class="mt-3 text-sm text-amber-600">
+          No hay clientes visibles en este usuario.
+        </div>
+
         <div class="overflow-x-auto mt-4">
           <table class="min-w-full text-sm">
             <thead>
@@ -167,13 +175,60 @@
             </tbody>
           </table>
         </div>
-
-        <!-- Aviso de error si lo hubiera -->
-        <p x-show="uiErr.clientes" class="mt-3 text-sm text-red-600" x-text="uiErr.clientes"></p>
       </div>
     </section>
 
-    <!-- VEHÍCULOS -->
+    <!-- CITAS -->
+    <section x-show="tab==='citas'" x-cloak>
+      <div class="card p-5">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <h2 class="font-bold text-brand text-lg">Citas</h2>
+          <div class="flex gap-2 w-full md:w-auto">
+            <input class="input w-44" type="date" x-model="filtros.citaFecha">
+            <select class="input w-44" x-model="filtros.citaEstado">
+              <option value="">Todos</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="completado">Completado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+            <button class="btn btn-primary" @click="openCita()">+ Nueva cita</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left border-b">
+                <th class="py-2 px-3">Cliente</th>
+                <th class="py-2 px-3">Servicio</th>
+                <th class="py-2 px-3">Fecha/Hora</th>
+                <th class="py-2 px-3">Precio</th>
+                <th class="py-2 px-3">Estado</th>
+                <th class="py-2 px-3">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="a in citasFiltradas()" :key="a.id">
+                <tr class="border-b hover:bg-slate-50">
+                  <td class="py-2 px-3" x-text="a.cliente_nombre"></td>
+                  <td class="py-2 px-3" x-text="a.servicio"></td>
+                  <td class="py-2 px-3" x-text="fmtDateTime(a.fecha)"></td>
+                  <td class="py-2 px-3" x-text="fmtARS(a.precio || 0)"></td>
+                  <td class="py-2 px-3"><span class="pill" :class="statusPill(a.estado)" x-text="a.estado"></span></td>
+                  <td class="py-2 px-3">
+                    <button class="btn" @click="openCita(a)">Editar</button>
+                    <button class="btn" @click="delCita(a.id)">Eliminar</button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="citas.length===0"><td colspan="6" class="py-6 text-center text-textmut">Sin citas</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VEHICULOS -->
     <section x-show="tab==='vehiculos'" x-cloak>
       <div class="card p-5">
         <div class="flex items-center justify-between">
@@ -207,103 +262,55 @@
             </tbody>
           </table>
         </div>
-
-        <p x-show="uiErr.vehiculos" class="mt-3 text-sm text-red-600" x-text="uiErr.vehiculos"></p>
-      </div>
-    </section>
-
-    <!-- CITAS -->
-    <section x-show="tab==='citas'" x-cloak>
-      <div class="card p-5">
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <h2 class="font-bold text-brand text-lg">Citas</h2>
-          <div class="flex gap-2 w-full md:w-auto">
-            <input class="input w-44" type="date" x-model="filtros.citaFecha">
-            <select class="input w-44" x-model="filtros.citaEstado">
-              <option value="">Todos</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="completado">Completado</option>
-              <option value="cancelado">Cancelado</option>
-            </select>
-            <button class="btn btn-primary" @click="openCita()">+ Nueva cita</button>
-          </div>
-        </div>
-
-        <div class="overflow-x-auto mt-4">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr class="text-left border-b">
-                <th class="py-2 px-3">Cliente</th>
-                <th class="py-2 px-3">Servicio(s)</th>
-                <th class="py-2 px-3">Vehículo</th>
-                <th class="py-2 px-3">Fecha/Hora</th>
-                <th class="py-2 px-3">Precio</th>
-                <th class="py-2 px-3">Estado</th>
-                <th class="py-2 px-3">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="a in citasFiltradas()" :key="a.id">
-                <tr class="border-b hover:bg-slate-50">
-                  <td class="py-2 px-3" x-text="a.cliente_nombre"></td>
-                  <td class="py-2 px-3" x-text="a.servicio"></td>
-                  <td class="py-2 px-3" x-text="a.vehiculo_desc || '—'"></td>
-                  <td class="py-2 px-3" x-text="fmtDateTime(a.fecha)"></td>
-                  <td class="py-2 px-3" x-text="fmtARS(a.precio || 0)"></td>
-                  <td class="py-2 px-3"><span class="pill" :class="statusPill(a.estado)" x-text="a.estado"></span></td>
-                  <td class="py-2 px-3">
-                    <button class="btn" @click="openCita(a)">Editar</button>
-                    <button class="btn" @click="delCita(a.id)">Eliminar</button>
-                  </td>
-                </tr>
-              </template>
-              <tr x-show="citas.length===0"><td colspan="7" class="py-6 text-center text-textmut">Sin citas</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <p x-show="uiErr.citas" class="mt-3 text-sm text-red-600" x-text="uiErr.citas"></p>
       </div>
     </section>
 
     <!-- REPORTE -->
     <section x-show="tab==='reporte'" x-cloak>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="card p-5 text-center">
-          <h3 class="text-lg font-semibold opacity-80">Ingresos</h3>
-          <div class="text-3xl font-extrabold mt-1 text-brand" x-text="fmtARS(report.ingresos)"></div>
-          <div class="text-xs opacity-70">+12% vs mes anterior</div>
-        </div>
-        <div class="card p-5 text-center">
-          <h3 class="text-lg font-semibold opacity-80">Clientes</h3>
-          <div class="text-3xl font-extrabold mt-1" x-text="report.clientes"></div>
-          <div class="text-xs opacity-70">+8% vs mes anterior</div>
-        </div>
-        <div class="card p-5 text-center">
-          <h3 class="text-lg font-semibold opacity-80">Ganancia total</h3>
-          <div class="text-3xl font-extrabold mt-1 text-amber-500" x-text="fmtARS(report.ganancia)"></div>
-          <div class="text-xs opacity-70">Ingresos - costos estimados (30%)</div>
-        </div>
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <h2 class="font-bold text-brand text-xl">Reporte</h2>
+        <button class="btn btn-primary" @click="exportPDF()">Exportar PDF</button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-        <div class="card p-5">
-          <h4 class="font-semibold text-center mb-3">Ingresos por Servicio</h4>
-          <canvas id="chServicios" height="240"></canvas>
+      <div id="reportRoot">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div class="card p-5 text-center">
+            <h3 class="text-lg font-semibold opacity-80">Ingresos</h3>
+            <div class="text-3xl font-extrabold mt-1 text-brand" x-text="fmtARS(report.ingresos)"></div>
+            <div class="text-xs opacity-70">+12% vs mes anterior</div>
+          </div>
+          <div class="card p-5 text-center">
+            <h3 class="text-lg font-semibold opacity-80">Clientes</h3>
+            <div class="text-3xl font-extrabold mt-1" x-text="report.clientes"></div>
+            <div class="text-xs opacity-70">+8% vs mes anterior</div>
+          </div>
+          <div class="card p-5 text-center">
+            <h3 class="text-lg font-semibold opacity-80">Ganancia total</h3>
+            <div class="text-3xl font-extrabold mt-1 text-amber-500" x-text="fmtARS(report.ganancia)"></div>
+            <div class="text-xs opacity-70">Ingresos - costos estimados (30%)</div>
+          </div>
         </div>
-        <div class="card p-5">
-          <h4 class="font-semibold text-center mb-3">Ingresos Mensuales</h4>
-          <canvas id="chIngresos" height="240"></canvas>
-        </div>
-        <div class="card p-5">
-          <h4 class="font-semibold text-center mb-3">Clientes por Mes</h4>
-          <canvas id="chClientes" height="240"></canvas>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+          <div class="card p-5">
+            <h4 class="font-semibold text-center mb-3">Ingresos por Servicio</h4>
+            <canvas id="chServicios" height="240"></canvas>
+          </div>
+          <div class="card p-5">
+            <h4 class="font-semibold text-center mb-3">Ingresos Mensuales</h4>
+            <canvas id="chIngresos" height="240"></canvas>
+          </div>
+          <div class="card p-5">
+            <h4 class="font-semibold text-center mb-3">Clientes por Mes</h4>
+            <canvas id="chClientes" height="240"></canvas>
+          </div>
         </div>
       </div>
     </section>
 
   </main>
 
+  <!-- MODALES -->
   <!-- MODAL CLIENTE -->
   <div x-show="modal.cliente" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-lg p-5">
@@ -320,122 +327,27 @@
     </div>
   </div>
 
-  <!-- MODAL CITA (vehículo + múltiples servicios) -->
+  <!-- MODAL CITA -->
   <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
-    <div class="card w-full max-w-2xl p-5">
+    <div class="card w-full max-w-lg p-5">
       <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
-
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label class="text-sm block mb-1">Cliente</label>
-          <select class="input" x-model="citaForm.cliente_id" @change="onClienteChange()">
-            <option value="">Cliente…</option>
-            <template x-for="c in clientes" :key="c.id">
-              <option :value="c.id" x-text="c.nombre"></option>
-            </template>
-          </select>
-        </div>
-
-        <div>
-          <label class="text-sm block mb-1">Vehículo</label>
-          <select class="input" x-model="citaForm.vehiculo_id">
-            <option value="">Seleccioná…</option>
-            <template x-for="v in vehiculosDeCliente()" :key="v.id">
-              <option :value="v.id" x-text="vehiculoLabel(v)"></option>
-            </template>
-          </select>
-        </div>
-
-        <div>
-          <label class="text-sm block mb-1">Fecha y hora</label>
-          <input class="input" type="datetime-local" x-model="citaForm.fecha">
-        </div>
-
-        <div>
-          <label class="text-sm block mb-1">Estado</label>
-          <select class="input" x-model="citaForm.estado">
-            <option value="pendiente">Pendiente</option>
-            <option value="completado">Completado</option>
-            <option value="cancelado">Cancelado</option>
-          </select>
-        </div>
-
-        <div class="md:col-span-2">
-          <label class="text-sm block mb-1">Notas</label>
-          <textarea class="input" rows="3" placeholder="Observaciones…" x-model="citaForm.notas"></textarea>
-        </div>
+        <select class="input" x-model="citaForm.cliente_id">
+          <option value="">Cliente…</option>
+          <template x-for="c in clientes" :key="c.id">
+            <option :value="c.id" x-text="c.nombre"></option>
+          </template>
+        </select>
+        <input class="input" placeholder="Servicio" x-model="citaForm.servicio">
+        <input class="input" type="datetime-local" x-model="citaForm.fecha">
+        <input class="input" type="number" min="0" step="1" placeholder="Precio (ARS)" x-model="citaForm.precio">
+        <select class="input" x-model="citaForm.estado">
+          <option value="pendiente">Pendiente</option>
+          <option value="completado">Completado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <textarea class="input md:col-span-2" rows="3" placeholder="Notas" x-model="citaForm.notas"></textarea>
       </div>
-
-      <!-- Catálogo de servicios -->
-      <div class="mt-4">
-        <h4 class="font-semibold mb-2">Servicios (podés elegir más de uno)</h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div class="border rounded-lg p-3">
-            <div class="font-semibold mb-2">Autos (Hatch / Sedan)</div>
-            <template x-for="(item,idx) in serviceCatalog.autos" :key="'a'+idx">
-              <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
-                <div>
-                  <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
-                  <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
-                </div>
-              </label>
-            </template>
-          </div>
-
-          <div class="border rounded-lg p-3">
-            <div class="font-semibold mb-2">SUV / Pick-Up</div>
-            <template x-for="(item,idx) in serviceCatalog.suv" :key="'s'+idx">
-              <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
-                <div>
-                  <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
-                  <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
-                </div>
-              </label>
-            </template>
-          </div>
-
-          <div class="border rounded-lg p-3">
-            <div class="font-semibold mb-2">Motos</div>
-            <template x-for="(item,idx) in serviceCatalog.motos" :key="'m'+idx">
-              <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
-                <div>
-                  <div class="font-medium" x-text="item.name + ' — ' + (typeof item.price==='number' ? fmtARS(item.price) : item.price)"></div>
-                  <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
-                </div>
-              </label>
-            </template>
-          </div>
-
-          <div class="border rounded-lg p-3">
-            <div class="font-semibold mb-2">Tratamientos</div>
-            <template x-for="(grupo,gi) in tratamientos" :key="'t'+gi">
-              <div class="mb-2">
-                <div class="text-sm font-semibold mb-1" x-text="grupo.grupo"></div>
-                <template x-for="(it,ii) in grupo.items" :key="'ti'+gi+'-'+ii">
-                  <label class="flex items-start gap-2 mb-1 cursor-pointer">
-                    <input type="checkbox" class="mt-1"
-                      :value="it.name" @change="toggleService({ name: it.name + ' — ' + it.detalle, price: it.price })">
-                    <div class="text-sm">
-                      <span class="font-medium" x-text="it.name + ' — ' + it.detalle + ' — ' + fmtARS(it.price)"></span>
-                    </div>
-                  </label>
-                </template>
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-4 flex items-center justify-between border-t pt-3">
-        <div class="text-sm text-textmut">
-          Seleccionados: <span class="font-semibold" x-text="citaForm.selectedServices.map(s=>s.name).join(' + ') || '—'"></span>
-        </div>
-        <div class="text-lg font-extrabold">Total: <span x-text="fmtARS(citaForm.total)"></span></div>
-      </div>
-
       <div class="mt-4 flex justify-end gap-2">
         <button class="btn" @click="modal.cita=false">Cancelar</button>
         <button class="btn btn-primary" @click="saveCita()">Guardar</button>
@@ -465,7 +377,6 @@
     </div>
   </div>
 
-  <!-- LÓGICA -->
   <script>
     const sb = window.sb;
 
@@ -475,18 +386,11 @@
         userId:null,
 
         clientes:[], vehiculos:[], citas:[],
-        uiErr:{ clientes:'', vehiculos:'', citas:'' },
-
         modal:{ cliente:false, cita:false, vehiculo:false },
 
         clienteForm:{ id:null, nombre:'', email:'', telefono:'' },
+        citaForm:{ id:null, cliente_id:'', servicio:'', fecha:'', precio:'', estado:'pendiente', notas:'' },
         vehiculoForm:{ id:null, cliente_id:'', marca:'', modelo:'', dominio:'' },
-
-        citaForm:{
-          id:null, cliente_id:'', vehiculo_id:'',
-          servicio:'', selectedServices:[], fecha:'', precio:'', total:0,
-          estado:'pendiente', notas:''
-        },
 
         filtros:{ clientQ:'', citaFecha:'', citaEstado:'' },
         stats:{ clientes:0, citasHoy:0, ingresosHoy:0, vehiculos:0 },
@@ -494,39 +398,6 @@
         report:{ ingresos:0, ganancia:0, clientes:0 },
         _charts:{ servicios:null, ingresos:null, clientes:null },
 
-        // ===== Catálogos =====
-        serviceCatalog:{
-          autos: [
-            { name:"Interior (Hatch / Sedan)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:150000, time:"1 día" },
-            { name:"Interior al Detalle (Hatch / Sedan)", desc:"Desarme, aspirado profundo, limpieza de techo y tapizados, descontaminación y reacondicionamiento de plásticos.", price:250000, time:"2-3 días" },
-            { name:"Motor a Vapor (Hatch / Sedan)", desc:"Limpieza técnica del vano motor a vapor.", price:100000, time:"En el día" },
-            { name:"Paquete Completo (Hatch / Sedan)", desc:"Abrillantado + Interior + Motor a Vapor.", price:350000, time:"2–3 días" }
-          ],
-          suv: [
-            { name:"Interior (SUV / Pick-Up)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:200000, time:"1 día" },
-            { name:"Interior al Detalle (SUV / Pick-Up)", desc:"Desarme, aspirado profundo, limpieza de techo y tapizados, descontaminación y reacondicionamiento de plásticos.", price:300000, time:"2-3 días" },
-            { name:"Motor a Vapor (SUV / Pick-Up)", desc:"Limpieza técnica del vano motor a vapor.", price:130000, time:"En el día" },
-            { name:"Paquete Completo SUV / Pick-Up", desc:"Abrillantado + Interior + Motor a Vapor.", price:450000, time:"2–3 días" }
-          ],
-          motos: [
-            { name:"Tratamiento Motos", desc:"Lavado + descontaminación + reacondicionamiento de plásticos + lubricación de cadena + protección (Acrílico o Cerámico).", price:200000, time:"En el día" }
-          ]
-        },
-        tratamientos:[
-          { grupo:"Autos (Hatch / Sedan)", items:[
-            { name:"Acrílico", detalle:"Duración 6 meses", price:300000 },
-            { name:"Cerámico", detalle:"Duración 1 año", price:400000 },
-            { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:500000 }
-          ]},
-          { grupo:"Pick-Up / SUV", items:[
-            { name:"Acrílico", detalle:"Duración 6 meses", price:400000 },
-            { name:"Cerámico", detalle:"Duración 1 año", price:500000 },
-            { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:600000 }
-          ]}
-        ],
-
-        // ===== Helpers =====
-        num(v){ return typeof v==='number' ? v : (parseInt(String(v).replace(/[^0-9]/g,''))||0) },
         fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
         fmtDateTime(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleString('es-AR',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); },
         statusPill(s){ return {
@@ -534,9 +405,7 @@
           'bg-yellow-100 text-yellow-700':  s==='pendiente',
           'bg-red-100 text-red-700':        s==='cancelado'
         }},
-        vehiculoLabel(v){ return `${v.marca||''} ${v.modelo||''} ${v.dominio?('('+v.dominio+')'):''}`.trim() || 'Vehículo'; },
 
-        // ===== Init / Refresh =====
         async init(){
           const { data:{ session } } = await sb.auth.getSession();
           if(!session){ location.href='./index.html'; return; }
@@ -547,54 +416,62 @@
           await this.loadAll();
           if (this.tab === 'reporte') this.$nextTick(()=>this.renderCharts());
         },
+
+        // Carga en orden: clientes -> vehiculos -> citas
         async loadAll(){
-          this.uiErr = { clientes:'', vehiculos:'', citas:'' };
-          await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]);
-          this.recalc(); this.buildReport();
+          await this.loadClientes();
+          await this.loadVehiculos();
+          await this.loadCitas();
+          this.recalc();
+          this.buildReport();
         },
+
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // ===== Clientes =====
+        // -------- CLIENTES (doble intento) --------
         async loadClientes(){
-          try{
-            const { data, error } = await sb
-              .from('clientes')
-              .select('id,nombre,email,telefono,created_at,creado_en,user_id');
-            if (error) throw error;
-            this.clientes = (data||[]).sort((a,b)=> (a.nombre||'').localeCompare(b.nombre||''));
-          }catch(e){
-            console.error('loadClientes', e);
-            this.uiErr.clientes = e?.message || 'No se pudieron cargar los clientes.';
-            this.clientes = [];
+          // 1) intento amplio
+          let { data, error } = await sb
+            .from('clientes')
+            .select('id,nombre,email,telefono,created_at,creado_en,user_id');
+          if (error) {
+            console.warn('loadClientes() intento1', error);
+            data = null;
           }
+
+          // 2) si vino null o vacío, reintento minimal para evitar choques
+          if (!Array.isArray(data) || data.length === 0) {
+            const r2 = await sb.from('clientes').select('id,nombre,email,telefono');
+            if (r2.error) console.warn('loadClientes() intento2', r2.error);
+            this.clientes = r2.data || [];
+            return;
+          }
+
+          this.clientes = data || [];
         },
+
         openCliente(c){
           this.clienteForm = c ? JSON.parse(JSON.stringify(c)) : { id:null, nombre:'', email:'', telefono:'' };
           this.modal.cliente = true;
         },
         async saveCliente(){
-          try{
-            const row = {
-              nombre:(this.clienteForm.nombre||'').trim(),
-              email:(this.clienteForm.email||'').trim()||null,
-              telefono:(this.clienteForm.telefono||'').trim()||null,
-              user_id:this.userId
-            };
-            if (this.clienteForm.id)
-              await sb.from('clientes').update(row).eq('id', this.clienteForm.id);
-            else
-              await sb.from('clientes').insert(row);
-            this.modal.cliente=false;
-            await this.loadClientes(); this.recalc(); this.buildReport();
-          }catch(e){
-            alert(e?.message || 'Error al guardar cliente.');
-          }
+          const row = {
+            nombre: (this.clienteForm.nombre||'').trim(),
+            email: (this.clienteForm.email||'').trim() || null,
+            telefono: (this.clienteForm.telefono||'').trim() || null,
+            user_id: this.userId
+          };
+          let error;
+          if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id));
+          else                      ({ error } = await sb.from('clientes').insert(row));
+          if (error) alert(error.message);
+          this.modal.cliente=false; await this.loadAll();
         },
         async delCliente(id){
           if(!confirm('¿Eliminar cliente?')) return;
           const { error } = await sb.from('clientes').delete().eq('id', id);
           if (error) alert(error.message);
-          await this.loadClientes(); this.recalc(); this.buildReport();
+          await this.loadAll();
         },
         clientesFiltrados(){
           const q=(this.filtros.clientQ||'').toLowerCase();
@@ -606,23 +483,15 @@
           );
         },
 
-        // ===== Vehículos =====
+        // -------- VEHÍCULOS (sin join obligatorio) --------
         async loadVehiculos(){
-          try{
-            const { data, error } = await sb
-              .from('vehiculos')
-              .select('id,cliente_id,marca,modelo,dominio,clientes(nombre)');
-            if (error) throw error;
-            this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
-          }catch(e){
-            console.error('loadVehiculos', e);
-            this.uiErr.vehiculos = e?.message || 'No se pudieron cargar los vehículos.';
-            this.vehiculos = [];
-          }
-        },
-        vehiculosDeCliente(){
-          const cid = this.citaForm.cliente_id;
-          return this.vehiculos.filter(v => String(v.cliente_id) === String(cid));
+          const { data, error } = await sb
+            .from('vehiculos')
+            .select('*')
+            .order('id', { ascending:false });
+          if (error) { console.warn('loadVehiculos()', error); this.vehiculos=[]; return; }
+          const nameById = Object.fromEntries(this.clientes.map(c => [c.id, c.nombre || '']));
+          this.vehiculos = (data||[]).map(v => ({ ...v, cliente_nombre: nameById[v.cliente_id] || '—' }));
         },
         openVehiculo(v){
           this.vehiculoForm = v
@@ -631,124 +500,67 @@
           this.modal.vehiculo = true;
         },
         async saveVehiculo(){
-          try{
-            const r = {
-              cliente_id: this.vehiculoForm.cliente_id || null,
-              marca:(this.vehiculoForm.marca||'').trim()||null,
-              modelo:(this.vehiculoForm.modelo||'').trim()||null,
-              dominio:(this.vehiculoForm.dominio||'').trim()||null
-            };
-            if(this.vehiculoForm.id)
-              await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id);
-            else
-              await sb.from('vehiculos').insert(r);
-            this.modal.vehiculo=false;
-            await this.loadVehiculos(); this.recalc(); this.buildReport();
-          }catch(e){
-            alert(e?.message || 'Error al guardar vehículo.');
-          }
+          const r = {
+            cliente_id: this.vehiculoForm.cliente_id || null,
+            marca: (this.vehiculoForm.marca||'').trim() || null,
+            modelo:(this.vehiculoForm.modelo||'').trim() || null,
+            dominio:(this.vehiculoForm.dominio||'').trim() || null
+          };
+          let error;
+          if(this.vehiculoForm.id) ({ error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id));
+          else                      ({ error } = await sb.from('vehiculos').insert(r));
+          if (error) alert(error.message);
+          this.modal.vehiculo=false; await this.loadAll();
         },
         async delVehiculo(id){
           if(!confirm('¿Eliminar vehículo?')) return;
           const { error } = await sb.from('vehiculos').delete().eq('id', id);
           if (error) alert(error.message);
-          await this.loadVehiculos(); this.recalc(); this.buildReport();
+          await this.loadAll();
         },
 
-        // ===== Citas =====
+        // -------- CITAS --------
         async loadCitas(){
-          try{
-            const { data, error } = await sb
-              .from('citas')
-              .select('id,cliente_id,servicio,fecha,precio,estado,notas,clientes(nombre)')
-              .order('fecha',{ascending:false});
-            if (error) throw error;
-            this.citas = (data||[]).map(a => {
-              let vehiculo_desc = null;
-              const m = (a.notas||'').match(/Vehículo:\s(.+)/i);
-              if (m) vehiculo_desc = m[1];
-              return {...a, cliente_nombre: a.clientes?.nombre || '', vehiculo_desc};
-            });
-          }catch(e){
-            console.error('loadCitas', e);
-            this.uiErr.citas = e?.message || 'No se pudieron cargar las citas.';
-            this.citas = [];
-          }
+          const { data, error } = await sb
+            .from('citas')
+            .select('*, clientes(nombre)')
+            .order('fecha',{ascending:false});
+          if (error) console.warn('loadCitas()', error);
+          const nameById = Object.fromEntries(this.clientes.map(c => [c.id, c.nombre || '']));
+          const base = (data || []);
+          this.citas = base.map(a => ({
+            ...a,
+            cliente_nombre: a.clientes?.nombre || nameById[a.cliente_id] || '—'
+          }));
         },
-        onClienteChange(){ this.citaForm.vehiculo_id = ''; },
         openCita(a){
-          this.citaForm = a ? {
-            id:a.id, cliente_id:a.cliente_id, vehiculo_id:'',
-            servicio:a.servicio||'',
-            selectedServices:(a.servicio ? a.servicio.split('+').map(n=>({name:n.trim(), price:0})) : []),
-            fecha:(a.fecha||'').slice(0,16),
-            precio:a.precio||'',
-            total:+(a.precio||0),
-            estado:a.estado||'pendiente',
-            notas:a.notas||''
-          } : {
-            id:null, cliente_id:'', vehiculo_id:'', servicio:'',
-            selectedServices:[], fecha:new Date().toISOString().slice(0,16),
-            precio:'', total:0, estado:'pendiente', notas:''
-          };
+          this.citaForm = a
+            ? { id:a.id, cliente_id:a.cliente_id, servicio:a.servicio||'', fecha:(a.fecha||'').slice(0,16), precio:a.precio||'', estado:a.estado||'pendiente', notas:a.notas||'' }
+            : { id:null, cliente_id:'', servicio:'', fecha:new Date().toISOString().slice(0,16), precio:'', estado:'pendiente', notas:'' };
           this.modal.cita = true;
         },
-        toggleService(item){
-          const key = item.name + (item.detalle ? ' — ' + item.detalle : '');
-          const i = this.citaForm.selectedServices.findIndex(s=>s.name===key || s.name===item.name);
-          if (i>=0) this.citaForm.selectedServices.splice(i,1);
-          else this.citaForm.selectedServices.push({ name: key || item.name, price: this.num(item.price) });
-          this.updateTotal();
-        },
-        updateTotal(){
-          const total = this.citaForm.selectedServices.reduce((acc,s)=>acc + this.num(s.price), 0);
-          this.citaForm.total = total;
-          this.citaForm.precio = total;
-        },
         async saveCita(){
-          try{
-            const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
-
-            const servicioStr = this.citaForm.selectedServices.map(s=>s.name).join(' + ') || (this.citaForm.servicio||'');
-            let notas = (this.citaForm.notas||'').trim();
-            const vehSel = this.vehiculos.find(v => String(v.id)===String(this.citaForm.vehiculo_id));
-            if (vehSel){
-              const vdesc = this.vehiculoLabel(vehSel);
-              notas = notas.replace(/(^|\n)Vehículo: .+(\n|$)/i,'$1');
-              notas = (notas? (notas+'\n') : '') + `Vehículo: ${vdesc}`;
-            }
-
-            // Validación mínima: cliente requerido para poder registrar cita
-            if (!this.citaForm.cliente_id) {
-              alert('Elegí un cliente para la cita.'); return;
-            }
-
-            const row = {
-              cliente_id: this.citaForm.cliente_id || null,
-              servicio:   servicioStr || null,
-              fecha:      fechaISO ? fechaISO.toISOString() : null,
-              precio:     +this.citaForm.precio || 0,
-              estado:     this.citaForm.estado,
-              notas:      notas || null,
-              user_id:    this.userId
-            };
-
-            if (this.citaForm.id)
-              await sb.from('citas').update(row).eq('id', this.citaForm.id);
-            else
-              await sb.from('citas').insert(row);
-
-            this.modal.cita=false; 
-            await this.loadCitas(); this.recalc(); this.buildReport();
-          }catch(e){
-            alert(e?.message || 'Error al guardar cita.');
-          }
+          const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
+          const row = {
+            cliente_id: this.citaForm.cliente_id || null,
+            servicio:   (this.citaForm.servicio||'').trim() || null,
+            fecha:      fechaISO ? fechaISO.toISOString() : null,
+            precio:     +this.citaForm.precio || 0,
+            estado:     this.citaForm.estado,
+            notas:      (this.citaForm.notas||'').trim() || null,
+            user_id:    this.userId
+          };
+          let error;
+          if (this.citaForm.id) ({ error } = await sb.from('citas').update(row).eq('id', this.citaForm.id));
+          else                  ({ error } = await sb.from('citas').insert(row));
+          if (error) alert(error.message);
+          this.modal.cita=false; await this.loadAll();
         },
         async delCita(id){
           if(!confirm('¿Eliminar cita?')) return;
           const { error } = await sb.from('citas').delete().eq('id', id);
           if (error) alert(error.message);
-          await this.loadCitas(); this.recalc(); this.buildReport();
+          await this.loadAll();
         },
         citasFiltradas(){
           let arr = this.citas.slice();
@@ -764,7 +576,7 @@
           return this.citas.filter(x => (x.fecha||'').slice(0,10) === t);
         },
 
-        // ===== KPIs / Reporte =====
+        // KPIs
         recalc(){
           this.stats.clientes  = this.clientes.length;
           this.stats.vehiculos = this.vehiculos.length;
@@ -773,6 +585,8 @@
           this.stats.ingresosHoy= hoy.filter(x => x.estado==='completado')
                                      .reduce((a,b)=>a+(+b.precio||0),0);
         },
+
+        // ===== Reporte =====
         buildReport(){
           const totIng = this.citas
             .filter(c => (c.estado||'')==='completado')
@@ -787,10 +601,8 @@
           }
           const bySrvMap = {};
           this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
-            const parts = (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean);
-            parts.forEach(name=>{
-              bySrvMap[name]=(bySrvMap[name]||0)+(+c.precio||0)/(parts.length||1);
-            });
+            const k=(c.servicio||'Otro').trim()||'Otro';
+            bySrvMap[k]=(bySrvMap[k]||0)+(+c.precio||0);
           });
           const labelsSrv = Object.keys(bySrvMap);
           const dataSrv   = Object.values(bySrvMap);
@@ -799,7 +611,7 @@
           if (ctxS) {
             this._charts.servicios = new Chart(ctxS, {
               type:'pie',
-              data:{ labels:labelsSrv, datasets:[{ data:dataSrv, backgroundColor:['#0a8d4b','#059669','#10b981','#34d399','#16a34a','#22c55e','#14b8a6'] }]},
+              data:{ labels:labelsSrv, datasets:[{ data:dataSrv, backgroundColor:['#0a8d4b','#059669','#10b981','#34d399','#16a34a','#22c55e'] }]},
               options:{ plugins:{ legend:{ position:'bottom' } } }
             });
           }
@@ -845,6 +657,37 @@
               options:{ scales:{ y:{ beginAtZero:true } } }
             });
           }
+        },
+
+        async exportPDF(){
+          if (this.tab !== 'reporte') { this.tab = 'reporte'; await this.$nextTick(); this.renderCharts(); }
+          const el = document.getElementById('reportRoot');
+          const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor:'#ffffff' });
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new window.jspdf.jsPDF('p','pt','a4');
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const imgWidth = pageWidth - 40;
+          const imgHeight = canvas.height * imgWidth / canvas.width;
+
+          if (imgHeight <= pageHeight - 40) {
+            pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
+          } else {
+            let position = 0;
+            const sliceHeight = (pageHeight - 40) * canvas.width / imgWidth;
+            while (position < canvas.height) {
+              const slice = document.createElement('canvas');
+              slice.width = canvas.width;
+              slice.height = Math.min(sliceHeight, canvas.height - position);
+              const ctx = slice.getContext('2d');
+              ctx.drawImage(canvas, 0, position, canvas.width, slice.height, 0, 0, canvas.width, slice.height);
+              const sliceData = slice.toDataURL('image/png');
+              if (position > 0) pdf.addPage();
+              pdf.addImage(sliceData, 'PNG', 20, 20, imgWidth, (slice.height * imgWidth / canvas.width));
+              position += sliceHeight;
+            }
+          }
+          pdf.save('reporte-monaco-detailing.pdf');
         }
       }
     }
