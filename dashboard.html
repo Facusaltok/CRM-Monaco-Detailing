@@ -2,45 +2,44 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Monaco Detailing CRM — Dashboard</title>
 
-  <!-- Tailwind (CDN) -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Ccircle cx='64' cy='64' r='64' fill='%230a8d4b'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' dominant-baseline='middle' font-size='62' fill='white' font-family='Arial' %3EM%3C/text%3E%3C/svg%3E">
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          colors: {
-            brand:  "#0a8d4b",
-            brand2: "#19c37d",
-            border: "#e5e7eb",
-            textmut:"#5b677a"
-          },
-          boxShadow: {
-            card: "0 12px 24px rgba(20,30,40,.06)",
-            btn:  "0 6px 0 #e3e8ef, 0 14px 24px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.7)"
-          },
-          borderRadius: { xl2:"14px" }
+          colors:{ brand:"#0a8d4b", brand2:"#19c37d", border:"#e5e7eb", textmut:"#5b677a" },
+          boxShadow:{ card:"0 12px 24px rgba(20,30,40,.06)" }
         }
       }
     }
   </script>
-
   <!-- Alpine -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+  <!-- Supabase (global) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    window.sb = supabase.createClient(
+      "https://nqokfvddbpjqrsfflntk.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xb2tmdmRkYnBqcXJzZmZsbnRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2NDE5OTgsImV4cCI6MjA3MTIxNzk5OH0.A5CzSNjHJ9y012vJjDunzYMTzoxGwu6RV88OmKYOUGo"
+    );
+  </script>
+
   <style>
-    body{ background:#f6f8fb; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; box-shadow:0 12px 24px rgba(20,30,40,.06); }
-    .btn{ border:1px solid #d9e1ea; background:#fff; color:#0b1220; font-weight:700; border-radius:12px; padding:.6rem .9rem; box-shadow:0 6px 0 #e3e8ef, 0 14px 24px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.7); transition:all .15s ease; }
+    body{ background:#f6f8fb; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial }
+    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; box-shadow:0 12px 24px rgba(20,30,40,.06) }
+    .btn{ border:1px solid #d9e1ea; background:#fff; color:#0b1220; font-weight:700; border-radius:12px; padding:.6rem .9rem; box-shadow:0 6px 0 #e3e8ef, 0 14px 24px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.7); transition:all .15s }
     .btn:hover{ background:#f7fafc }
-    .btn:active{ box-shadow:0 4px 0 #e3e8ef, 0 10px 16px rgba(10,20,30,.08), inset 0 1px 0 rgba(255,255,255,.6) }
-    .btn-primary{ background:linear-gradient(90deg,#0a8d4b,#19c37d); color:#062015; border-color:#16a86a; }
+    .btn-primary{ background:linear-gradient(90deg,#0a8d4b,#19c37d); color:#062015; border-color:#16a86a }
+    .input, select, textarea{ border:1px solid #d1d5db; border-radius:.7rem; padding:.6rem .8rem; width:100% }
+    .input:focus, select:focus, textarea:focus{ outline:none; border-color:#19c37d; box-shadow:0 0 0 3px rgba(25,195,125,.2) }
     .pill{ display:inline-flex; align-items:center; border-radius:999px; padding:.2rem .55rem; font-size:.75rem; font-weight:700 }
-    .input, select, textarea{ border:1px solid #d1d5db; border-radius:.6rem; padding:.55rem .7rem; width:100%; }
-    .input:focus, select:focus, textarea:focus{ outline:none; border-color:#19c37d; box-shadow:0 0 0 3px rgba(25,195,125,.20) }
-    .table th{ color:#5b677a }
     [x-cloak]{ display:none !important }
   </style>
 </head>
@@ -78,31 +77,19 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="card p-5 flex items-center gap-4">
           <div class="w-12 h-12 rounded-lg bg-emerald-100 text-brand flex items-center justify-center">👥</div>
-          <div>
-            <div class="text-sm text-textmut">Clientes</div>
-            <div class="text-2xl font-extrabold" x-text="stats.clientes"></div>
-          </div>
+          <div><div class="text-sm text-textmut">Clientes</div><div class="text-2xl font-extrabold" x-text="stats.clientes"></div></div>
         </div>
         <div class="card p-5 flex items-center gap-4">
           <div class="w-12 h-12 rounded-lg bg-emerald-100 text-brand flex items-center justify-center">🗓️</div>
-          <div>
-            <div class="text-sm text-textmut">Citas hoy</div>
-            <div class="text-2xl font-extrabold" x-text="stats.citasHoy"></div>
-          </div>
+          <div><div class="text-sm text-textmut">Citas hoy</div><div class="text-2xl font-extrabold" x-text="stats.citasHoy"></div></div>
         </div>
         <div class="card p-5 flex items-center gap-4">
           <div class="w-12 h-12 rounded-lg bg-emerald-100 text-brand flex items-center justify-center">$</div>
-          <div>
-            <div class="text-sm text-textmut">Ingresos hoy</div>
-            <div class="text-2xl font-extrabold" x-text="fmtARS(stats.ingresosHoy)"></div>
-          </div>
+          <div><div class="text-sm text-textmut">Ingresos hoy</div><div class="text-2xl font-extrabold" x-text="fmtARS(stats.ingresosHoy)"></div></div>
         </div>
         <div class="card p-5 flex items-center gap-4">
           <div class="w-12 h-12 rounded-lg bg-emerald-100 text-brand flex items-center justify-center">🚗</div>
-          <div>
-            <div class="text-sm text-textmut">Vehículos</div>
-            <div class="text-2xl font-extrabold" x-text="stats.vehiculos"></div>
-          </div>
+          <div><div class="text-sm text-textmut">Vehículos</div><div class="text-2xl font-extrabold" x-text="stats.vehiculos"></div></div>
         </div>
       </div>
 
@@ -152,7 +139,7 @@
         </div>
 
         <div class="overflow-x-auto mt-4">
-          <table class="min-w-full table text-sm">
+          <table class="min-w-full text-sm">
             <thead>
               <tr class="text-left border-b">
                 <th class="py-2 px-3">Nombre</th>
@@ -216,9 +203,8 @@
                   <td class="py-2 px-3" x-text="a.servicio"></td>
                   <td class="py-2 px-3" x-text="fmtDateTime(a.fecha)"></td>
                   <td class="py-2 px-3" x-text="fmtARS(a.precio || 0)"></td>
-                  <td class="py-2 px-3">
-                    <span class="pill" :class="statusPill(a.estado)" x-text="a.estado"></span>
-                  </td>
+                  <td class="py-2 px-3"><span class="pill"
+                        :class="statusPill(a.estado)" x-text="a.estado"></span></td>
                   <td class="py-2 px-3">
                     <button class="btn" @click="openCita(a)">Editar</button>
                     <button class="btn" @click="delCita(a.id)">Eliminar</button>
@@ -232,7 +218,7 @@
       </div>
     </section>
 
-    <!-- VEHÍCULOS -->
+    <!-- VEHICULOS -->
     <section x-show="tab==='vehiculos'" x-cloak>
       <div class="card p-5">
         <div class="flex items-center justify-between">
@@ -272,15 +258,13 @@
   </main>
 
   <!-- MODAL CLIENTE -->
-  <div x-show="modal.cliente" x-cloak
-       class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-       x-transition.opacity>
+  <div x-show="modal.cliente" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-lg p-5">
       <h3 class="font-bold text-brand mb-3" x-text="clienteForm.id ? 'Editar cliente' : 'Nuevo cliente'"></h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <input class="input" placeholder="Nombre" x-model="clienteForm.nombre">
         <input class="input" placeholder="Email" x-model="clienteForm.email" type="email">
-        <input class="input md:col-span-2" placeholder="Teléfono" x-model="clienteForm.telefono">
+        <input class="input" placeholder="Teléfono" x-model="clienteForm.telefono">
       </div>
       <div class="mt-4 flex justify-end gap-2">
         <button class="btn" @click="modal.cliente=false">Cancelar</button>
@@ -290,9 +274,7 @@
   </div>
 
   <!-- MODAL CITA -->
-  <div x-show="modal.cita" x-cloak
-       class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-       x-transition.opacity>
+  <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-lg p-5">
       <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -319,10 +301,8 @@
     </div>
   </div>
 
-  <!-- MODAL VEHÍCULO -->
-  <div x-show="modal.vehiculo" x-cloak
-       class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-       x-transition.opacity>
+  <!-- MODAL VEHICULO -->
+  <div x-show="modal.vehiculo" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-lg p-5">
       <h3 class="font-bold text-brand mb-3" x-text="vehiculoForm.id ? 'Editar vehículo' : 'Nuevo vehículo'"></h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -343,59 +323,46 @@
     </div>
   </div>
 
-  <!-- Lógica -->
-  <script type="module">
-    import { supabase } from "./supabaseClient.js";
+  <!-- LÓGICA -->
+  <script>
+    const sb = window.sb;
 
     window.crm = function(){
       return {
-        tab: 'home',
-        clientes: [],
-        vehiculos: [],
-        citas: [],
-        modal: { cliente:false, cita:false, vehiculo:false },
+        tab:'home',
+        userId:null,
 
-        clienteForm: { id:null, nombre:'', email:'', telefono:'' },
-        citaForm:    { id:null, cliente_id:'', servicio:'', fecha:'', precio:'', estado:'pendiente', notas:'' },
+        clientes:[], vehiculos:[], citas:[],
+        modal:{ cliente:false, cita:false, vehiculo:false },
+
+        clienteForm:{ id:null, nombre:'', email:'', telefono:'' },
+        citaForm:{ id:null, cliente_id:'', servicio:'', fecha:'', precio:'', estado:'pendiente', notas:'' },
         vehiculoForm:{ id:null, cliente_id:'', marca:'', modelo:'', dominio:'' },
 
-        filtros: { clientQ:'', citaFecha:'', citaEstado:'' },
+        filtros:{ clientQ:'', citaFecha:'', citaEstado:'' },
+        stats:{ clientes:0, citasHoy:0, ingresosHoy:0, vehiculos:0 },
 
-        stats: { clientes:0, citasHoy:0, ingresosHoy:0, vehiculos:0 },
-
-        // Helpers
         fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
-        fmtDateTime(iso){
-          if(!iso) return '';
-          const d=new Date(iso);
-          return d.toLocaleString('es-AR',{weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
-        },
-        statusPill(s){
-          return {
-            'bg-emerald-100 text-emerald-700': s==='completado',
-            'bg-yellow-100 text-yellow-700': s==='pendiente',
-            'bg-red-100 text-red-700': s==='cancelado'
-          };
-        },
+        fmtDateTime(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleString('es-AR',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); },
+        statusPill(s){ return {
+          'bg-emerald-100 text-emerald-700': s==='completado',
+          'bg-yellow-100 text-yellow-700':  s==='pendiente',
+          'bg-red-100 text-red-700':        s==='cancelado'
+        }},
 
-        // Init
         async init(){
-          const { data: { session } } = await supabase.auth.getSession();
+          const { data:{ session } } = await sb.auth.getSession();
           if(!session){ location.href='./index.html'; return; }
+          this.userId = session.user.id;
           await this.loadAll();
         },
         async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); },
+        async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // Logout
-        async logout(){ await supabase.auth.signOut(); location.href='./index.html'; },
-
-        // ----- Clientes -----
+        // -------- CLIENTES --------
         async loadClientes(){
-          const { data, error } = await supabase
-            .from('clientes')
-            .select('*')
-            .order('id', { ascending:false }); // ← seguro (si no tienes creado_en)
-          if (error) console.error('loadClientes:', error);
+          const { data, error } = await sb.from('clientes').select('*').order('created_at',{ascending:false});
+          if (error) console.error(error);
           this.clientes = data || [];
         },
         openCliente(c){
@@ -403,26 +370,21 @@
           this.modal.cliente = true;
         },
         async saveCliente(){
-          const r = {
-            nombre:   (this.clienteForm.nombre||'').trim() || null,
-            email:    (this.clienteForm.email||'').trim().toLowerCase() || null,
-            telefono: (this.clienteForm.telefono||'').trim() || null
+          const row = {
+            nombre: (this.clienteForm.nombre||'').trim(),
+            email: (this.clienteForm.email||'').trim() || null,
+            telefono: (this.clienteForm.telefono||'').trim() || null,
+            user_id: this.userId
           };
-          try{
-            if(this.clienteForm.id){
-              const { error } = await supabase.from('clientes').update(r).eq('id', this.clienteForm.id);
-              if(error) throw error;
-            } else {
-              // UPSERT por email para evitar duplicados
-              const { error } = await supabase.from('clientes').upsert(r, { onConflict:'email' });
-              if(error) throw error;
-            }
-            this.modal.cliente=false; await this.loadClientes(); this.recalc();
-          }catch(e){ alert('No se pudo guardar el cliente: '+(e.message||e)); console.error(e); }
+          let error;
+          if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id));
+          else                      ({ error } = await sb.from('clientes').insert(row));
+          if (error) alert(error.message);
+          this.modal.cliente=false; await this.loadClientes(); this.recalc();
         },
         async delCliente(id){
           if(!confirm('¿Eliminar cliente?')) return;
-          const { error } = await supabase.from('clientes').delete().eq('id', id);
+          const { error } = await sb.from('clientes').delete().eq('id', id);
           if (error) alert(error.message);
           await this.loadClientes(); this.recalc();
         },
@@ -436,88 +398,80 @@
           );
         },
 
-        // ----- Vehículos -----
+        // -------- VEHÍCULOS --------
         async loadVehiculos(){
-          const { data, error } = await supabase
-            .from('vehiculos')
-            .select('*, clientes(nombre)')
-            .order('id',{ascending:false}); // ← seguro
-          if (error) console.error('loadVehiculos:', error);
+          const { data, error } = await sb.from('vehiculos').select('*, clientes(nombre)').order('creado_en',{ascending:false});
+          if (error) console.error(error);
           this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
         },
         openVehiculo(v){
-          this.vehiculoForm = v ? {id:v.id, cliente_id:v.cliente_id, marca:v.marca, modelo:v.modelo, dominio:v.dominio}
-                                : {id:null, cliente_id:'', marca:'', modelo:'', dominio:''};
+          this.vehiculoForm = v
+            ? {id:v.id, cliente_id:v.cliente_id, marca:v.marca, modelo:v.modelo, dominio:v.dominio}
+            : {id:null, cliente_id:'', marca:'', modelo:'', dominio:''};
           this.modal.vehiculo = true;
         },
         async saveVehiculo(){
-          const r = { cliente_id:this.vehiculoForm.cliente_id||null, marca:this.vehiculoForm.marca, modelo:this.vehiculoForm.modelo, dominio:this.vehiculoForm.dominio };
-          try{
-            if(this.vehiculoForm.id){
-              const { error } = await supabase.from('vehiculos').update(r).eq('id', this.vehiculoForm.id);
-              if(error) throw error;
-            }else{
-              const { error } = await supabase.from('vehiculos').insert(r);
-              if(error) throw error;
-            }
-            this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc();
-          }catch(e){ alert('No se pudo guardar el vehículo: '+(e.message||e)); console.error(e); }
+          const r = {
+            cliente_id: this.vehiculoForm.cliente_id || null,
+            marca: (this.vehiculoForm.marca||'').trim() || null,
+            modelo:(this.vehiculoForm.modelo||'').trim() || null,
+            dominio:(this.vehiculoForm.dominio||'').trim() || null
+          };
+          let error;
+          if(this.vehiculoForm.id) ({ error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id));
+          else                      ({ error } = await sb.from('vehiculos').insert(r));
+          if (error) alert(error.message);
+          this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc();
         },
         async delVehiculo(id){
           if(!confirm('¿Eliminar vehículo?')) return;
-          const { error } = await supabase.from('vehiculos').delete().eq('id', id);
+          const { error } = await sb.from('vehiculos').delete().eq('id', id);
           if (error) alert(error.message);
           await this.loadVehiculos(); this.recalc();
         },
 
-        // ----- Citas -----
+        // -------- CITAS --------
         async loadCitas(){
-          const { data, error } = await supabase
-            .from('citas')
-            .select('*, clientes(nombre)')
-            .order('fecha',{ascending:false});
-          if (error) console.error('loadCitas:', error);
+          const { data, error } = await sb.from('citas').select('*, clientes(nombre)').order('fecha',{ascending:false});
+          if (error) console.error(error);
           this.citas = (data||[]).map(a => ({...a, cliente_nombre: a.clientes?.nombre || ''}));
         },
         openCita(a){
-          this.citaForm = a ? { id:a.id, cliente_id:a.cliente_id, servicio:a.servicio, fecha:a.fecha?.slice(0,16), precio:a.precio||'', estado:a.estado||'pendiente', notas:a.notas||'' }
-                            : { id:null, cliente_id:'', servicio:'', fecha:new Date().toISOString().slice(0,16), precio:'', estado:'pendiente', notas:'' };
+          this.citaForm = a
+            ? { id:a.id, cliente_id:a.cliente_id, servicio:a.servicio||'', fecha:(a.fecha||'').slice(0,16), precio:a.precio||'', estado:a.estado||'pendiente', notas:a.notas||'' }
+            : { id:null, cliente_id:'', servicio:'', fecha:new Date().toISOString().slice(0,16), precio:'', estado:'pendiente', notas:'' };
           this.modal.cita = true;
         },
         async saveCita(){
           const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
-          const r = {
+          const row = {
             cliente_id: this.citaForm.cliente_id || null,
-            servicio: this.citaForm.servicio,
-            fecha: fechaISO ? fechaISO.toISOString() : null,
-            precio: +this.citaForm.precio || 0,
-            estado: this.citaForm.estado,
-            notas: this.citaForm.notas
+            servicio:   (this.citaForm.servicio||'').trim() || null,
+            fecha:      fechaISO ? fechaISO.toISOString() : null,
+            precio:     +this.citaForm.precio || 0,
+            estado:     this.citaForm.estado,
+            notas:      (this.citaForm.notas||'').trim() || null,
+            user_id:    this.userId
           };
-          try{
-            if(this.citaForm.id){
-              const { error } = await supabase.from('citas').update(r).eq('id', this.citaForm.id);
-              if(error) throw error;
-            }else{
-              const { error } = await supabase.from('citas').insert(r);
-              if(error) throw error;
-            }
-            this.modal.cita=false; await this.loadCitas(); this.recalc();
-          }catch(e){ alert('No se pudo guardar la cita: '+(e.message||e)); console.error(e); }
+          let error;
+          if (this.citaForm.id) ({ error } = await sb.from('citas').update(row).eq('id', this.citaForm.id));
+          else                  ({ error } = await sb.from('citas').insert(row));
+          if (error) alert(error.message);
+          this.modal.cita=false; await this.loadCitas(); this.recalc();
         },
         async delCita(id){
           if(!confirm('¿Eliminar cita?')) return;
-          const { error } = await supabase.from('citas').delete().eq('id', id);
+          const { error } = await sb.from('citas').delete().eq('id', id);
           if (error) alert(error.message);
           await this.loadCitas(); this.recalc();
         },
         citasFiltradas(){
           let arr = this.citas.slice();
-          if(this.filtros.citaFecha) {
-            const d = this.filtros.citaFecha;
+          if(this.filtros.citaFecha){
+            const d=this.filtros.citaFecha;
             arr = arr.filter(x => (x.fecha||'').slice(0,10) === d);
           }
-          if(this.filtros.citaEstado) arr = arr.filter(x => (x.estado||'') === this.filtros.citaEstado);
+          if(this.filtros.citaEstado) arr = arr.filter(x => (x.estado||'')===this.filtros.citaEstado);
           return arr;
         },
         citasHoy(){
@@ -525,15 +479,14 @@
           return this.citas.filter(x => (x.fecha||'').slice(0,10) === t);
         },
 
-        // KPIs
+        // -------- KPIs --------
         recalc(){
-          this.stats.clientes = this.clientes.length;
+          this.stats.clientes  = this.clientes.length;
           this.stats.vehiculos = this.vehiculos.length;
           const hoy = this.citasHoy();
-          this.stats.citasHoy = hoy.length;
-          this.stats.ingresosHoy = hoy
-            .filter(x => x.estado==='completado')
-            .reduce((a,b)=>a+(+b.precio||0),0);
+          this.stats.citasHoy   = hoy.length;
+          this.stats.ingresosHoy= hoy.filter(x => x.estado==='completado')
+                                     .reduce((a,b)=>a+(+b.precio||0),0);
         }
       }
     }
