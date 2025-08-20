@@ -359,7 +359,7 @@
   </div>
 
   <!-- LÓGICA -->
-  <script>
+ <script>
   const sb = window.sb;
 
   window.crm = function(){
@@ -378,11 +378,12 @@
       filtros:{ clientQ:'', citaFecha:'', citaEstado:'' },
       stats:{ clientes:0, citasHoy:0, ingresosHoy:0, vehiculos:0 },
 
+      // Reporte
       report:{ ingresos:0, ganancia:0, clientes:0 },
       _charts:{ servicios:null, ingresos:null, clientes:null },
 
-      // Para mostrar mensajes de error en UI si algo falla (p.ej. RLS)
-      lastError:'',
+      // Errores visibles (opcional para debug en UI)
+      lastErrorClientes:'', lastErrorVehiculos:'', lastErrorCitas:'',
 
       // Utils
       fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
@@ -399,7 +400,7 @@
         }
       },
 
-      // Init
+      // Init + Refresh
       async init(){
         const { data:{ session } } = await sb.auth.getSession();
         if(!session){ location.href='./index.html'; return; }
@@ -408,7 +409,7 @@
       },
       async onRefresh(){
         await this.loadAll();
-        if (this.tab === 'reporte' && this.renderCharts) this.$nextTick(()=>this.renderCharts());
+        if (this.tab === 'reporte') this.$nextTick(()=>this.renderCharts());
       },
       async loadAll(){
         await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]);
@@ -417,22 +418,21 @@
       },
       async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-      // ---- CLIENTES (robusto: sin depender de columnas de fecha; filtros a prueba de null) ----
+      // ================== CLIENTES (robusto) ==================
       async loadClientes(){
         try{
-          // Sin order por columnas no garantizadas. 'id' existe siempre,
-          // pero si querés máxima compatibilidad, evitamos order por completo.
+          // No dependemos de created_at / creado_en; ordenamos por id que siempre existe.
           const { data, error } = await sb
             .from('clientes')
-            .select('id,nombre,email,telefono,user_id');
-
+            .select('id,nombre,email,telefono,user_id')
+            .order('id',{ascending:false});
           if (error) throw error;
           this.clientes = Array.isArray(data) ? data : [];
-          this.lastError = '';
+          this.lastErrorClientes = '';
         }catch(err){
           console.error('loadClientes', err);
           this.clientes = [];
-          this.lastError = err?.message || 'Error al cargar clientes.';
+          this.lastErrorClientes = err?.message || 'Error al cargar clientes.';
         }
       },
       openCliente(c){
@@ -456,8 +456,7 @@
           }
           this.modal.cliente=false;
           await this.loadClientes();
-          this.recalc();
-          this.buildReport();
+          this.recalc(); this.buildReport();
         }catch(err){
           alert(err?.message || 'No se pudo guardar el cliente.');
         }
@@ -468,8 +467,7 @@
           const { error } = await sb.from('clientes').delete().eq('id', id);
           if (error) throw error;
           await this.loadClientes();
-          this.recalc();
-          this.buildReport();
+          this.recalc(); this.buildReport();
         }catch(err){
           alert(err?.message || 'No se pudo eliminar.');
         }
@@ -484,21 +482,23 @@
         );
       },
 
-      // ---- VEHÍCULOS (sin depender de columnas no garantizadas) ----
+      // ================== VEHÍCULOS (robusto) ==================
       async loadVehiculos(){
         try{
           const { data, error } = await sb
             .from('vehiculos')
-            .select('id,cliente_id,marca,modelo,dominio,clientes(nombre)');
-
+            .select('id,cliente_id,marca,modelo,dominio,clientes(nombre)')
+            .order('id',{ascending:false});
           if (error) throw error;
           this.vehiculos = (data||[]).map(v => ({
             ...v,
             cliente_nombre: v?.clientes?.nombre || ''
           }));
+          this.lastErrorVehiculos = '';
         }catch(err){
           console.error('loadVehiculos', err);
           this.vehiculos = [];
+          this.lastErrorVehiculos = err?.message || 'Error al cargar vehículos.';
         }
       },
       openVehiculo(v){
@@ -524,8 +524,7 @@
           }
           this.modal.vehiculo=false;
           await this.loadVehiculos();
-          this.recalc();
-          this.buildReport();
+          this.recalc(); this.buildReport();
         }catch(err){
           alert(err?.message || 'No se pudo guardar el vehículo.');
         }
@@ -536,28 +535,39 @@
           const { error } = await sb.from('vehiculos').delete().eq('id', id);
           if (error) throw error;
           await this.loadVehiculos();
-          this.recalc();
-          this.buildReport();
+          this.recalc(); this.buildReport();
         }catch(err){
           alert(err?.message || 'No se pudo eliminar el vehículo.');
         }
       },
 
-      // ---- CITAS (join a cliente) ----
+      // ================== CITAS (robusto) ==================
       async loadCitas(){
         try{
-          const { data, error } = await sb
+          // Intento 1: ordenar por fecha (si existe)
+          let resp = await sb
             .from('citas')
-            .select('id,cliente_id,servicio,fecha,precio,estado,notas,vehiculo_label,clientes(nombre)')
+            .select('id,cliente_id,servicio,fecha,precio,estado,notas,clientes(nombre)')
             .order('fecha',{ascending:false});
-          if (error) throw error;
-          this.citas = (data||[]).map(a => ({
+          if (resp.error) {
+            // Fallback: ordenar por id si 'fecha' no fuera confiable
+            resp = await sb
+              .from('citas')
+              .select('id,cliente_id,servicio,fecha,precio,estado,notas,clientes(nombre)')
+              .order('id',{ascending:false});
+          }
+          if (resp.error) throw resp.error;
+
+          const data = resp.data || [];
+          this.citas = data.map(a => ({
             ...a,
             cliente_nombre: a?.clientes?.nombre || ''
           }));
+          this.lastErrorCitas = '';
         }catch(err){
           console.error('loadCitas', err);
           this.citas = [];
+          this.lastErrorCitas = err?.message || 'Error al cargar citas.';
         }
       },
       openCita(a){
@@ -587,8 +597,7 @@
           }
           this.modal.cita=false;
           await this.loadCitas();
-          this.recalc();
-          this.buildReport();
+          this.recalc(); this.buildReport();
         }catch(err){
           alert(err?.message || 'No se pudo guardar la cita.');
         }
@@ -599,8 +608,7 @@
           const { error } = await sb.from('citas').delete().eq('id', id);
           if (error) throw error;
           await this.loadCitas();
-          this.recalc();
-          this.buildReport();
+          this.recalc(); this.buildReport();
         }catch(err){
           alert(err?.message || 'No se pudo eliminar la cita.');
         }
@@ -619,7 +627,7 @@
         return this.citas.filter(x => (x?.fecha||'').slice(0,10) === t);
       },
 
-      // KPIs + Reporte mínimo
+      // ================== KPIs + Reporte ==================
       recalc(){
         this.stats.clientes  = this.clientes.length;
         this.stats.vehiculos = this.vehiculos.length;
@@ -641,7 +649,7 @@
         for (const k of Object.keys(this._charts)) {
           if (this._charts[k]) { this._charts[k].destroy(); this._charts[k]=null; }
         }
-        // Servicios
+        // Servicios (pie)
         const bySrv = {};
         this.citas.filter(c=> (c?.estado||'')==='completado').forEach(c=>{
           const k=(c?.servicio||'Otro').trim()||'Otro';
@@ -655,7 +663,7 @@
             options:{ plugins:{ legend:{ position:'bottom' } } }
           });
         }
-        // Ingresos Mensuales
+        // Ingresos Mensuales (line)
         const byMonth = {};
         this.citas.filter(c=> (c?.estado||'')==='completado').forEach(c=>{
           const d=new Date(c?.fecha); const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
@@ -673,7 +681,7 @@
             options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
           });
         }
-        // Clientes por mes
+        // Clientes por mes (bar)
         const byCli = {};
         this.clientes.forEach(c=>{
           const d=new Date(c?.created_at || c?.creado_en || Date.now());
