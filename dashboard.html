@@ -21,10 +21,10 @@
   </script>
   <!-- Alpine -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <!-- Chart.js para Reporte -->
+  <!-- Chart.js (Reportes) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
-  <!-- Supabase (NO tocar, usa tus credenciales ya estables) -->
+  <!-- Supabase (usa tus credenciales estables) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     window.sb = supabase.createClient(
@@ -313,7 +313,7 @@
     </div>
   </div>
 
-  <!-- MODAL CITA (con selección de vehículo y servicios múltiples) -->
+  <!-- MODAL CITA (con vehículo y servicios múltiples) -->
   <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-2xl p-5">
       <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
@@ -373,8 +373,7 @@
             <div class="font-semibold mb-2">Autos (Hatch / Sedan)</div>
             <template x-for="(item,idx) in serviceCatalog.autos" :key="'a'+idx">
               <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1"
-                  :value="item.name" @change="toggleService(item)">
+                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
                 <div>
                   <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
                   <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
@@ -387,8 +386,7 @@
             <div class="font-semibold mb-2">SUV / Pick-Up</div>
             <template x-for="(item,idx) in serviceCatalog.suv" :key="'s'+idx">
               <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1"
-                  :value="item.name" @change="toggleService(item)">
+                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
                 <div>
                   <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
                   <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
@@ -401,10 +399,9 @@
             <div class="font-semibold mb-2">Motos</div>
             <template x-for="(item,idx) in serviceCatalog.motos" :key="'m'+idx">
               <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1"
-                  :value="item.name" @change="toggleService(item)">
+                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
                 <div>
-                  <div class="font-medium" x-text="item.name + ' — ' + (typeof item.price==='number' ? fmtARS(item.price) : item.price)"></div>
+                  <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
                   <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
                 </div>
               </label>
@@ -419,7 +416,6 @@
                 <template x-for="(it,ii) in grupo.items" :key="'ti'+gi+'-'+ii">
                   <label class="flex items-start gap-2 mb-1 cursor-pointer">
                     <input type="checkbox" class="mt-1"
-                      :value="it.name + ' ' + (grupo.grupo.includes('Pick')?'(SUV/Pick-Up)':'(Autos)')"
                       @change="toggleService({ name: it.name + ' — ' + it.detalle, price: it.price })">
                     <div class="text-sm">
                       <span class="font-medium" x-text="it.name + ' — ' + it.detalle + ' — ' + fmtARS(it.price)"></span>
@@ -519,7 +515,6 @@
             { name: "Paquete Completo SUV / Pick-Up", desc:"Abrillantado + Interior + Motor a Vapor.", price:450000, time:"2–3 días" }
           ],
           motos: [
-            // dejo un número estimado para sumar (si querés, lo cambiamos por un selector de rango)
             { name:"Tratamiento Motos", desc:"Lavado + descontaminación + reacondicionamiento de plásticos + lubricación de cadena + protección (Acrílico o Cerámico).", price:200000, time:"En el día" }
           ]
         },
@@ -567,13 +562,14 @@
         async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); this.buildReport(); },
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // ===== Clientes =====
+        // ===== Clientes (consulta robusta) =====
         async loadClientes(){
+          // Ordeno por 'id' (siempre existe) para evitar fallos si created_at varía
           const { data, error } = await sb
             .from('clientes')
-            .select('id,nombre,email,telefono,created_at,creado_en,user_id')
+            .select('id,nombre,email,telefono,created_at,user_id')
             .order('id',{ascending:false});
-          if (error) { console.error(error); this.clientes=[]; return; }
+          if (error) { console.error('loadClientes()', error); this.clientes=[]; return; }
           this.clientes = data || [];
         },
         openCliente(c){
@@ -611,8 +607,11 @@
 
         // ===== Vehículos =====
         async loadVehiculos(){
-          const { data, error } = await sb.from('vehiculos').select('*, clientes(nombre)').order('creado_en',{ascending:false});
-          if (error) console.error(error);
+          const { data, error } = await sb
+            .from('vehiculos')
+            .select('*, clientes(nombre)')
+            .order('id',{ascending:false});
+          if (error) console.error('loadVehiculos()', error);
           this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
         },
         vehiculosDeCliente(){
@@ -647,9 +646,13 @@
 
         // ===== Citas =====
         async loadCitas(){
-          const { data, error } = await sb.from('citas').select('*, clientes(nombre)').order('fecha',{ascending:false});
-          if (error) console.error(error);
-          // enriquecemos con descripción de vehículo si la notas la trae
+          const { data, error } = await sb
+            .from('citas')
+            .select('*, clientes(nombre)')
+            .order('fecha',{ascending:false});
+          if (error) console.error('loadCitas()', error);
+
+          // enriquecemos con descripción de vehículo si la guardamos en notas
           this.citas = (data||[]).map(a => {
             let vehiculo_desc = null;
             const m = (a.notas||'').match(/Vehículo:\s(.+)/i);
@@ -665,7 +668,7 @@
           this.citaForm = a ? {
               id:a.id,
               cliente_id:a.cliente_id,
-              vehiculo_id:'',               // no persistimos ID (sin cambiar base)
+              vehiculo_id:'',               // no persistimos ID (no tocamos base)
               servicio:a.servicio||'',
               selectedServices: (a.servicio? a.servicio.split('+').map(n=>({name:n.trim(), price:0})) : []),
               fecha:(a.fecha||'').slice(0,16),
@@ -680,9 +683,10 @@
             };
         },
         toggleService(item){
-          const i = this.citaForm.selectedServices.findIndex(s=>s.name===item.name || s.name=== (item.name + ' — ' + (item.detalle||'')));
-          if (i>=0) this.citaForm.selectedServices.splice(i,1);
-          else this.citaForm.selectedServices.push({ name: item.name, price: this.num(item.price) });
+          const key = item.name + (item.detalle ? ' — ' + item.detalle : '');
+          const idx = this.citaForm.selectedServices.findIndex(s=>s.name===key || s.name===item.name);
+          if (idx>=0) this.citaForm.selectedServices.splice(idx,1);
+          else this.citaForm.selectedServices.push({ name: key || item.name, price: this.num(item.price) });
           this.updateTotal();
         },
         updateTotal(){
@@ -691,16 +695,14 @@
           this.citaForm.precio = total;
         },
         async saveCita(){
-          // normalizo fecha a ISO
           const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
 
-          // Armamos servicio como string concatenado y notas con vehículo (sin tocar base)
+          // Servicio concatenado y notas con vehículo (sin modificar esquema)
           const servicioStr = this.citaForm.selectedServices.map(s=>s.name).join(' + ') || (this.citaForm.servicio||'');
           let notas = (this.citaForm.notas||'').trim();
           const vehSel = this.vehiculos.find(v => String(v.id)===String(this.citaForm.vehiculo_id));
           if (vehSel){
             const vdesc = this.vehiculoLabel(vehSel);
-            // agregamos/actualizamos línea de vehículo en notas
             notas = notas.replace(/(^|\n)Vehículo: .+(\n|$)/i,'$1'); // limpia si existía
             notas = (notas? (notas+'\n') : '') + `Vehículo: ${vdesc}`;
           }
@@ -765,9 +767,9 @@
           }
           const bySrvMap = {};
           this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
-            (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean).forEach(name=>{
-              bySrvMap[name]=(bySrvMap[name]||0)+(+c.precio||0)/((c.servicio||'').split('+').filter(Boolean).length||1);
-            });
+            const names = (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean);
+            const share = (+c.precio||0)/(names.length||1);
+            names.forEach(name => { bySrvMap[name]=(bySrvMap[name]||0)+share; });
           });
           const labelsSrv = Object.keys(bySrvMap);
           const dataSrv   = Object.values(bySrvMap);
@@ -804,7 +806,7 @@
 
           const byCliMonth = {};
           this.clientes.forEach(c=>{
-            const d = new Date(c.created_at || c.creado_en || Date.now());
+            const d = new Date(c.created_at || Date.now());
             const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
             byCliMonth[k]=(byCliMonth[k]||0)+1;
           });
