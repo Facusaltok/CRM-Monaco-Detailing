@@ -43,6 +43,7 @@
     .input:focus, select:focus, textarea:focus{ outline:none; border-color:#19c37d; box-shadow:0 0 0 3px rgba(25,195,125,.2) }
     .pill{ display:inline-flex; align-items:center; border-radius:999px; padding:.2rem .55rem; font-size:.75rem; font-weight:700 }
     [x-cloak]{ display:none !important }
+    .chip{ @apply inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm;}
   </style>
 </head>
 
@@ -62,7 +63,7 @@
     </div>
   </header>
 
-  <!-- Nav (orden solicitado) -->
+  <!-- Nav (orden: Dashboard - Clientes - Vehículos - Citas - Reportes) -->
   <nav class="bg-white border-b border-border">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-2">
       <button class="btn" :class="{'btn-primary':tab==='home'}" @click="tab='home'">Dashboard</button>
@@ -115,7 +116,7 @@
             <template x-for="a in citasHoy()" :key="a.id">
               <li class="py-3 flex items-center justify-between">
                 <div>
-                  <div class="font-semibold" x-text="a.cliente_nombre || 'Cliente'"></div>
+                  <div class="font-semibold" x-text="(a.cliente_nombre || 'Cliente') + (a.vehiculo_str ? ' — ' + a.vehiculo_str : '')"></div>
                   <div class="text-sm text-textmut" x-text="a.servicio + ' — ' + fmtARS(a.precio || 0)"></div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -167,13 +168,10 @@
             </tbody>
           </table>
         </div>
-
-        <!-- Aviso de error si lo hubiera -->
-        <p x-show="uiErr.clientes" class="mt-3 text-sm text-red-600" x-text="uiErr.clientes"></p>
       </div>
     </section>
 
-    <!-- VEHÍCULOS -->
+    <!-- VEHICULOS -->
     <section x-show="tab==='vehiculos'" x-cloak>
       <div class="card p-5">
         <div class="flex items-center justify-between">
@@ -207,8 +205,6 @@
             </tbody>
           </table>
         </div>
-
-        <p x-show="uiErr.vehiculos" class="mt-3 text-sm text-red-600" x-text="uiErr.vehiculos"></p>
       </div>
     </section>
 
@@ -234,8 +230,7 @@
             <thead>
               <tr class="text-left border-b">
                 <th class="py-2 px-3">Cliente</th>
-                <th class="py-2 px-3">Servicio(s)</th>
-                <th class="py-2 px-3">Vehículo</th>
+                <th class="py-2 px-3">Servicio</th>
                 <th class="py-2 px-3">Fecha/Hora</th>
                 <th class="py-2 px-3">Precio</th>
                 <th class="py-2 px-3">Estado</th>
@@ -245,9 +240,8 @@
             <tbody>
               <template x-for="a in citasFiltradas()" :key="a.id">
                 <tr class="border-b hover:bg-slate-50">
-                  <td class="py-2 px-3" x-text="a.cliente_nombre"></td>
+                  <td class="py-2 px-3" x-text="(a.cliente_nombre||'') + (a.vehiculo_str ? ' — ' + a.vehiculo_str : '')"></td>
                   <td class="py-2 px-3" x-text="a.servicio"></td>
-                  <td class="py-2 px-3" x-text="a.vehiculo_desc || '—'"></td>
                   <td class="py-2 px-3" x-text="fmtDateTime(a.fecha)"></td>
                   <td class="py-2 px-3" x-text="fmtARS(a.precio || 0)"></td>
                   <td class="py-2 px-3"><span class="pill" :class="statusPill(a.estado)" x-text="a.estado"></span></td>
@@ -257,16 +251,14 @@
                   </td>
                 </tr>
               </template>
-              <tr x-show="citas.length===0"><td colspan="7" class="py-6 text-center text-textmut">Sin citas</td></tr>
+              <tr x-show="citas.length===0"><td colspan="6" class="py-6 text-center text-textmut">Sin citas</td></tr>
             </tbody>
           </table>
         </div>
-
-        <p x-show="uiErr.citas" class="mt-3 text-sm text-red-600" x-text="uiErr.citas"></p>
       </div>
     </section>
 
-    <!-- REPORTE -->
+    <!-- REPORTES (premium) -->
     <section x-show="tab==='reporte'" x-cloak>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="card p-5 text-center">
@@ -320,129 +312,6 @@
     </div>
   </div>
 
-  <!-- MODAL CITA (vehículo + múltiples servicios) -->
-  <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
-    <div class="card w-full max-w-2xl p-5">
-      <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label class="text-sm block mb-1">Cliente</label>
-          <select class="input" x-model="citaForm.cliente_id" @change="onClienteChange()">
-            <option value="">Cliente…</option>
-            <template x-for="c in clientes" :key="c.id">
-              <option :value="c.id" x-text="c.nombre"></option>
-            </template>
-          </select>
-        </div>
-
-        <div>
-          <label class="text-sm block mb-1">Vehículo</label>
-          <select class="input" x-model="citaForm.vehiculo_id">
-            <option value="">Seleccioná…</option>
-            <template x-for="v in vehiculosDeCliente()" :key="v.id">
-              <option :value="v.id" x-text="vehiculoLabel(v)"></option>
-            </template>
-          </select>
-        </div>
-
-        <div>
-          <label class="text-sm block mb-1">Fecha y hora</label>
-          <input class="input" type="datetime-local" x-model="citaForm.fecha">
-        </div>
-
-        <div>
-          <label class="text-sm block mb-1">Estado</label>
-          <select class="input" x-model="citaForm.estado">
-            <option value="pendiente">Pendiente</option>
-            <option value="completado">Completado</option>
-            <option value="cancelado">Cancelado</option>
-          </select>
-        </div>
-
-        <div class="md:col-span-2">
-          <label class="text-sm block mb-1">Notas</label>
-          <textarea class="input" rows="3" placeholder="Observaciones…" x-model="citaForm.notas"></textarea>
-        </div>
-      </div>
-
-      <!-- Catálogo de servicios -->
-      <div class="mt-4">
-        <h4 class="font-semibold mb-2">Servicios (podés elegir más de uno)</h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div class="border rounded-lg p-3">
-            <div class="font-semibold mb-2">Autos (Hatch / Sedan)</div>
-            <template x-for="(item,idx) in serviceCatalog.autos" :key="'a'+idx">
-              <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
-                <div>
-                  <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
-                  <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
-                </div>
-              </label>
-            </template>
-          </div>
-
-          <div class="border rounded-lg p-3">
-            <div class="font-semibold mb-2">SUV / Pick-Up</div>
-            <template x-for="(item,idx) in serviceCatalog.suv" :key="'s'+idx">
-              <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
-                <div>
-                  <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
-                  <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
-                </div>
-              </label>
-            </template>
-          </div>
-
-          <div class="border rounded-lg p-3">
-            <div class="font-semibold mb-2">Motos</div>
-            <template x-for="(item,idx) in serviceCatalog.motos" :key="'m'+idx">
-              <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
-                <div>
-                  <div class="font-medium" x-text="item.name + ' — ' + (typeof item.price==='number' ? fmtARS(item.price) : item.price)"></div>
-                  <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
-                </div>
-              </label>
-            </template>
-          </div>
-
-          <div class="border rounded-lg p-3">
-            <div class="font-semibold mb-2">Tratamientos</div>
-            <template x-for="(grupo,gi) in tratamientos" :key="'t'+gi">
-              <div class="mb-2">
-                <div class="text-sm font-semibold mb-1" x-text="grupo.grupo"></div>
-                <template x-for="(it,ii) in grupo.items" :key="'ti'+gi+'-'+ii">
-                  <label class="flex items-start gap-2 mb-1 cursor-pointer">
-                    <input type="checkbox" class="mt-1"
-                      :value="it.name" @change="toggleService({ name: it.name + ' — ' + it.detalle, price: it.price })">
-                    <div class="text-sm">
-                      <span class="font-medium" x-text="it.name + ' — ' + it.detalle + ' — ' + fmtARS(it.price)"></span>
-                    </div>
-                  </label>
-                </template>
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-4 flex items-center justify-between border-t pt-3">
-        <div class="text-sm text-textmut">
-          Seleccionados: <span class="font-semibold" x-text="citaForm.selectedServices.map(s=>s.name).join(' + ') || '—'"></span>
-        </div>
-        <div class="text-lg font-extrabold">Total: <span x-text="fmtARS(citaForm.total)"></span></div>
-      </div>
-
-      <div class="mt-4 flex justify-end gap-2">
-        <button class="btn" @click="modal.cita=false">Cancelar</button>
-        <button class="btn btn-primary" @click="saveCita()">Guardar</button>
-      </div>
-    </div>
-  </div>
-
   <!-- MODAL VEHÍCULO -->
   <div x-show="modal.vehiculo" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-lg p-5">
@@ -465,8 +334,139 @@
     </div>
   </div>
 
-  <!-- LÓGICA -->
+  <!-- MODAL CITA (con selects de servicios y vehículo) -->
+  <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
+    <div class="card w-full max-w-3xl p-5">
+      <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <!-- Cliente -->
+        <div class="md:col-span-1">
+          <label class="text-sm block mb-1">Cliente</label>
+          <select class="input" x-model="citaForm.cliente_id" @change="onClienteChange()">
+            <option value="">Seleccioná cliente…</option>
+            <template x-for="c in clientes" :key="c.id">
+              <option :value="c.id" x-text="c.nombre"></option>
+            </template>
+          </select>
+        </div>
+
+        <!-- Vehículo (filtrado por cliente) -->
+        <div class="md:col-span-1">
+          <label class="text-sm block mb-1">Vehículo</label>
+          <select class="input" x-model="citaForm.vehiculo_id" :disabled="vehiculosCliente.length===0">
+            <option value="">{{ vehiculosCliente.length? 'Seleccioná vehículo…' : 'Sin vehículos del cliente' }}</option>
+            <template x-for="v in vehiculosCliente" :key="v.id">
+              <option :value="v.id" x-text="v.marca + ' ' + (v.modelo||'') + (v.dominio? ' ('+v.dominio+')':'')"></option>
+            </template>
+          </select>
+        </div>
+
+        <!-- Fecha y hora -->
+        <div class="md:col-span-1">
+          <label class="text-sm block mb-1">Fecha y hora</label>
+          <input class="input" type="datetime-local" x-model="citaForm.fecha">
+        </div>
+      </div>
+
+      <!-- Picker de servicios -->
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label class="text-sm block mb-1">Categoría</label>
+          <select class="input" x-model="picker.categoria">
+            <option value="">Elegí una categoría…</option>
+            <option value="autos">Autos (Hatch / Sedan)</option>
+            <option value="suv">SUV / Pick-Up</option>
+            <option value="motos">Motos</option>
+            <option value="t_auto">Tratamientos — Autos</option>
+            <option value="t_suv">Tratamientos — Pick-Up / SUV</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm block mb-1">Servicio</label>
+          <select class="input" x-model="picker.item">
+            <option value="">Seleccioná servicio…</option>
+            <template x-for="opt in pickerOptions()" :key="opt.name">
+              <option :value="opt.name" x-text="opt.name + ' — $ ' + fmtNum(opt.price)"></option>
+            </template>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button class="btn btn-primary w-full" @click="addServicio()">Agregar</button>
+        </div>
+      </div>
+
+      <!-- Servicios seleccionados -->
+      <div class="mt-3" x-show="citaForm.servicios.length">
+        <div class="text-sm mb-1 font-semibold">Seleccionados</div>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="(s,idx) in citaForm.servicios" :key="idx">
+            <span class="chip">
+              <span x-text="s.name"></span>
+              <span class="opacity-60" x-text="'$ ' + fmtNum(s.price)"></span>
+              <button class="text-emerald-700/70 hover:text-emerald-900" @click="removeServicio(idx)">✕</button>
+            </span>
+          </template>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+        <div>
+          <label class="text-sm block mb-1">Estado</label>
+          <select class="input" x-model="citaForm.estado">
+            <option value="pendiente">Pendiente</option>
+            <option value="completado">Completado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm block mb-1">Total</label>
+          <input class="input" :value="fmtARS(totalServicios())" disabled>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <label class="text-sm block mb-1">Notas</label>
+        <textarea class="input" rows="3" placeholder="Notas (opcional)" x-model="citaForm.notas"></textarea>
+      </div>
+
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="btn" @click="modal.cita=false">Cancelar</button>
+        <button class="btn btn-primary" @click="saveCita()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // ----- Servicios y Tratamientos (catálogo) -----
+    const servicesCatalog = {
+      autos: [
+        { name: "Interior (Hatch / Sedan)", price: 150000 },
+        { name: "Interior al Detalle (Hatch / Sedan)", price: 250000 },
+        { name: "Motor a Vapor (Hatch / Sedan)", price: 100000 },
+        { name: "Paquete Completo (Hatch / Sedan)", price: 350000 }
+      ],
+      suv: [
+        { name: "Interior (SUV / Pick-Up)", price: 200000 },
+        { name: "Interior al Detalle (SUV / Pick-Up)", price: 300000 },
+        { name: "Motor a Vapor (SUV / Pick-Up)", price: 130000 },
+        { name: "Paquete Completo SUV / Pick-Up", price: 450000 }
+      ],
+      motos: [
+        { name: "Tratamiento Motos", price: 200000 } // rango simplificado a valor base
+      ],
+      t_auto: [
+        { name: "Acrílico — Autos (6 meses)", price: 300000 },
+        { name: "Cerámico — Autos (1 año)", price: 400000 },
+        { name: "Cerámico c/Grafeno — Autos (2 años)", price: 500000 }
+      ],
+      t_suv: [
+        { name: "Acrílico — SUV/Pick-Up (6 meses)", price: 400000 },
+        { name: "Cerámico — SUV/Pick-Up (1 año)", price: 500000 },
+        { name: "Cerámico c/Grafeno — SUV/Pick-Up (2 años)", price: 600000 }
+      ]
+    };
+
     const sb = window.sb;
 
     window.crm = function(){
@@ -475,18 +475,18 @@
         userId:null,
 
         clientes:[], vehiculos:[], citas:[],
-        uiErr:{ clientes:'', vehiculos:'', citas:'' },
+        vehiculosCliente:[],
 
         modal:{ cliente:false, cita:false, vehiculo:false },
 
         clienteForm:{ id:null, nombre:'', email:'', telefono:'' },
-        vehiculoForm:{ id:null, cliente_id:'', marca:'', modelo:'', dominio:'' },
 
         citaForm:{
-          id:null, cliente_id:'', vehiculo_id:'',
-          servicio:'', selectedServices:[], fecha:'', precio:'', total:0,
-          estado:'pendiente', notas:''
+          id:null, cliente_id:'', vehiculo_id:'', fecha:'', estado:'pendiente', notas:'',
+          servicios:[] // [{name, price}]
         },
+
+        vehiculoForm:{ id:null, cliente_id:'', marca:'', modelo:'', dominio:'' },
 
         filtros:{ clientQ:'', citaFecha:'', citaEstado:'' },
         stats:{ clientes:0, citasHoy:0, ingresosHoy:0, vehiculos:0 },
@@ -494,49 +494,19 @@
         report:{ ingresos:0, ganancia:0, clientes:0 },
         _charts:{ servicios:null, ingresos:null, clientes:null },
 
-        // ===== Catálogos =====
-        serviceCatalog:{
-          autos: [
-            { name:"Interior (Hatch / Sedan)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:150000, time:"1 día" },
-            { name:"Interior al Detalle (Hatch / Sedan)", desc:"Desarme, aspirado profundo, limpieza de techo y tapizados, descontaminación y reacondicionamiento de plásticos.", price:250000, time:"2-3 días" },
-            { name:"Motor a Vapor (Hatch / Sedan)", desc:"Limpieza técnica del vano motor a vapor.", price:100000, time:"En el día" },
-            { name:"Paquete Completo (Hatch / Sedan)", desc:"Abrillantado + Interior + Motor a Vapor.", price:350000, time:"2–3 días" }
-          ],
-          suv: [
-            { name:"Interior (SUV / Pick-Up)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:200000, time:"1 día" },
-            { name:"Interior al Detalle (SUV / Pick-Up)", desc:"Desarme, aspirado profundo, limpieza de techo y tapizados, descontaminación y reacondicionamiento de plásticos.", price:300000, time:"2-3 días" },
-            { name:"Motor a Vapor (SUV / Pick-Up)", desc:"Limpieza técnica del vano motor a vapor.", price:130000, time:"En el día" },
-            { name:"Paquete Completo SUV / Pick-Up", desc:"Abrillantado + Interior + Motor a Vapor.", price:450000, time:"2–3 días" }
-          ],
-          motos: [
-            { name:"Tratamiento Motos", desc:"Lavado + descontaminación + reacondicionamiento de plásticos + lubricación de cadena + protección (Acrílico o Cerámico).", price:200000, time:"En el día" }
-          ]
-        },
-        tratamientos:[
-          { grupo:"Autos (Hatch / Sedan)", items:[
-            { name:"Acrílico", detalle:"Duración 6 meses", price:300000 },
-            { name:"Cerámico", detalle:"Duración 1 año", price:400000 },
-            { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:500000 }
-          ]},
-          { grupo:"Pick-Up / SUV", items:[
-            { name:"Acrílico", detalle:"Duración 6 meses", price:400000 },
-            { name:"Cerámico", detalle:"Duración 1 año", price:500000 },
-            { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:600000 }
-          ]}
-        ],
+        picker:{ categoria:'', item:'' },
 
-        // ===== Helpers =====
-        num(v){ return typeof v==='number' ? v : (parseInt(String(v).replace(/[^0-9]/g,''))||0) },
+        // ---- helpers ----
         fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
+        fmtNum(n){ return new Intl.NumberFormat('es-AR').format(+n||0) },
         fmtDateTime(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleString('es-AR',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); },
         statusPill(s){ return {
           'bg-emerald-100 text-emerald-700': s==='completado',
           'bg-yellow-100 text-yellow-700':  s==='pendiente',
           'bg-red-100 text-red-700':        s==='cancelado'
         }},
-        vehiculoLabel(v){ return `${v.marca||''} ${v.modelo||''} ${v.dominio?('('+v.dominio+')'):''}`.trim() || 'Vehículo'; },
 
-        // ===== Init / Refresh =====
+        // ---- init ----
         async init(){
           const { data:{ session } } = await sb.auth.getSession();
           if(!session){ location.href='./index.html'; return; }
@@ -548,47 +518,37 @@
           if (this.tab === 'reporte') this.$nextTick(()=>this.renderCharts());
         },
         async loadAll(){
-          this.uiErr = { clientes:'', vehiculos:'', citas:'' };
           await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]);
           this.recalc(); this.buildReport();
         },
+
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // ===== Clientes =====
+        // -------- CLIENTES (orden por id: evita columnas inexistentes) --------
         async loadClientes(){
-          try{
-            const { data, error } = await sb
-              .from('clientes')
-              .select('id,nombre,email,telefono,created_at,creado_en,user_id');
-            if (error) throw error;
-            this.clientes = (data||[]).sort((a,b)=> (a.nombre||'').localeCompare(b.nombre||''));
-          }catch(e){
-            console.error('loadClientes', e);
-            this.uiErr.clientes = e?.message || 'No se pudieron cargar los clientes.';
-            this.clientes = [];
-          }
+          const { data, error } = await sb
+            .from('clientes')
+            .select('id,nombre,email,telefono,created_at,creado_en,user_id')
+            .order('id', { ascending:false });
+          if (error) { console.error('loadClientes()', error); this.clientes=[]; return; }
+          this.clientes = data || [];
         },
         openCliente(c){
           this.clienteForm = c ? JSON.parse(JSON.stringify(c)) : { id:null, nombre:'', email:'', telefono:'' };
           this.modal.cliente = true;
         },
         async saveCliente(){
-          try{
-            const row = {
-              nombre:(this.clienteForm.nombre||'').trim(),
-              email:(this.clienteForm.email||'').trim()||null,
-              telefono:(this.clienteForm.telefono||'').trim()||null,
-              user_id:this.userId
-            };
-            if (this.clienteForm.id)
-              await sb.from('clientes').update(row).eq('id', this.clienteForm.id);
-            else
-              await sb.from('clientes').insert(row);
-            this.modal.cliente=false;
-            await this.loadClientes(); this.recalc(); this.buildReport();
-          }catch(e){
-            alert(e?.message || 'Error al guardar cliente.');
-          }
+          const row = {
+            nombre: (this.clienteForm.nombre||'').trim(),
+            email: (this.clienteForm.email||'').trim() || null,
+            telefono: (this.clienteForm.telefono||'').trim() || null,
+            user_id: this.userId
+          };
+          let error;
+          if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id));
+          else                      ({ error } = await sb.from('clientes').insert(row));
+          if (error) alert(error.message);
+          this.modal.cliente=false; await this.loadClientes(); this.recalc(); this.buildReport();
         },
         async delCliente(id){
           if(!confirm('¿Eliminar cliente?')) return;
@@ -606,23 +566,16 @@
           );
         },
 
-        // ===== Vehículos =====
+        // -------- VEHÍCULOS --------
         async loadVehiculos(){
-          try{
-            const { data, error } = await sb
-              .from('vehiculos')
-              .select('id,cliente_id,marca,modelo,dominio,clientes(nombre)');
-            if (error) throw error;
-            this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
-          }catch(e){
-            console.error('loadVehiculos', e);
-            this.uiErr.vehiculos = e?.message || 'No se pudieron cargar los vehículos.';
-            this.vehiculos = [];
-          }
-        },
-        vehiculosDeCliente(){
-          const cid = this.citaForm.cliente_id;
-          return this.vehiculos.filter(v => String(v.cliente_id) === String(cid));
+          const { data, error } = await sb
+            .from('vehiculos')
+            .select('id,cliente_id,marca,modelo,dominio,creado_en,clientes(nombre)')
+            .order('id',{ascending:false});
+          if (error) { console.error(error); this.vehiculos=[]; return; }
+          this.vehiculos = (data||[]).map(v => ({
+            ...v, cliente_nombre: v.clientes?.nombre || ''
+          }));
         },
         openVehiculo(v){
           this.vehiculoForm = v
@@ -631,22 +584,17 @@
           this.modal.vehiculo = true;
         },
         async saveVehiculo(){
-          try{
-            const r = {
-              cliente_id: this.vehiculoForm.cliente_id || null,
-              marca:(this.vehiculoForm.marca||'').trim()||null,
-              modelo:(this.vehiculoForm.modelo||'').trim()||null,
-              dominio:(this.vehiculoForm.dominio||'').trim()||null
-            };
-            if(this.vehiculoForm.id)
-              await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id);
-            else
-              await sb.from('vehiculos').insert(r);
-            this.modal.vehiculo=false;
-            await this.loadVehiculos(); this.recalc(); this.buildReport();
-          }catch(e){
-            alert(e?.message || 'Error al guardar vehículo.');
-          }
+          const r = {
+            cliente_id: this.vehiculoForm.cliente_id || null,
+            marca: (this.vehiculoForm.marca||'').trim() || null,
+            modelo:(this.vehiculoForm.modelo||'').trim() || null,
+            dominio:(this.vehiculoForm.dominio||'').trim() || null
+          };
+          let error;
+          if(this.vehiculoForm.id) ({ error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id));
+          else                      ({ error } = await sb.from('vehiculos').insert(r));
+          if (error) alert(error.message);
+          this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc(); this.buildReport();
         },
         async delVehiculo(id){
           if(!confirm('¿Eliminar vehículo?')) return;
@@ -655,94 +603,74 @@
           await this.loadVehiculos(); this.recalc(); this.buildReport();
         },
 
-        // ===== Citas =====
+        // -------- CITAS (con vehiculo y servicios) --------
         async loadCitas(){
-          try{
-            const { data, error } = await sb
-              .from('citas')
-              .select('id,cliente_id,servicio,fecha,precio,estado,notas,clientes(nombre)')
-              .order('fecha',{ascending:false});
-            if (error) throw error;
-            this.citas = (data||[]).map(a => {
-              let vehiculo_desc = null;
-              const m = (a.notas||'').match(/Vehículo:\s(.+)/i);
-              if (m) vehiculo_desc = m[1];
-              return {...a, cliente_nombre: a.clientes?.nombre || '', vehiculo_desc};
-            });
-          }catch(e){
-            console.error('loadCitas', e);
-            this.uiErr.citas = e?.message || 'No se pudieron cargar las citas.';
-            this.citas = [];
-          }
+          const { data, error } = await sb
+            .from('citas')
+            .select('id,cliente_id,vehiculo_id,servicio,fecha,precio,estado,notas,clientes(nombre),vehiculos(marca,modelo,dominio)')
+            .order('fecha',{ascending:false});
+          if (error) { console.error(error); this.citas=[]; return; }
+          this.citas = (data||[]).map(a => ({
+            ...a,
+            cliente_nombre: a.clientes?.nombre || '',
+            vehiculo_str: a.vehiculos ? `${a.vehiculos.marca||''} ${a.vehiculos.modelo||''}${a.vehiculos.dominio? ' ('+a.vehiculos.dominio+')':''}`.trim() : ''
+          }));
         },
-        onClienteChange(){ this.citaForm.vehiculo_id = ''; },
         openCita(a){
-          this.citaForm = a ? {
-            id:a.id, cliente_id:a.cliente_id, vehiculo_id:'',
-            servicio:a.servicio||'',
-            selectedServices:(a.servicio ? a.servicio.split('+').map(n=>({name:n.trim(), price:0})) : []),
-            fecha:(a.fecha||'').slice(0,16),
-            precio:a.precio||'',
-            total:+(a.precio||0),
-            estado:a.estado||'pendiente',
-            notas:a.notas||''
-          } : {
-            id:null, cliente_id:'', vehiculo_id:'', servicio:'',
-            selectedServices:[], fecha:new Date().toISOString().slice(0,16),
-            precio:'', total:0, estado:'pendiente', notas:''
-          };
+          this.picker = { categoria:'', item:'' };
+          if (a){
+            // split nombres a chips (best-effort)
+            const chips = (a.servicio||'').split('+').map(s=>s.trim()).filter(Boolean).map(n=>({name:n, price:0}));
+            this.citaForm = {
+              id:a.id, cliente_id:a.cliente_id||'', vehiculo_id:a.vehiculo_id||'',
+              fecha:(a.fecha||'').slice(0,16), estado:a.estado||'pendiente', notas:a.notas||'',
+              servicios: chips
+            };
+            this.onClienteChange();
+          } else {
+            this.citaForm = {
+              id:null, cliente_id:'', vehiculo_id:'', fecha:new Date().toISOString().slice(0,16),
+              estado:'pendiente', notas:'', servicios:[]
+            };
+            this.vehiculosCliente = [];
+          }
           this.modal.cita = true;
         },
-        toggleService(item){
-          const key = item.name + (item.detalle ? ' — ' + item.detalle : '');
-          const i = this.citaForm.selectedServices.findIndex(s=>s.name===key || s.name===item.name);
-          if (i>=0) this.citaForm.selectedServices.splice(i,1);
-          else this.citaForm.selectedServices.push({ name: key || item.name, price: this.num(item.price) });
-          this.updateTotal();
+        pickerOptions(){
+          const c = this.picker.categoria;
+          if (!c) return [];
+          return servicesCatalog[c] || [];
         },
-        updateTotal(){
-          const total = this.citaForm.selectedServices.reduce((acc,s)=>acc + this.num(s.price), 0);
-          this.citaForm.total = total;
-          this.citaForm.precio = total;
+        addServicio(){
+          const c = this.picker.categoria, name = this.picker.item;
+          if(!c || !name) return;
+          const opt = (servicesCatalog[c]||[]).find(x=>x.name===name);
+          if(!opt) return;
+          this.citaForm.servicios.push({ name: opt.name, price: +opt.price||0 });
+          this.picker.item='';
         },
+        removeServicio(i){ this.citaForm.servicios.splice(i,1); },
+        totalServicios(){ return this.citaForm.servicios.reduce((a,b)=>a+(+b.price||0),0); },
         async saveCita(){
-          try{
-            const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
+          const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
+          const nombres = this.citaForm.servicios.map(s=>s.name).join(' + ');
+          const total = this.totalServicios();
 
-            const servicioStr = this.citaForm.selectedServices.map(s=>s.name).join(' + ') || (this.citaForm.servicio||'');
-            let notas = (this.citaForm.notas||'').trim();
-            const vehSel = this.vehiculos.find(v => String(v.id)===String(this.citaForm.vehiculo_id));
-            if (vehSel){
-              const vdesc = this.vehiculoLabel(vehSel);
-              notas = notas.replace(/(^|\n)Vehículo: .+(\n|$)/i,'$1');
-              notas = (notas? (notas+'\n') : '') + `Vehículo: ${vdesc}`;
-            }
-
-            // Validación mínima: cliente requerido para poder registrar cita
-            if (!this.citaForm.cliente_id) {
-              alert('Elegí un cliente para la cita.'); return;
-            }
-
-            const row = {
-              cliente_id: this.citaForm.cliente_id || null,
-              servicio:   servicioStr || null,
-              fecha:      fechaISO ? fechaISO.toISOString() : null,
-              precio:     +this.citaForm.precio || 0,
-              estado:     this.citaForm.estado,
-              notas:      notas || null,
-              user_id:    this.userId
-            };
-
-            if (this.citaForm.id)
-              await sb.from('citas').update(row).eq('id', this.citaForm.id);
-            else
-              await sb.from('citas').insert(row);
-
-            this.modal.cita=false; 
-            await this.loadCitas(); this.recalc(); this.buildReport();
-          }catch(e){
-            alert(e?.message || 'Error al guardar cita.');
-          }
+          const row = {
+            cliente_id: this.citaForm.cliente_id || null,
+            vehiculo_id: this.citaForm.vehiculo_id || null,
+            servicio:   nombres || null,
+            fecha:      fechaISO ? fechaISO.toISOString() : null,
+            precio:     +total || 0,
+            estado:     this.citaForm.estado,
+            notas:      (this.citaForm.notas||'').trim() || null,
+            user_id:    this.userId
+          };
+          let error;
+          if (this.citaForm.id) ({ error } = await sb.from('citas').update(row).eq('id', this.citaForm.id));
+          else                  ({ error } = await sb.from('citas').insert(row));
+          if (error) { alert(error.message); return; }
+          this.modal.cita=false; await this.loadCitas(); this.recalc(); this.buildReport();
         },
         async delCita(id){
           if(!confirm('¿Eliminar cita?')) return;
@@ -763,8 +691,15 @@
           const t = new Date().toISOString().slice(0,10);
           return this.citas.filter(x => (x.fecha||'').slice(0,10) === t);
         },
+        onClienteChange(){
+          const cid = this.citaForm.cliente_id;
+          this.vehiculosCliente = this.vehiculos.filter(v => v.cliente_id === cid);
+          if (!this.vehiculosCliente.some(v => v.id === this.citaForm.vehiculo_id)) {
+            this.citaForm.vehiculo_id = '';
+          }
+        },
 
-        // ===== KPIs / Reporte =====
+        // KPIs
         recalc(){
           this.stats.clientes  = this.clientes.length;
           this.stats.vehiculos = this.vehiculos.length;
@@ -773,6 +708,8 @@
           this.stats.ingresosHoy= hoy.filter(x => x.estado==='completado')
                                      .reduce((a,b)=>a+(+b.precio||0),0);
         },
+
+        // ===== Reporte =====
         buildReport(){
           const totIng = this.citas
             .filter(c => (c.estado||'')==='completado')
@@ -787,9 +724,8 @@
           }
           const bySrvMap = {};
           this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
-            const parts = (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean);
-            parts.forEach(name=>{
-              bySrvMap[name]=(bySrvMap[name]||0)+(+c.precio||0)/(parts.length||1);
+            (c.servicio||'').split('+').map(x=>x.trim()).filter(Boolean).forEach(n=>{
+              bySrvMap[n]=(bySrvMap[n]||0)+(+c.precio||0)/((c.servicio||'').split('+').length||1);
             });
           });
           const labelsSrv = Object.keys(bySrvMap);
@@ -799,7 +735,7 @@
           if (ctxS) {
             this._charts.servicios = new Chart(ctxS, {
               type:'pie',
-              data:{ labels:labelsSrv, datasets:[{ data:dataSrv, backgroundColor:['#0a8d4b','#059669','#10b981','#34d399','#16a34a','#22c55e','#14b8a6'] }]},
+              data:{ labels:labelsSrv, datasets:[{ data:dataSrv, backgroundColor:['#0a8d4b','#059669','#10b981','#34d399','#16a34a','#22c55e'] }]},
               options:{ plugins:{ legend:{ position:'bottom' } } }
             });
           }
