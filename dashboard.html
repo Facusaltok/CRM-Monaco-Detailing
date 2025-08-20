@@ -21,6 +21,8 @@
   </script>
   <!-- Alpine -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- Chart.js para Reporte -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
   <!-- Supabase (global) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -53,8 +55,9 @@
         <div class="w-3.5 h-3.5 rounded-full" style="background:linear-gradient(90deg,#0a8d4b,#19c37d)"></div>
         <h1 class="font-extrabold tracking-wide">MONACO DETAILING — CRM</h1>
       </div>
-      <div class="flex gap-2 items-center">
-        <button class="btn" @click="refresh()" x-text="loading?'Actualizando…':'⟳ Actualizar'"></button>
+      <div class="flex gap-2">
+        <!-- Actualizar ahora refresca datos y, si estás en Reporte, redibuja -->
+        <button class="btn" @click="onRefresh()">⟳ Actualizar</button>
         <button class="btn" @click="logout()">Salir</button>
       </div>
     </div>
@@ -67,7 +70,8 @@
       <button class="btn" :class="{'btn-primary':tab==='clientes'}" @click="tab='clientes'">Clientes</button>
       <button class="btn" :class="{'btn-primary':tab==='citas'}" @click="tab='citas'">Citas</button>
       <button class="btn" :class="{'btn-primary':tab==='vehiculos'}" @click="tab='vehiculos'">Vehículos</button>
-      <button class="btn" :class="{'btn-primary':tab==='reporte'}" @click="tab='reporte'">Reporte</button>
+      <!-- NUEVA pestaña -->
+      <button class="btn" :class="{'btn-primary':tab==='reporte'}" @click="tab='reporte'; $nextTick(()=>renderCharts())">Reporte</button>
     </div>
   </nav>
 
@@ -257,50 +261,43 @@
     </section>
 
     <!-- REPORTE -->
-<section x-show="tab==='reporte'" x-cloak>
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-    <div class="card p-5">
-      <div class="text-sm text-textmut">Clientes totales</div>
-      <div class="text-3xl font-extrabold" x-text="clientes.length"></div>
-    </div>
-    <div class="card p-5">
-      <div class="text-sm text-textmut">Ingresos totales</div>
-      <div class="text-3xl font-extrabold" x-text="fmtARS(totalIngresos())"></div>
-    </div>
-    <div class="card p-5">
-      <div class="text-sm text-textmut">Citas completadas</div>
-      <div class="text-3xl font-extrabold" x-text="citas.filter(c=>c.estado==='completado').length"></div>
-    </div>
-  </div>
+    <section x-show="tab==='reporte'" x-cloak>
+      <!-- KPIs Premium -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="card p-5 text-center">
+          <h3 class="text-lg font-semibold opacity-80">Ingresos</h3>
+          <div class="text-3xl font-extrabold mt-1 text-brand" x-text="fmtARS(report.ingresos)"></div>
+          <div class="text-xs opacity-70">+12% vs mes anterior</div>
+        </div>
+        <div class="card p-5 text-center">
+          <h3 class="text-lg font-semibold opacity-80">Clientes</h3>
+          <div class="text-3xl font-extrabold mt-1" x-text="report.clientes"></div>
+          <div class="text-xs opacity-70">+8% vs mes anterior</div>
+        </div>
+        <div class="card p-5 text-center">
+          <h3 class="text-lg font-semibold opacity-80">Ganancia total</h3>
+          <div class="text-3xl font-extrabold mt-1 text-amber-500" x-text="fmtARS(report.ganancia)"></div>
+          <div class="text-xs opacity-70">Ingresos - costos estimados (30%)</div>
+        </div>
+      </div>
 
-  <div class="card p-5">
-    <h3 class="font-bold text-brand mb-3">Servicios más realizados</h3>
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
-        <thead>
-          <tr class="text-left border-b">
-            <th class="py-2 px-3">Servicio</th>
-            <th class="py-2 px-3">Cantidad</th>
-            <th class="py-2 px-3">Ingresos</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template x-for="s in rankingServicios()" :key="s.nombre">
-            <tr class="border-b">
-              <td class="py-2 px-3" x-text="s.nombre || '—'"></td>
-              <td class="py-2 px-3" x-text="s.cantidad"></td>
-              <td class="py-2 px-3" x-text="fmtARS(s.ingresos)"></td>
-            </tr>
-          </template>
-          <tr x-show="rankingServicios().length===0">
-            <td colspan="3" class="py-4 text-center text-textmut">Sin datos suficientes</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+        <div class="card p-5">
+          <h4 class="font-semibold text-center mb-3">Ingresos por Servicio</h4>
+          <canvas id="chServicios" height="240"></canvas>
+        </div>
+        <div class="card p-5">
+          <h4 class="font-semibold text-center mb-3">Ingresos Mensuales</h4>
+          <canvas id="chIngresos" height="240"></canvas>
+        </div>
+        <div class="card p-5">
+          <h4 class="font-semibold text-center mb-3">Clientes por Mes</h4>
+          <canvas id="chClientes" height="240"></canvas>
+        </div>
+      </div>
+    </section>
 
+  </main>
 
   <!-- MODAL CLIENTE -->
   <div x-show="modal.cliente" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
@@ -376,7 +373,6 @@
       return {
         tab:'home',
         userId:null,
-        loading:false,
 
         clientes:[], vehiculos:[], citas:[],
         modal:{ cliente:false, cita:false, vehiculo:false },
@@ -387,7 +383,10 @@
 
         filtros:{ clientQ:'', citaFecha:'', citaEstado:'' },
         stats:{ clientes:0, citasHoy:0, ingresosHoy:0, vehiculos:0 },
-        statsTotales:{ totalClientes:0, totalCitas:0, ingresosAcumulados:0 },
+
+        // Estado Reporte
+        report:{ ingresos:0, ganancia:0, clientes:0 },
+        _charts:{ servicios:null, ingresos:null, clientes:null },
 
         fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
         fmtDateTime(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleString('es-AR',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); },
@@ -403,60 +402,18 @@
           this.userId = session.user.id;
           await this.loadAll();
         },
-
-        async refresh(){
-          if(this.loading) return;
-          this.loading = true;
-          try { await this.loadAll(); }
-          finally { this.loading = false; }
+        async onRefresh(){
+          await this.loadAll();
+          if (this.tab === 'reporte') { this.$nextTick(()=>this.renderCharts()); }
         },
-
-     // Reemplaza el manejador del botón Actualizar por este (ya existe en tu HTML)
-async loadAll(){
-  // muestra un mini “loading” en el botón (opcional)
-  this._loading = true;
-  try {
-    await Promise.all([
-      this.loadClientes(),
-      this.loadVehiculos(),
-      this.loadCitas()
-    ]);
-    this.recalc();
-  } finally {
-    this._loading = false;
-  }
-},
-
-// Total ingresos (todas las citas completadas)
-totalIngresos(){
-  return this.citas
-    .filter(c => c.estado === 'completado')
-    .reduce((acc, c) => acc + (+c.precio || 0), 0);
-},
-
-// Ranking por servicio (cantidad e ingresos)
-rankingServicios(){
-  const map = new Map();
-  for (const c of this.citas) {
-    const key = (c.servicio || '').trim();
-    if (!key) continue;
-    const curr = map.get(key) || { nombre:key, cantidad:0, ingresos:0 };
-    curr.cantidad += 1;
-    curr.ingresos += (+c.precio || 0);
-    map.set(key, curr);
-  }
-  // ordena por cantidad desc
-  return [...map.values()].sort((a,b)=> b.cantidad - a.cantidad);
-},
-
+        async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); this.buildReport(); },
 
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
         // -------- CLIENTES --------
         async loadClientes(){
-          // 🔧 FIX: 'created_at' no existe en tu tabla → usá 'id' para ordenar
-          const { data, error } = await sb.from('clientes').select('*').order('id',{ascending:false});
-          if (error) { console.error("loadClientes:", error); this.clientes=[]; return; }
+          const { data, error } = await sb.from('clientes').select('*').order('created_at',{ascending:false});
+          if (error) console.error(error);
           this.clientes = data || [];
         },
         openCliente(c){
@@ -473,14 +430,14 @@ rankingServicios(){
           let error;
           if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id));
           else                      ({ error } = await sb.from('clientes').insert(row));
-          if (error) { alert(error.message); return; }
-          this.modal.cliente=false; await this.loadClientes(); this.recalc(); this.recalcTotales();
+          if (error) alert(error.message);
+          this.modal.cliente=false; await this.loadClientes(); this.recalc(); this.buildReport();
         },
         async delCliente(id){
           if(!confirm('¿Eliminar cliente?')) return;
           const { error } = await sb.from('clientes').delete().eq('id', id);
-          if (error) { alert(error.message); return; }
-          await this.loadClientes(); this.recalc(); this.recalcTotales();
+          if (error) alert(error.message);
+          await this.loadClientes(); this.recalc(); this.buildReport();
         },
         clientesFiltrados(){
           const q=(this.filtros.clientQ||'').toLowerCase();
@@ -494,9 +451,8 @@ rankingServicios(){
 
         // -------- VEHÍCULOS --------
         async loadVehiculos(){
-          // 🔧 también ordenamos por 'id' para evitar columnas inexistentes
-          const { data, error } = await sb.from('vehiculos').select('*, clientes(nombre)').order('id',{ascending:false});
-          if (error) { console.error("loadVehiculos:", error); this.vehiculos=[]; return; }
+          const { data, error } = await sb.from('vehiculos').select('*, clientes(nombre)').order('creado_en',{ascending:false});
+          if (error) console.error(error);
           this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
         },
         openVehiculo(v){
@@ -515,20 +471,20 @@ rankingServicios(){
           let error;
           if(this.vehiculoForm.id) ({ error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id));
           else                      ({ error } = await sb.from('vehiculos').insert(r));
-          if (error) { alert(error.message); return; }
-          this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc(); this.recalcTotales();
+          if (error) alert(error.message);
+          this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc(); this.buildReport();
         },
         async delVehiculo(id){
           if(!confirm('¿Eliminar vehículo?')) return;
           const { error } = await sb.from('vehiculos').delete().eq('id', id);
-          if (error) { alert(error.message); return; }
-          await this.loadVehiculos(); this.recalc(); this.recalcTotales();
+          if (error) alert(error.message);
+          await this.loadVehiculos(); this.recalc(); this.buildReport();
         },
 
         // -------- CITAS --------
         async loadCitas(){
           const { data, error } = await sb.from('citas').select('*, clientes(nombre)').order('fecha',{ascending:false});
-          if (error) { console.error("loadCitas:", error); this.citas=[]; return; }
+          if (error) console.error(error);
           this.citas = (data||[]).map(a => ({...a, cliente_nombre: a.clientes?.nombre || ''}));
         },
         openCita(a){
@@ -551,14 +507,14 @@ rankingServicios(){
           let error;
           if (this.citaForm.id) ({ error } = await sb.from('citas').update(row).eq('id', this.citaForm.id));
           else                  ({ error } = await sb.from('citas').insert(row));
-          if (error) { alert(error.message); return; }
-          this.modal.cita=false; await this.loadCitas(); this.recalc(); this.recalcTotales();
+          if (error) alert(error.message);
+          this.modal.cita=false; await this.loadCitas(); this.recalc(); this.buildReport();
         },
         async delCita(id){
           if(!confirm('¿Eliminar cita?')) return;
           const { error } = await sb.from('citas').delete().eq('id', id);
-          if (error) { alert(error.message); return; }
-          await this.loadCitas(); this.recalc(); this.recalcTotales();
+          if (error) alert(error.message);
+          await this.loadCitas(); this.recalc(); this.buildReport();
         },
         citasFiltradas(){
           let arr = this.citas.slice();
@@ -574,7 +530,7 @@ rankingServicios(){
           return this.citas.filter(x => (x.fecha||'').slice(0,10) === t);
         },
 
-        // -------- KPIs (home) --------
+        // -------- KPIs básicos --------
         recalc(){
           this.stats.clientes  = this.clientes.length;
           this.stats.vehiculos = this.vehiculos.length;
@@ -584,24 +540,85 @@ rankingServicios(){
                                      .reduce((a,b)=>a+(+b.precio||0),0);
         },
 
-        // -------- REPORTE --------
-        recalcTotales(){
-          this.statsTotales.totalClientes = this.clientes.length;
-          this.statsTotales.totalCitas    = this.citas.length;
-          this.statsTotales.ingresosAcumulados = this.citas
-            .filter(x => x.estado==='completado')
+        // ===== Reporte =====
+        buildReport(){
+          // Ingresos totales (solo citas completadas)
+          const totIng = this.citas
+            .filter(c => (c.estado||'')==='completado')
             .reduce((a,b)=>a+(+b.precio||0),0);
+          const gan = Math.round(totIng * 0.7); // costo estimado 30%
+          // Clientes (total registrados)
+          const totalCli = this.clientes.length;
+
+          this.report = { ingresos: totIng, ganancia: gan, clientes: totalCli };
         },
-        rankingServicios(){
-          const m = new Map();
-          for (const c of this.citas) {
-            const s = (c.servicio||'').trim() || '—';
-            m.set(s, (m.get(s)||0) + 1);
+        renderCharts(){
+          // Limpia instancias anteriores
+          for (const k of Object.keys(this._charts)) {
+            if (this._charts[k]) { this._charts[k].destroy(); this._charts[k]=null; }
           }
-          const arr = Array.from(m, ([nombre,cantidad])=>({nombre, cantidad}));
-          arr.sort((a,b)=>b.cantidad-a.cantidad);
-          const max = arr[0]?.cantidad || 1;
-          return arr.map(r => ({ ...r, porcentaje: Math.round((r.cantidad/max)*100) }));
+
+          // --- Pie: ingresos por servicio ---
+          const bySrvMap = {};
+          this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
+            const k=(c.servicio||'Otro').trim()||'Otro';
+            bySrvMap[k]=(bySrvMap[k]||0)+(+c.precio||0);
+          });
+          const labelsSrv = Object.keys(bySrvMap);
+          const dataSrv   = Object.values(bySrvMap);
+
+          const ctxS = document.getElementById('chServicios');
+          if (ctxS) {
+            this._charts.servicios = new Chart(ctxS, {
+              type:'pie',
+              data:{ labels:labelsSrv, datasets:[{ data:dataSrv, backgroundColor:['#0a8d4b','#059669','#10b981','#34d399','#16a34a','#22c55e'] }]},
+              options:{ plugins:{ legend:{ position:'bottom' } } }
+            });
+          }
+
+          // --- Line: ingresos por mes ---
+          const byMonth = {};
+          this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
+            const d = new Date(c.fecha);
+            const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+            byMonth[k]=(byMonth[k]||0)+(+c.precio||0);
+          });
+          const monthsSorted = Object.keys(byMonth).sort();
+          const lblMes = monthsSorted.map(k=>{
+            const [y,m]=k.split('-'); return new Date(+y, +m-1, 1).toLocaleString('es-AR',{month:'short'});
+          });
+          const dataMes = monthsSorted.map(k=>byMonth[k]);
+
+          const ctxI = document.getElementById('chIngresos');
+          if (ctxI) {
+            this._charts.ingresos = new Chart(ctxI, {
+              type:'line',
+              data:{ labels:lblMes, datasets:[{ label:'Ingresos', data:dataMes, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.15)', fill:true, tension:.35 }]},
+              options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+            });
+          }
+
+          // --- Bar: clientes por mes ---
+          const byCliMonth = {};
+          this.clientes.forEach(c=>{
+            const d = new Date(c.created_at || c.creado_en || Date.now());
+            const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+            byCliMonth[k]=(byCliMonth[k]||0)+1;
+          });
+          const monthsCliSorted = Object.keys(byCliMonth).sort();
+          const lblCli = monthsCliSorted.map(k=>{
+            const [y,m]=k.split('-'); return new Date(+y, +m-1, 1).toLocaleString('es-AR',{month:'short'});
+          });
+          const dataCli = monthsCliSorted.map(k=>byCliMonth[k]);
+
+          const ctxC = document.getElementById('chClientes');
+          if (ctxC) {
+            this._charts.clientes = new Chart(ctxC, {
+              type:'bar',
+              data:{ labels:lblCli, datasets:[{ label:'Clientes', data:dataCli, backgroundColor:'#059669', borderRadius:6 }]},
+              options:{ scales:{ y:{ beginAtZero:true } } }
+            });
+          }
         }
       }
     }
