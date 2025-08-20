@@ -144,6 +144,11 @@
           </div>
         </div>
 
+        <!-- Aviso si por RLS no regresan filas (no rompe nada) -->
+        <div x-show="clientes.length===0" class="mt-3 text-sm text-amber-600">
+          No hay clientes visibles en este usuario.
+        </div>
+
         <div class="overflow-x-auto mt-4">
           <table class="min-w-full text-sm">
             <thead>
@@ -305,7 +310,7 @@
 
   </main>
 
-  <!-- MODALES (los mismos que ya tenías) -->
+  <!-- MODALES -->
   <!-- MODAL CLIENTE -->
   <div x-show="modal.cliente" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-lg p-5">
@@ -423,15 +428,28 @@
 
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // -------- CLIENTES (robusto) --------
+        // -------- CLIENTES (doble intento) --------
         async loadClientes(){
-          const { data, error } = await sb
+          // 1) intento amplio
+          let { data, error } = await sb
             .from('clientes')
-            .select('id,nombre,email,telefono,created_at,creado_en,user_id')
-            .order('id', { ascending:false });
-          if (error) { console.error('loadClientes()', error); this.clientes = []; return; }
+            .select('id,nombre,email,telefono,created_at,creado_en,user_id');
+          if (error) {
+            console.warn('loadClientes() intento1', error);
+            data = null;
+          }
+
+          // 2) si vino null o vacío, reintento minimal para evitar choques
+          if (!Array.isArray(data) || data.length === 0) {
+            const r2 = await sb.from('clientes').select('id,nombre,email,telefono');
+            if (r2.error) console.warn('loadClientes() intento2', r2.error);
+            this.clientes = r2.data || [];
+            return;
+          }
+
           this.clientes = data || [];
         },
+
         openCliente(c){
           this.clienteForm = c ? JSON.parse(JSON.stringify(c)) : { id:null, nombre:'', email:'', telefono:'' };
           this.modal.cliente = true;
@@ -465,20 +483,15 @@
           );
         },
 
-        // -------- VEHÍCULOS (sin depender de join y sin 'creado_en') --------
+        // -------- VEHÍCULOS (sin join obligatorio) --------
         async loadVehiculos(){
           const { data, error } = await sb
             .from('vehiculos')
             .select('*')
             .order('id', { ascending:false });
-          if (error) { console.error('loadVehiculos()', error); this.vehiculos=[]; return; }
-
-          // Armo mapa id->nombre desde clientes ya cargados
+          if (error) { console.warn('loadVehiculos()', error); this.vehiculos=[]; return; }
           const nameById = Object.fromEntries(this.clientes.map(c => [c.id, c.nombre || '']));
-          this.vehiculos = (data||[]).map(v => ({
-            ...v,
-            cliente_nombre: nameById[v.cliente_id] || '—'
-          }));
+          this.vehiculos = (data||[]).map(v => ({ ...v, cliente_nombre: nameById[v.cliente_id] || '—' }));
         },
         openVehiculo(v){
           this.vehiculoForm = v
@@ -508,12 +521,13 @@
 
         // -------- CITAS --------
         async loadCitas(){
-          // Si el join falla por relación no registrada, igual tendremos data (sin nombre)
-          const { data, error } = await sb.from('citas').select('*, clientes(nombre)').order('fecha',{ascending:false});
-          if (error) console.warn('loadCitas() (join puede fallar, continúo):', error);
+          const { data, error } = await sb
+            .from('citas')
+            .select('*, clientes(nombre)')
+            .order('fecha',{ascending:false});
+          if (error) console.warn('loadCitas()', error);
           const nameById = Object.fromEntries(this.clientes.map(c => [c.id, c.nombre || '']));
           const base = (data || []);
-          // Completo cliente_nombre incluso si el join vino null
           this.citas = base.map(a => ({
             ...a,
             cliente_nombre: a.clientes?.nombre || nameById[a.cliente_id] || '—'
@@ -562,7 +576,7 @@
           return this.citas.filter(x => (x.fecha||'').slice(0,10) === t);
         },
 
-        // KPIs básicos
+        // KPIs
         recalc(){
           this.stats.clientes  = this.clientes.length;
           this.stats.vehiculos = this.vehiculos.length;
