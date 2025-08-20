@@ -5,6 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Monaco Detailing CRM — Acceso</title>
   <meta name="theme-color" content="#0a8d4b" />
+
+  <!-- Supabase SDK GLOBAL (compatible iOS / sin módulos) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+  <script>
+    // Inicializa un ÚNICO cliente global
+    window.supabaseClient = window.supabase.createClient(
+      "https://nqokfvddbpjqrsfflntk.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xb2tmdmRkYnBqcXJzZmZsbnRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2NDE5OTgsImV4cCI6MjA3MTIxNzk5OH0.A5CzSNjHJ9y012vJjDunzYMTzoxGwu6RV88OmKYOUGo"
+    );
+  </script>
+
   <style>
     html, body { overscroll-behavior: none; }
     body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;color:#e5e7eb;font-family:system-ui,Segoe UI,Roboto,Arial}
@@ -22,15 +33,10 @@
     #newPassWrap{display:none;margin-top:.75rem}
   </style>
   <script>
+    // Limpia los tokens del hash para evitar scroll/rutas raras
     if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
       history.replaceState(null, document.title, location.pathname + location.search);
     }
-    // TEMP: podés comentar esto mientras testeás
-    // if ("serviceWorker" in navigator) {
-    //   addEventListener("load", async () => {
-    //     try { const reg = await navigator.serviceWorker.register("./sw.js"); reg.update(); } catch {}
-    //   });
-    // }
   </script>
 </head>
 <body>
@@ -60,8 +66,9 @@
     <div id="msg" class="msg"></div>
   </div>
 
-  <script type="module">
-    import { supabase } from "./supabaseClient.js";
+  <!-- SIN type="module" y SIN imports -->
+  <script>
+    const supabase = window.supabaseClient;
 
     const $ = (s) => document.querySelector(s);
     const msg = $("#msg");
@@ -70,15 +77,17 @@
     const newPassWrap = $("#newPassWrap");
     const newPassEl   = $("#newpass");
 
-    // Redirige si ya hay sesión
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) location.href = "./dashboard.html";
+    (async () => {
+      // Si ya hay sesión, entra al dashboard
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) { location.href = "./dashboard.html"; return; }
 
-    // Si viene de link de recovery/invite
-    const params = new URLSearchParams(location.hash.replace("#","?"));
-    if (params.get("type") === "recovery" || params.get("type") === "invite") {
-      newPassWrap.style.display = "block";
-    }
+      // Si vino de recovery/invite
+      const params = new URLSearchParams(location.hash.replace("#","?"));
+      if (params.get("type") === "recovery" || params.get("type") === "invite") {
+        newPassWrap.style.display = "block";
+      }
+    })();
 
     // Login
     $("#btnSignIn").addEventListener("click", async () => {
@@ -90,8 +99,8 @@
         if (error) throw error;
         location.href = "./dashboard.html";
       }catch(err){
-        console.error("Auth error:", err); // ← mira la consola del navegador
-        msg.textContent = err.message || "Error de red (CORS). Revisá configuración de Auth/CORS en Supabase.";
+        console.error("Auth error:", err);
+        msg.textContent = err?.message || "Error de red (CORS). Revisá Allowed CORS Origins en Supabase.";
         msg.classList.add("error");
       }
     });
@@ -108,7 +117,7 @@
         msg.textContent = "Revisá tu correo para cambiar la contraseña.";
       }catch(err){
         console.error("Reset error:", err);
-        msg.textContent = err.message || "Error de red (CORS).";
+        msg.textContent = err?.message || "Error de red (CORS).";
         msg.classList.add("error");
       }
     });
@@ -125,7 +134,7 @@
         setTimeout(()=> location.href="./dashboard.html", 600);
       }catch(err){
         console.error("Update pass error:", err);
-        msg.textContent = err.message || "Error de red (CORS).";
+        msg.textContent = err?.message || "Error de red (CORS).";
         msg.classList.add("error");
       }
     });
