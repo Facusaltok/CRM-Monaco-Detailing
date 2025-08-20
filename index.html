@@ -7,13 +7,13 @@
   <meta name="theme-color" content="#ffffff" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Ccircle cx='64' cy='64' r='64' fill='%230a8d4b'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' dominant-baseline='middle' font-size='62' fill='white' font-family='Arial' %3EM%3C/text%3E%3C/svg%3E">
 
-  <!-- Tailwind minimal para estilos -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Supabase (global) -->
+  <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
-    // Cliente global (usa tus credenciales)
+    // Inicializa el cliente (mismas credenciales que el dashboard)
     window.sb = supabase.createClient(
       "https://nqokfvddbpjqrsfflntk.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xb2tmdmRkYnBqcXJzZmZsbnRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2NDE5OTgsImV4cCI6MjA3MTIxNzk5OH0.A5CzSNjHJ9y012vJjDunzYMTzoxGwu6RV88OmKYOUGo"
@@ -22,35 +22,51 @@
 
   <style>
     body{background:#f6f8fb}
-    .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 12px 24px rgba(20,30,40,.06)}
-    .btn{border:1px solid #d9e1ea;background:#fff;color:#0b1220;font-weight:700;border-radius:12px;padding:.6rem .9rem;box-shadow:0 6px 0 #e3e8ef,0 14px 24px rgba(10,20,30,.08),inset 0 1px 0 rgba(255,255,255,.7);transition:all .15s}
-    .btn-primary{background:linear-gradient(90deg,#0a8d4b,#19c37d);color:#062015;border-color:#16a86a}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 14px 30px rgba(20,30,40,.08)}
+    .btn{border:1px solid #d9e1ea;background:#fff;color:#0b1220;font-weight:700;border-radius:12px;padding:.75rem 1rem;box-shadow:0 6px 0 #e3e8ef,0 14px 24px rgba(10,20,30,.08),inset 0 1px 0 rgba(255,255,255,.7);transition:all .15s}
     .btn:hover{background:#f7fafc}
-    .input{border:1px solid #d1d5db;border-radius:.7rem;padding:.65rem .8rem;width:100%}
+    .btn-primary{background:linear-gradient(90deg,#0a8d4b,#19c37d);color:#062015;border-color:#16a86a}
+    .input{border:1px solid #d1d5db;border-radius:.8rem;padding:.8rem .9rem;width:100%;background:#fff}
     .input:focus{outline:none;border-color:#19c37d;box-shadow:0 0 0 3px rgba(25,195,125,.2)}
+    .brand-dot{width:12px;height:12px;border-radius:9999px;background:linear-gradient(90deg,#0a8d4b,#19c37d)}
   </style>
 
   <script>
-    // Limpia el hash de Supabase (tokens) para evitar scroll raro
+    // Limpia el hash de Supabase (tokens) para evitar salto de scroll
     if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
       history.replaceState(null, document.title, location.pathname + location.search);
     }
   </script>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
-  <div class="card w-full max-w-md p-6">
-    <h1 class="text-2xl font-extrabold text-center mb-6">Monaco Detailing CRM</h1>
 
-    <label class="block text-sm mb-1">Email</label>
-    <input id="email" type="email" class="input mb-3" placeholder="tu@correo.com" autocomplete="username email">
+  <div class="w-full max-w-md">
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <div class="mx-auto brand-dot"></div>
+      <h1 class="mt-2 text-2xl font-extrabold tracking-tight">MONACO DETAILING — CRM</h1>
+      <p class="text-sm text-slate-500">Accedé para gestionar clientes, vehículos y citas</p>
+    </div>
 
-    <label class="block text-sm mb-1">Contraseña</label>
-    <input id="pass" type="password" class="input mb-4" placeholder="••••••••" autocomplete="current-password">
+    <!-- Card -->
+    <div class="card p-6">
+      <label class="block text-sm mb-1">Email</label>
+      <input id="email" type="email" class="input mb-3" placeholder="tu@correo.com" autocomplete="username email">
 
-    <button id="btnSignIn" class="btn btn-primary w-full mb-2">Ingresar</button>
-    <button id="btnForgot" class="btn w-full">Olvidé mi contraseña</button>
+      <label class="block text-sm mb-1">Contraseña</label>
+      <div class="relative mb-4">
+        <input id="pass" type="password" class="input pr-24" placeholder="••••••••" autocomplete="current-password">
+        <button id="togglePass" class="absolute right-2 top-1/2 -translate-y-1/2 text-xs btn px-2 py-1">Mostrar</button>
+      </div>
 
-    <p id="msg" class="text-center text-sm mt-3"></p>
+      <button id="btnSignIn" class="btn btn-primary w-full mb-2">Ingresar</button>
+      <button id="btnForgot" class="btn w-full">Olvidé mi contraseña</button>
+
+      <p id="msg" class="text-center text-sm mt-3"></p>
+    </div>
+
+    <!-- Footer -->
+    <p class="text-center text-xs text-slate-500 mt-3">© <span id="yyyy"></span> Monaco Detailing</p>
   </div>
 
   <script>
@@ -58,16 +74,36 @@
     const $  = (s)=>document.querySelector(s);
     const msg = $("#msg");
 
+    // Año footer
+    $("#yyyy").textContent = new Date().getFullYear();
+
+    // Si ya hay sesión, mandamos al dashboard
     (async () => {
-      const { data:{ session } } = await sb.auth.getSession();
-      if (session) location.href = "./dashboard.html";
+      const { data:{ session }, error } = await sb.auth.getSession();
+      if (!error && session) location.href = "./dashboard.html";
     })();
 
+    // Mostrar/ocultar password
+    $("#togglePass").addEventListener("click", () => {
+      const p = $("#pass");
+      const isPw = p.type === "password";
+      p.type = isPw ? "text" : "password";
+      $("#togglePass").textContent = isPw ? "Ocultar" : "Mostrar";
+      p.focus();
+    });
+
+    // Sign In
     $("#btnSignIn").addEventListener("click", async () => {
       msg.textContent = "Ingresando…";
       msg.className = "text-center text-sm mt-3 text-slate-600";
       const email = $("#email").value.trim();
       const password = $("#pass").value;
+
+      if (!email || !password) {
+        msg.textContent = "Completá email y contraseña.";
+        msg.className = "text-center text-sm mt-3 text-red-600";
+        return;
+      }
 
       try{
         const { error } = await sb.auth.signInWithPassword({ email, password });
@@ -75,11 +111,17 @@
         location.href = "./dashboard.html";
       }catch(err){
         console.error(err);
-        msg.textContent = err.message || "Error de red (CORS).";
+        // Mensajes más claros
+        const friendly = ({
+          "Invalid login credentials": "Credenciales inválidas.",
+          "Email not confirmed": "Tu email no está confirmado.",
+        })[err?.message] || err?.message || "Error de red (CORS).";
+        msg.textContent = friendly;
         msg.className = "text-center text-sm mt-3 text-red-600";
       }
     });
 
+    // Forgot password
     $("#btnForgot").addEventListener("click", async () => {
       const email = $("#email").value.trim();
       if (!email) {
@@ -93,12 +135,18 @@
         const redirectTo = location.origin + "/index.html";
         const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
         if (error) throw error;
-        msg.textContent = "Revisá tu correo para cambiar la contraseña.";
+        msg.textContent = "Listo. Revisá tu correo para cambiar la contraseña.";
         msg.className = "text-center text-sm mt-3 text-emerald-600";
       }catch(err){
-        msg.textContent = err.message || "Error de red.";
+        console.error(err);
+        msg.textContent = err?.message || "Error de red.";
         msg.className = "text-center text-sm mt-3 text-red-600";
       }
+    });
+
+    // Enter para enviar
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") $("#btnSignIn").click();
     });
   </script>
 </body>
