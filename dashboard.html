@@ -19,12 +19,13 @@
       }
     }
   </script>
+
   <!-- Alpine -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <!-- Chart.js (Reportes) -->
+  <!-- Chart.js para Reporte -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
-  <!-- Supabase (usa tus credenciales estables) -->
+  <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     window.sb = supabase.createClient(
@@ -189,10 +190,10 @@
               </tr>
             </thead>
             <tbody>
-              <template x-for="v in vehiculos" :key="v.id">
+              <template x-for="v in vehiculosRender()" :key="v.id">
                 <tr class="border-b hover:bg-slate-50">
                   <td class="py-2 px-3" x-text="v.cliente_nombre || '—'"></td>
-                  <td class="py-2 px-3" x-text="v.marca + ' ' + (v.modelo || '')"></td>
+                  <td class="py-2 px-3" x-text="(v.marca||'') + ' ' + (v.modelo||'')"></td>
                   <td class="py-2 px-3" x-text="v.dominio || '—'"></td>
                   <td class="py-2 px-3">
                     <button class="btn" @click="openVehiculo(v)">Editar</button>
@@ -238,7 +239,7 @@
               </tr>
             </thead>
             <tbody>
-              <template x-for="a in citasFiltradas()" :key="a.id">
+              <template x-for="a in citasRender()" :key="a.id">
                 <tr class="border-b hover:bg-slate-50">
                   <td class="py-2 px-3" x-text="a.cliente_nombre"></td>
                   <td class="py-2 px-3" x-text="a.servicio"></td>
@@ -313,7 +314,7 @@
     </div>
   </div>
 
-  <!-- MODAL CITA (con vehículo y servicios múltiples) -->
+  <!-- MODAL CITA -->
   <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-2xl p-5">
       <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
@@ -401,7 +402,7 @@
               <label class="flex items-start gap-2 mb-2 cursor-pointer">
                 <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
                 <div>
-                  <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
+                  <div class="font-medium" x-text="item.name + ' — ' + (typeof item.price==='number' ? fmtARS(item.price) : item.price)"></div>
                   <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
                 </div>
               </label>
@@ -480,16 +481,15 @@
         clienteForm:{ id:null, nombre:'', email:'', telefono:'' },
         vehiculoForm:{ id:null, cliente_id:'', marca:'', modelo:'', dominio:'' },
 
-        // ---- CITA Form (extendido) ----
         citaForm:{
           id:null,
           cliente_id:'',
           vehiculo_id:'',
-          servicio:'',            // string a guardar (nombres concatenados)
-          selectedServices:[],    // [{name,price}]
+          servicio:'',
+          selectedServices:[],
           fecha:'',
           precio:'',
-          total:0,                // calculado
+          total:0,
           estado:'pendiente',
           notas:''
         },
@@ -500,7 +500,7 @@
         report:{ ingresos:0, ganancia:0, clientes:0 },
         _charts:{ servicios:null, ingresos:null, clientes:null },
 
-        // ===== Catálogos =====
+        // Catálogos
         serviceCatalog:{
           autos: [
             { name: "Interior (Hatch / Sedan)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:150000, time:"1 día" },
@@ -537,7 +537,7 @@
           }
         ],
 
-        // ===== Helpers =====
+        // Helpers
         num(v){ return typeof v==='number' ? v : (parseInt(String(v).replace(/[^0-9]/g,''))||0) },
         fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
         fmtDateTime(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleString('es-AR',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); },
@@ -548,7 +548,7 @@
         }},
         vehiculoLabel(v){ return `${v.marca||''} ${v.modelo||''} ${v.dominio?('('+v.dominio+')'):''}`.trim() || 'Vehículo'; },
 
-        // ===== Init / Refresh =====
+        // Init / Refresh
         async init(){
           const { data:{ session } } = await sb.auth.getSession();
           if(!session){ location.href='./index.html'; return; }
@@ -559,17 +559,19 @@
           await this.loadAll();
           if (this.tab === 'reporte') this.$nextTick(()=>this.renderCharts());
         },
-        async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); this.buildReport(); },
+        async loadAll(){
+          await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]);
+          this.recalc(); this.buildReport();
+        },
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // ===== Clientes (consulta robusta) =====
+        // CLIENTES (robusto por id)
         async loadClientes(){
-          // Ordeno por 'id' (siempre existe) para evitar fallos si created_at varía
           const { data, error } = await sb
             .from('clientes')
-            .select('id,nombre,email,telefono,created_at,user_id')
-            .order('id',{ascending:false});
-          if (error) { console.error('loadClientes()', error); this.clientes=[]; return; }
+            .select('id,nombre,email,telefono')     // columnas mínimas seguras
+            .order('id', { ascending:false });      // evita columnas inexistentes
+          if (error){ console.error('loadClientes', error); this.clientes=[]; return; }
           this.clientes = data || [];
         },
         openCliente(c){
@@ -586,7 +588,7 @@
           let error;
           if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id));
           else                      ({ error } = await sb.from('clientes').insert(row));
-          if (error) alert(error.message);
+          if (error) { alert(error.message); return; }
           this.modal.cliente=false; await this.loadClientes(); this.recalc(); this.buildReport();
         },
         async delCliente(id){
@@ -605,14 +607,18 @@
           );
         },
 
-        // ===== Vehículos =====
+        // VEHÍCULOS (sin join; se mapea con diccionario)
         async loadVehiculos(){
           const { data, error } = await sb
             .from('vehiculos')
-            .select('*, clientes(nombre)')
+            .select('id,cliente_id,marca,modelo,dominio')
             .order('id',{ascending:false});
-          if (error) console.error('loadVehiculos()', error);
-          this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
+          if (error){ console.error('loadVehiculos', error); this.vehiculos=[]; return; }
+          this.vehiculos = data || [];
+        },
+        vehiculosRender(){
+          const map = Object.fromEntries(this.clientes.map(c=>[String(c.id), c.nombre]));
+          return this.vehiculos.map(v => ({ ...v, cliente_nombre: map[String(v.cliente_id)] || '' }));
         },
         vehiculosDeCliente(){
           const cid = this.citaForm.cliente_id;
@@ -634,7 +640,7 @@
           let error;
           if(this.vehiculoForm.id) ({ error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id));
           else                      ({ error } = await sb.from('vehiculos').insert(r));
-          if (error) alert(error.message);
+          if (error) { alert(error.message); return; }
           this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc(); this.buildReport();
         },
         async delVehiculo(id){
@@ -644,49 +650,55 @@
           await this.loadVehiculos(); this.recalc(); this.buildReport();
         },
 
-        // ===== Citas =====
+        // CITAS (sin join; se mapea cliente + “vehículo:” desde notas)
         async loadCitas(){
           const { data, error } = await sb
             .from('citas')
-            .select('*, clientes(nombre)')
+            .select('id,cliente_id,servicio,fecha,precio,estado,notas')
             .order('fecha',{ascending:false});
-          if (error) console.error('loadCitas()', error);
-
-          // enriquecemos con descripción de vehículo si la guardamos en notas
-          this.citas = (data||[]).map(a => {
+          if (error){ console.error('loadCitas', error); this.citas=[]; return; }
+          this.citas = data || [];
+        },
+        citasRender(){
+          const mapCli = Object.fromEntries(this.clientes.map(c=>[String(c.id), c.nombre]));
+          return this.citas.map(a=>{
             let vehiculo_desc = null;
-            const m = (a.notas||'').match(/Vehículo:\s(.+)/i);
-            if (m) vehiculo_desc = m[1];
-            return {...a, cliente_nombre: a.clientes?.nombre || '', vehiculo_desc};
+            const m = (a.notas||'').match(/(^|\n)Vehículo:\s(.+)/i);
+            if (m) vehiculo_desc = m[2]?.trim() || null;
+            return { ...a, cliente_nombre: mapCli[String(a.cliente_id)] || '', vehiculo_desc };
+          }).filter(a=>{
+            // filtros UI
+            let ok = true;
+            if(this.filtros.citaFecha) ok = ok && (a.fecha||'').slice(0,10) === this.filtros.citaFecha;
+            if(this.filtros.citaEstado) ok = ok && (a.estado||'') === this.filtros.citaEstado;
+            return ok;
           });
         },
-        onClienteChange(){
-          // Reset vehículo al cambiar cliente
-          this.citaForm.vehiculo_id = '';
-        },
+        onClienteChange(){ this.citaForm.vehiculo_id = ''; },
         openCita(a){
           this.citaForm = a ? {
-              id:a.id,
-              cliente_id:a.cliente_id,
-              vehiculo_id:'',               // no persistimos ID (no tocamos base)
-              servicio:a.servicio||'',
-              selectedServices: (a.servicio? a.servicio.split('+').map(n=>({name:n.trim(), price:0})) : []),
-              fecha:(a.fecha||'').slice(0,16),
-              precio:a.precio||'',
-              total:+(a.precio||0),
-              estado:a.estado||'pendiente',
-              notas:a.notas||''
-            } : {
-              id:null, cliente_id:'', vehiculo_id:'', servicio:'',
-              selectedServices:[], fecha:new Date().toISOString().slice(0,16),
-              precio:'', total:0, estado:'pendiente', notas:''
-            };
+            id:a.id,
+            cliente_id:a.cliente_id,
+            vehiculo_id:'',
+            servicio:a.servicio||'',
+            selectedServices: (a.servicio? a.servicio.split('+').map(n=>({name:n.trim(), price:0})) : []),
+            fecha:(a.fecha||'').slice(0,16),
+            precio:a.precio||'',
+            total:+(a.precio||0),
+            estado:a.estado||'pendiente',
+            notas:a.notas||''
+          } : {
+            id:null, cliente_id:'', vehiculo_id:'', servicio:'',
+            selectedServices:[], fecha:new Date().toISOString().slice(0,16),
+            precio:'', total:0, estado:'pendiente', notas:''
+          };
+          this.modal.cita = true;
         },
         toggleService(item){
-          const key = item.name + (item.detalle ? ' — ' + item.detalle : '');
-          const idx = this.citaForm.selectedServices.findIndex(s=>s.name===key || s.name===item.name);
-          if (idx>=0) this.citaForm.selectedServices.splice(idx,1);
-          else this.citaForm.selectedServices.push({ name: key || item.name, price: this.num(item.price) });
+          const label = item.name + (item.detalle ? (' — ' + item.detalle) : '');
+          const i = this.citaForm.selectedServices.findIndex(s=>s.name===label);
+          if (i>=0) this.citaForm.selectedServices.splice(i,1);
+          else this.citaForm.selectedServices.push({ name: label, price: this.num(item.price) });
           this.updateTotal();
         },
         updateTotal(){
@@ -697,13 +709,12 @@
         async saveCita(){
           const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
 
-          // Servicio concatenado y notas con vehículo (sin modificar esquema)
           const servicioStr = this.citaForm.selectedServices.map(s=>s.name).join(' + ') || (this.citaForm.servicio||'');
           let notas = (this.citaForm.notas||'').trim();
           const vehSel = this.vehiculos.find(v => String(v.id)===String(this.citaForm.vehiculo_id));
           if (vehSel){
             const vdesc = this.vehiculoLabel(vehSel);
-            notas = notas.replace(/(^|\n)Vehículo: .+(\n|$)/i,'$1'); // limpia si existía
+            notas = notas.replace(/(^|\n)Vehículo: .+(\n|$)/i,'$1');
             notas = (notas? (notas+'\n') : '') + `Vehículo: ${vdesc}`;
           }
 
@@ -730,21 +741,18 @@
           if (error) alert(error.message);
           await this.loadCitas(); this.recalc(); this.buildReport();
         },
-        citasFiltradas(){
-          let arr = this.citas.slice();
-          if(this.filtros.citaFecha){
-            const d=this.filtros.citaFecha;
-            arr = arr.filter(x => (x.fecha||'').slice(0,10) === d);
-          }
-          if(this.filtros.citaEstado) arr = arr.filter(x => (x.estado||'')===this.filtros.citaEstado);
-          return arr;
-        },
         citasHoy(){
           const t = new Date().toISOString().slice(0,10);
-          return this.citas.filter(x => (x.fecha||'').slice(0,10) === t);
+          const mapCli = Object.fromEntries(this.clientes.map(c=>[String(c.id), c.nombre]));
+          return this.citas.filter(x => (x.fecha||'').slice(0,10) === t).map(a=>{
+            let vehiculo_desc = null;
+            const m = (a.notas||'').match(/(^|\n)Vehículo:\s(.+)/i);
+            if (m) vehiculo_desc = m[2]?.trim() || null;
+            return { ...a, cliente_nombre: mapCli[String(a.cliente_id)] || '', vehiculo_desc };
+          });
         },
 
-        // ===== KPIs / Reporte =====
+        // KPIs / Reporte
         recalc(){
           this.stats.clientes  = this.clientes.length;
           this.stats.vehiculos = this.vehiculos.length;
@@ -767,9 +775,12 @@
           }
           const bySrvMap = {};
           this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
-            const names = (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean);
-            const share = (+c.precio||0)/(names.length||1);
-            names.forEach(name => { bySrvMap[name]=(bySrvMap[name]||0)+share; });
+            const parts = (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean);
+            if (!parts.length) return;
+            // Distribuye el precio proporcionalmente entre los servicios seleccionados
+            parts.forEach(name=>{
+              bySrvMap[name]=(bySrvMap[name]||0)+(+c.precio||0)/parts.length;
+            });
           });
           const labelsSrv = Object.keys(bySrvMap);
           const dataSrv   = Object.values(bySrvMap);
@@ -786,6 +797,7 @@
           const byMonth = {};
           this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
             const d = new Date(c.fecha);
+            if (isNaN(+d)) return;
             const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
             byMonth[k]=(byMonth[k]||0)+(+c.precio||0);
           });
@@ -806,8 +818,9 @@
 
           const byCliMonth = {};
           this.clientes.forEach(c=>{
-            const d = new Date(c.created_at || Date.now());
-            const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+            const d = new Date(Date.parse(c.created_at || c.creado_en || ''));
+            const dd = isNaN(+d) ? new Date() : d;
+            const k = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0');
             byCliMonth[k]=(byCliMonth[k]||0)+1;
           });
           const monthsCliSorted = Object.keys(byCliMonth).sort();
