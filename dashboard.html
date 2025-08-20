@@ -23,6 +23,9 @@
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <!-- Chart.js para Reporte -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <!-- Exportar PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -206,8 +209,7 @@
                   <td class="py-2 px-3" x-text="a.servicio"></td>
                   <td class="py-2 px-3" x-text="fmtDateTime(a.fecha)"></td>
                   <td class="py-2 px-3" x-text="fmtARS(a.precio || 0)"></td>
-                  <td class="py-2 px-3"><span class="pill"
-                        :class="statusPill(a.estado)" x-text="a.estado"></span></td>
+                  <td class="py-2 px-3"><span class="pill" :class="statusPill(a.estado)" x-text="a.estado"></span></td>
                   <td class="py-2 px-3">
                     <button class="btn" @click="openCita(a)">Editar</button>
                     <button class="btn" @click="delCita(a.id)">Eliminar</button>
@@ -221,83 +223,50 @@
       </div>
     </section>
 
-    <!-- VEHICULOS -->
-    <section x-show="tab==='vehiculos'" x-cloak>
-      <div class="card p-5">
-        <div class="flex items-center justify-between">
-          <h2 class="font-bold text-brand text-lg">Vehículos</h2>
-          <button class="btn btn-primary" @click="openVehiculo()">+ Nuevo vehículo</button>
-        </div>
-
-        <div class="overflow-x-auto mt-4">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr class="text-left border-b">
-                <th class="py-2 px-3">Cliente</th>
-                <th class="py-2 px-3">Marca/Modelo</th>
-                <th class="py-2 px-3">Patente</th>
-                <th class="py-2 px-3">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="v in vehiculos" :key="v.id">
-                <tr class="border-b hover:bg-slate-50">
-                  <td class="py-2 px-3" x-text="v.cliente_nombre || '—'"></td>
-                  <td class="py-2 px-3" x-text="v.marca + ' ' + (v.modelo || '')"></td>
-                  <td class="py-2 px-3" x-text="v.dominio || '—'"></td>
-                  <td class="py-2 px-3">
-                    <button class="btn" @click="openVehiculo(v)">Editar</button>
-                    <button class="btn" @click="delVehiculo(v.id)">Eliminar</button>
-                  </td>
-                </tr>
-              </template>
-              <tr x-show="vehiculos.length===0"><td colspan="4" class="py-6 text-center text-textmut">Sin vehículos</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
     <!-- REPORTE -->
     <section x-show="tab==='reporte'" x-cloak>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="card p-5 text-center">
-          <h3 class="text-lg font-semibold opacity-80">Ingresos</h3>
-          <div class="text-3xl font-extrabold mt-1 text-brand" x-text="fmtARS(report.ingresos)"></div>
-          <div class="text-xs opacity-70">+12% vs mes anterior</div>
-        </div>
-        <div class="card p-5 text-center">
-          <h3 class="text-lg font-semibold opacity-80">Clientes</h3>
-          <div class="text-3xl font-extrabold mt-1" x-text="report.clientes"></div>
-          <div class="text-xs opacity-70">+8% vs mes anterior</div>
-        </div>
-        <div class="card p-5 text-center">
-          <h3 class="text-lg font-semibold opacity-80">Ganancia total</h3>
-          <div class="text-3xl font-extrabold mt-1 text-amber-500" x-text="fmtARS(report.ganancia)"></div>
-          <div class="text-xs opacity-70">Ingresos - costos estimados (30%)</div>
-        </div>
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <h2 class="font-bold text-brand text-xl">Reporte</h2>
+        <button class="btn btn-primary" @click="exportPDF()">Exportar PDF</button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-        <div class="card p-5">
-          <h4 class="font-semibold text-center mb-3">Ingresos por Servicio</h4>
-          <canvas id="chServicios" height="240"></canvas>
+      <div id="reportRoot">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div class="card p-5 text-center">
+            <h3 class="text-lg font-semibold opacity-80">Ingresos</h3>
+            <div class="text-3xl font-extrabold mt-1 text-brand" x-text="fmtARS(report.ingresos)"></div>
+            <div class="text-xs opacity-70">+12% vs mes anterior</div>
+          </div>
+          <div class="card p-5 text-center">
+            <h3 class="text-lg font-semibold opacity-80">Clientes</h3>
+            <div class="text-3xl font-extrabold mt-1" x-text="report.clientes"></div>
+            <div class="text-xs opacity-70">+8% vs mes anterior</div>
+          </div>
+          <div class="card p-5 text-center">
+            <h3 class="text-lg font-semibold opacity-80">Ganancia total</h3>
+            <div class="text-3xl font-extrabold mt-1 text-amber-500" x-text="fmtARS(report.ganancia)"></div>
+            <div class="text-xs opacity-70">Ingresos - costos estimados (30%)</div>
+          </div>
         </div>
-        <div class="card p-5">
-          <h4 class="font-semibold text-center mb-3">Ingresos Mensuales</h4>
-          <canvas id="chIngresos" height="240"></canvas>
-        </div>
-        <div class="card p-5">
-          <h4 class="font-semibold text-center mb-3">Clientes por Mes</h4>
-          <canvas id="chClientes" height="240"></canvas>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+          <div class="card p-5">
+            <h4 class="font-semibold text-center mb-3">Ingresos por Servicio</h4>
+            <canvas id="chServicios" height="240"></canvas>
+          </div>
+          <div class="card p-5">
+            <h4 class="font-semibold text-center mb-3">Ingresos Mensuales</h4>
+            <canvas id="chIngresos" height="240"></canvas>
+          </div>
+          <div class="card p-5">
+            <h4 class="font-semibold text-center mb-3">Clientes por Mes</h4>
+            <canvas id="chClientes" height="240"></canvas>
+          </div>
         </div>
       </div>
     </section>
 
   </main>
-
-  <!-- MODALES (Clientes / Citas / Vehículos) idénticos a tu versión anterior, omitidos aquí por brevedad -->
-  <!-- … (si los necesitas, dímelo y te pego también esos bloques idénticos) -->
 
   <script>
     const sb = window.sb;
@@ -321,7 +290,7 @@
         _charts:{ servicios:null, ingresos:null, clientes:null },
 
         fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
-        fmtDateTime(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleString('es-AR',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit'}); },
+        fmtDateTime(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleString('es-AR',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); },
         statusPill(s){ return {
           'bg-emerald-100 text-emerald-700': s==='completado',
           'bg-yellow-100 text-yellow-700':  s==='pendiente',
@@ -342,19 +311,13 @@
 
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // -------- CLIENTES (ARREGLADO) --------
+        // -------- CLIENTES (fiable) --------
         async loadClientes(){
-          // Ordenar por 'id' evita fallar si 'created_at/creado_en' no existe
           const { data, error } = await sb
             .from('clientes')
             .select('id,nombre,email,telefono,created_at,creado_en,user_id')
             .order('id', { ascending:false });
-
-          if (error) {
-            console.error('loadClientes()', error);
-            this.clientes = [];
-            return;
-          }
+          if (error) { console.error('loadClientes()', error); this.clientes = []; return; }
           this.clientes = data || [];
         },
         openCliente(c){
@@ -552,6 +515,41 @@
               options:{ scales:{ y:{ beginAtZero:true } } }
             });
           }
+        },
+
+        async exportPDF(){
+          // Aseguro que los gráficos estén visibles/actualizados
+          if (this.tab !== 'reporte') { this.tab = 'reporte'; await this.$nextTick(); this.renderCharts(); }
+          const el = document.getElementById('reportRoot');
+          const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor:'#ffffff' });
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new window.jspdf.jsPDF('p','pt','a4');
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const imgWidth = pageWidth - 40; // márgenes
+          const imgHeight = canvas.height * imgWidth / canvas.width;
+
+          let y = 20;
+          if (imgHeight < pageHeight - 40) {
+            pdf.addImage(imgData, 'PNG', 20, y, imgWidth, imgHeight);
+          } else {
+            // dividir en múltiples páginas si es alto
+            let position = 0;
+            const sliceHeight = (pageHeight - 40) * canvas.width / imgWidth;
+            while (position < canvas.height) {
+              const slice = document.createElement('canvas');
+              slice.width = canvas.width;
+              slice.height = Math.min(sliceHeight, canvas.height - position);
+              const ctx = slice.getContext('2d');
+              ctx.drawImage(canvas, 0, position, canvas.width, slice.height, 0, 0, canvas.width, slice.height);
+              const sliceData = slice.toDataURL('image/png');
+              if (position > 0) pdf.addPage();
+              pdf.addImage(sliceData, 'PNG', 20, 20, imgWidth, (slice.height * imgWidth / canvas.width));
+              position += sliceHeight;
+            }
+          }
+
+          pdf.save('reporte-monaco-detailing.pdf');
         }
       }
     }
