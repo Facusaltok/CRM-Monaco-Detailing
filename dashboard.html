@@ -365,67 +365,89 @@
         </div>
       </div>
 
-      <!-- Catálogo de servicios -->
+      <!-- Catálogo de servicios (pestañas) -->
       <div class="mt-4">
         <h4 class="font-semibold mb-2">Servicios (podés elegir más de uno)</h4>
+
+        <!-- Tabs -->
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button class="btn" :class="{'btn-primary':serviceTab==='autos'}" @click="serviceTab='autos'">Autos (Hatch / Sedan)</button>
+          <button class="btn" :class="{'btn-primary':serviceTab==='suv'}" @click="serviceTab='suv'">SUV / Pick-Up</button>
+          <button class="btn" :class="{'btn-primary':serviceTab==='motos'}" @click="serviceTab='motos'">Motos</button>
+          <button class="btn" :class="{'btn-primary':serviceTab==='tratamientos'}" @click="serviceTab='tratamientos'">Tratamientos</button>
+        </div>
+
+        <!-- Contenido por pestaña -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <!-- Autos -->
-          <div class="border rounded-lg p-3">
-            <div class="font-semibold mb-2">Autos (Hatch / Sedan)</div>
-            <template x-for="(item,idx) in serviceCatalog.autos" :key="'a'+idx">
-              <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
-                <div>
-                  <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
-                  <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
+
+          <!-- AUTOS -->
+          <template x-if="serviceTab==='autos'">
+            <div class="md:col-span-2 border rounded-lg p-3">
+              <div class="font-semibold mb-2">Autos (Hatch / Sedan)</div>
+              <template x-for="(item,idx) in serviceCatalog.autos" :key="'a'+idx">
+                <label class="flex items-start gap-2 mb-2 cursor-pointer">
+                  <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
+                  <div>
+                    <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
+                    <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
+                  </div>
+                </label>
+              </template>
+            </div>
+          </template>
+
+          <!-- SUV / PICK-UP -->
+          <template x-if="serviceTab==='suv'">
+            <div class="md:col-span-2 border rounded-lg p-3">
+              <div class="font-semibold mb-2">SUV / Pick-Up</div>
+              <template x-for="(item,idx) in serviceCatalog.suv" :key="'s'+idx">
+                <label class="flex items-start gap-2 mb-2 cursor-pointer">
+                  <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
+                  <div>
+                    <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
+                    <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
+                  </div>
+                </label>
+              </template>
+            </div>
+          </template>
+
+          <!-- MOTOS -->
+          <template x-if="serviceTab==='motos'">
+            <div class="md:col-span-2 border rounded-lg p-3">
+              <div class="font-semibold mb-2">Motos</div>
+              <template x-for="(item,idx) in serviceCatalog.motos" :key="'m'+idx">
+                <label class="flex items-start gap-2 mb-2 cursor-pointer">
+                  <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
+                  <div>
+                    <div class="font-medium" x-text="item.name + ' — ' + (typeof item.price==='number' ? fmtARS(item.price) : item.price)"></div>
+                    <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
+                  </div>
+                </label>
+              </template>
+            </div>
+          </template>
+
+          <!-- TRATAMIENTOS -->
+          <template x-if="serviceTab==='tratamientos'">
+            <div class="md:col-span-2 border rounded-lg p-3">
+              <div class="font-semibold mb-2">Tratamientos</div>
+              <template x-for="(grupo,gi) in tratamientos" :key="'t'+gi">
+                <div class="mb-3">
+                  <div class="text-sm font-semibold mb-1" x-text="grupo.grupo"></div>
+                  <template x-for="(it,ii) in grupo.items" :key="'ti'+gi+'-'+ii">
+                    <label class="flex items-start gap-2 mb-1 cursor-pointer">
+                      <input type="checkbox" class="mt-1" @change="toggleService({ name: it.name + ' — ' + it.detalle, price: it.price })">
+                      <div class="text-sm">
+                        <span class="font-medium" x-text="it.name + ' — ' + it.detalle + ' — ' + fmtARS(it.price)"></span>
+                      </div>
+                    </label>
+                  </template>
                 </div>
-              </label>
-            </template>
-          </div>
-          <!-- SUV / Pick-Up -->
-          <div class="border rounded-lg p-3">
-            <div class="font-semibold mb-2">SUV / Pick-Up</div>
-            <template x-for="(item,idx) in serviceCatalog.suv" :key="'s'+idx">
-              <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
-                <div>
-                  <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
-                  <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
-                </div>
-              </label>
-            </template>
-          </div>
-          <!-- Motos -->
-          <div class="border rounded-lg p-3">
-            <div class="font-semibold mb-2">Motos</div>
-            <template x-for="(item,idx) in serviceCatalog.motos" :key="'m'+idx">
-              <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
-                <div>
-                  <div class="font-medium" x-text="item.name + ' — ' + (typeof item.price==='number' ? fmtARS(item.price) : item.price)"></div>
-                  <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
-                </div>
-              </label>
-            </template>
-          </div>
-          <!-- Tratamientos -->
-          <div class="border rounded-lg p-3">
-            <div class="font-semibold mb-2">Tratamientos</div>
-            <template x-for="(grupo,gi) in tratamientos" :key="'t'+gi">
-              <div class="mb-2">
-                <div class="text-sm font-semibold mb-1" x-text="grupo.grupo"></div>
-                <template x-for="(it,ii) in grupo.items" :key="'ti'+gi+'-'+ii">
-                  <label class="flex items-start gap-2 mb-1 cursor-pointer">
-                    <input type="checkbox" class="mt-1"
-                      @change="toggleService({ name: it.name + ' — ' + it.detalle, price: it.price })">
-                    <div class="text-sm">
-                      <span class="font-medium" x-text="it.name + ' — ' + it.detalle + ' — ' + fmtARS(it.price)"></span>
-                    </div>
-                  </label>
-                </template>
-              </div>
-            </template>
-          </div>
+              </template>
+            </div>
+          </template>
+
         </div>
       </div>
 
@@ -500,6 +522,9 @@
         report:{ ingresos:0, ganancia:0, clientes:0 },
         _charts:{ servicios:null, ingresos:null, clientes:null },
 
+        /* pestaña activa del selector de servicios */
+        serviceTab: 'autos',
+
         // Catálogos
         serviceCatalog:{
           autos: [
@@ -569,8 +594,8 @@
         async loadClientes(){
           const { data, error } = await sb
             .from('clientes')
-            .select('id,nombre,email,telefono')     // columnas mínimas seguras
-            .order('id', { ascending:false });      // evita columnas inexistentes
+            .select('id,nombre,email,telefono')
+            .order('id', { ascending:false });
           if (error){ console.error('loadClientes', error); this.clientes=[]; return; }
           this.clientes = data || [];
         },
@@ -607,7 +632,7 @@
           );
         },
 
-        // VEHÍCULOS (sin join; se mapea con diccionario)
+        // VEHÍCULOS
         async loadVehiculos(){
           const { data, error } = await sb
             .from('vehiculos')
@@ -650,7 +675,7 @@
           await this.loadVehiculos(); this.recalc(); this.buildReport();
         },
 
-        // CITAS (sin join; se mapea cliente + “vehículo:” desde notas)
+        // CITAS
         async loadCitas(){
           const { data, error } = await sb
             .from('citas')
@@ -667,7 +692,6 @@
             if (m) vehiculo_desc = m[2]?.trim() || null;
             return { ...a, cliente_nombre: mapCli[String(a.cliente_id)] || '', vehiculo_desc };
           }).filter(a=>{
-            // filtros UI
             let ok = true;
             if(this.filtros.citaFecha) ok = ok && (a.fecha||'').slice(0,10) === this.filtros.citaFecha;
             if(this.filtros.citaEstado) ok = ok && (a.estado||'') === this.filtros.citaEstado;
@@ -777,7 +801,6 @@
           this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
             const parts = (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean);
             if (!parts.length) return;
-            // Distribuye el precio proporcionalmente entre los servicios seleccionados
             parts.forEach(name=>{
               bySrvMap[name]=(bySrvMap[name]||0)+(+c.precio||0)/parts.length;
             });
