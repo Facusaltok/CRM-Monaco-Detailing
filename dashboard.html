@@ -53,8 +53,8 @@
         <div class="w-3.5 h-3.5 rounded-full" style="background:linear-gradient(90deg,#0a8d4b,#19c37d)"></div>
         <h1 class="font-extrabold tracking-wide">MONACO DETAILING — CRM</h1>
       </div>
-      <div class="flex gap-2">
-        <button class="btn" @click="loadAll()">⟳ Actualizar</button>
+      <div class="flex gap-2 items-center">
+        <button class="btn" @click="refresh()" x-text="loading?'Actualizando…':'⟳ Actualizar'"></button>
         <button class="btn" @click="logout()">Salir</button>
       </div>
     </div>
@@ -67,6 +67,7 @@
       <button class="btn" :class="{'btn-primary':tab==='clientes'}" @click="tab='clientes'">Clientes</button>
       <button class="btn" :class="{'btn-primary':tab==='citas'}" @click="tab='citas'">Citas</button>
       <button class="btn" :class="{'btn-primary':tab==='vehiculos'}" @click="tab='vehiculos'">Vehículos</button>
+      <button class="btn" :class="{'btn-primary':tab==='reporte'}" @click="tab='reporte'">Reporte</button>
     </div>
   </nav>
 
@@ -255,6 +256,42 @@
       </div>
     </section>
 
+    <!-- REPORTE -->
+    <section x-show="tab==='reporte'" x-cloak>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="card p-5">
+          <div class="text-sm text-textmut">Total clientes</div>
+          <div class="text-3xl font-extrabold" x-text="statsTotales.totalClientes"></div>
+        </div>
+        <div class="card p-5">
+          <div class="text-sm text-textmut">Total citas</div>
+          <div class="text-3xl font-extrabold" x-text="statsTotales.totalCitas"></div>
+        </div>
+        <div class="card p-5">
+          <div class="text-sm text-textmut">Ingresos acumulados</div>
+          <div class="text-3xl font-extrabold" x-text="fmtARS(statsTotales.ingresosAcumulados)"></div>
+        </div>
+      </div>
+
+      <div class="card p-5 mt-4">
+        <h2 class="font-bold text-brand mb-3">Servicios más realizados</h2>
+        <div class="space-y-2">
+          <template x-for="s in rankingServicios()" :key="s.nombre">
+            <div class="flex items-center gap-3">
+              <div class="w-40 truncate" x-text="s.nombre || '—'"></div>
+              <div class="flex-1">
+                <div class="h-3 rounded bg-emerald-100 overflow-hidden">
+                  <div class="h-3 bg-emerald-500" :style="`width:${s.porcentaje}%`"></div>
+                </div>
+              </div>
+              <div class="w-16 text-right" x-text="s.cantidad"></div>
+            </div>
+          </template>
+          <div x-show="citas.length===0" class="text-textmut">Sin datos de citas todavía.</div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- MODAL CLIENTE -->
@@ -331,6 +368,7 @@
       return {
         tab:'home',
         userId:null,
+        loading:false,
 
         clientes:[], vehiculos:[], citas:[],
         modal:{ cliente:false, cita:false, vehiculo:false },
@@ -341,6 +379,7 @@
 
         filtros:{ clientQ:'', citaFecha:'', citaEstado:'' },
         stats:{ clientes:0, citasHoy:0, ingresosHoy:0, vehiculos:0 },
+        statsTotales:{ totalClientes:0, totalCitas:0, ingresosAcumulados:0 },
 
         fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
         fmtDateTime(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleString('es-AR',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); },
@@ -356,13 +395,27 @@
           this.userId = session.user.id;
           await this.loadAll();
         },
-        async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); },
+
+        async refresh(){
+          if(this.loading) return;
+          this.loading = true;
+          try { await this.loadAll(); }
+          finally { this.loading = false; }
+        },
+
+        async loadAll(){
+          await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]);
+          this.recalc();
+          this.recalcTotales();
+        },
+
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
         // -------- CLIENTES --------
         async loadClientes(){
-          const { data, error } = await sb.from('clientes').select('*').order('created_at',{ascending:false});
-          if (error) console.error(error);
+          // 🔧 FIX: 'created_at' no existe en tu tabla → usá 'id' para ordenar
+          const { data, error } = await sb.from('clientes').select('*').order('id',{ascending:false});
+          if (error) { console.error("loadClientes:", error); this.clientes=[]; return; }
           this.clientes = data || [];
         },
         openCliente(c){
@@ -379,14 +432,14 @@
           let error;
           if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id));
           else                      ({ error } = await sb.from('clientes').insert(row));
-          if (error) alert(error.message);
-          this.modal.cliente=false; await this.loadClientes(); this.recalc();
+          if (error) { alert(error.message); return; }
+          this.modal.cliente=false; await this.loadClientes(); this.recalc(); this.recalcTotales();
         },
         async delCliente(id){
           if(!confirm('¿Eliminar cliente?')) return;
           const { error } = await sb.from('clientes').delete().eq('id', id);
-          if (error) alert(error.message);
-          await this.loadClientes(); this.recalc();
+          if (error) { alert(error.message); return; }
+          await this.loadClientes(); this.recalc(); this.recalcTotales();
         },
         clientesFiltrados(){
           const q=(this.filtros.clientQ||'').toLowerCase();
@@ -400,8 +453,9 @@
 
         // -------- VEHÍCULOS --------
         async loadVehiculos(){
-          const { data, error } = await sb.from('vehiculos').select('*, clientes(nombre)').order('creado_en',{ascending:false});
-          if (error) console.error(error);
+          // 🔧 también ordenamos por 'id' para evitar columnas inexistentes
+          const { data, error } = await sb.from('vehiculos').select('*, clientes(nombre)').order('id',{ascending:false});
+          if (error) { console.error("loadVehiculos:", error); this.vehiculos=[]; return; }
           this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
         },
         openVehiculo(v){
@@ -420,20 +474,20 @@
           let error;
           if(this.vehiculoForm.id) ({ error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id));
           else                      ({ error } = await sb.from('vehiculos').insert(r));
-          if (error) alert(error.message);
-          this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc();
+          if (error) { alert(error.message); return; }
+          this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc(); this.recalcTotales();
         },
         async delVehiculo(id){
           if(!confirm('¿Eliminar vehículo?')) return;
           const { error } = await sb.from('vehiculos').delete().eq('id', id);
-          if (error) alert(error.message);
-          await this.loadVehiculos(); this.recalc();
+          if (error) { alert(error.message); return; }
+          await this.loadVehiculos(); this.recalc(); this.recalcTotales();
         },
 
         // -------- CITAS --------
         async loadCitas(){
           const { data, error } = await sb.from('citas').select('*, clientes(nombre)').order('fecha',{ascending:false});
-          if (error) console.error(error);
+          if (error) { console.error("loadCitas:", error); this.citas=[]; return; }
           this.citas = (data||[]).map(a => ({...a, cliente_nombre: a.clientes?.nombre || ''}));
         },
         openCita(a){
@@ -456,14 +510,14 @@
           let error;
           if (this.citaForm.id) ({ error } = await sb.from('citas').update(row).eq('id', this.citaForm.id));
           else                  ({ error } = await sb.from('citas').insert(row));
-          if (error) alert(error.message);
-          this.modal.cita=false; await this.loadCitas(); this.recalc();
+          if (error) { alert(error.message); return; }
+          this.modal.cita=false; await this.loadCitas(); this.recalc(); this.recalcTotales();
         },
         async delCita(id){
           if(!confirm('¿Eliminar cita?')) return;
           const { error } = await sb.from('citas').delete().eq('id', id);
-          if (error) alert(error.message);
-          await this.loadCitas(); this.recalc();
+          if (error) { alert(error.message); return; }
+          await this.loadCitas(); this.recalc(); this.recalcTotales();
         },
         citasFiltradas(){
           let arr = this.citas.slice();
@@ -479,7 +533,7 @@
           return this.citas.filter(x => (x.fecha||'').slice(0,10) === t);
         },
 
-        // -------- KPIs --------
+        // -------- KPIs (home) --------
         recalc(){
           this.stats.clientes  = this.clientes.length;
           this.stats.vehiculos = this.vehiculos.length;
@@ -487,6 +541,26 @@
           this.stats.citasHoy   = hoy.length;
           this.stats.ingresosHoy= hoy.filter(x => x.estado==='completado')
                                      .reduce((a,b)=>a+(+b.precio||0),0);
+        },
+
+        // -------- REPORTE --------
+        recalcTotales(){
+          this.statsTotales.totalClientes = this.clientes.length;
+          this.statsTotales.totalCitas    = this.citas.length;
+          this.statsTotales.ingresosAcumulados = this.citas
+            .filter(x => x.estado==='completado')
+            .reduce((a,b)=>a+(+b.precio||0),0);
+        },
+        rankingServicios(){
+          const m = new Map();
+          for (const c of this.citas) {
+            const s = (c.servicio||'').trim() || '—';
+            m.set(s, (m.get(s)||0) + 1);
+          }
+          const arr = Array.from(m, ([nombre,cantidad])=>({nombre, cantidad}));
+          arr.sort((a,b)=>b.cantidad-a.cantidad);
+          const max = arr[0]?.cantidad || 1;
+          return arr.map(r => ({ ...r, porcentaje: Math.round((r.cantidad/max)*100) }));
         }
       }
     }
