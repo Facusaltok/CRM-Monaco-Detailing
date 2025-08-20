@@ -223,6 +223,43 @@
       </div>
     </section>
 
+    <!-- VEHICULOS -->
+    <section x-show="tab==='vehiculos'" x-cloak>
+      <div class="card p-5">
+        <div class="flex items-center justify-between">
+          <h2 class="font-bold text-brand text-lg">Vehículos</h2>
+          <button class="btn btn-primary" @click="openVehiculo()">+ Nuevo vehículo</button>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left border-b">
+                <th class="py-2 px-3">Cliente</th>
+                <th class="py-2 px-3">Marca/Modelo</th>
+                <th class="py-2 px-3">Patente</th>
+                <th class="py-2 px-3">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="v in vehiculos" :key="v.id">
+                <tr class="border-b hover:bg-slate-50">
+                  <td class="py-2 px-3" x-text="v.cliente_nombre || '—'"></td>
+                  <td class="py-2 px-3" x-text="v.marca + ' ' + (v.modelo || '')"></td>
+                  <td class="py-2 px-3" x-text="v.dominio || '—'"></td>
+                  <td class="py-2 px-3">
+                    <button class="btn" @click="openVehiculo(v)">Editar</button>
+                    <button class="btn" @click="delVehiculo(v.id)">Eliminar</button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="vehiculos.length===0"><td colspan="4" class="py-6 text-center text-textmut">Sin vehículos</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- REPORTE -->
     <section x-show="tab==='reporte'" x-cloak>
       <div class="flex items-center justify-between flex-wrap gap-3">
@@ -268,6 +305,73 @@
 
   </main>
 
+  <!-- MODALES (los mismos que ya tenías) -->
+  <!-- MODAL CLIENTE -->
+  <div x-show="modal.cliente" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
+    <div class="card w-full max-w-lg p-5">
+      <h3 class="font-bold text-brand mb-3" x-text="clienteForm.id ? 'Editar cliente' : 'Nuevo cliente'"></h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input class="input" placeholder="Nombre" x-model="clienteForm.nombre">
+        <input class="input" placeholder="Email" x-model="clienteForm.email" type="email">
+        <input class="input" placeholder="Teléfono" x-model="clienteForm.telefono">
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="btn" @click="modal.cliente=false">Cancelar</button>
+        <button class="btn btn-primary" @click="saveCliente()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CITA -->
+  <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
+    <div class="card w-full max-w-lg p-5">
+      <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <select class="input" x-model="citaForm.cliente_id">
+          <option value="">Cliente…</option>
+          <template x-for="c in clientes" :key="c.id">
+            <option :value="c.id" x-text="c.nombre"></option>
+          </template>
+        </select>
+        <input class="input" placeholder="Servicio" x-model="citaForm.servicio">
+        <input class="input" type="datetime-local" x-model="citaForm.fecha">
+        <input class="input" type="number" min="0" step="1" placeholder="Precio (ARS)" x-model="citaForm.precio">
+        <select class="input" x-model="citaForm.estado">
+          <option value="pendiente">Pendiente</option>
+          <option value="completado">Completado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <textarea class="input md:col-span-2" rows="3" placeholder="Notas" x-model="citaForm.notas"></textarea>
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="btn" @click="modal.cita=false">Cancelar</button>
+        <button class="btn btn-primary" @click="saveCita()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL VEHÍCULO -->
+  <div x-show="modal.vehiculo" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
+    <div class="card w-full max-w-lg p-5">
+      <h3 class="font-bold text-brand mb-3" x-text="vehiculoForm.id ? 'Editar vehículo' : 'Nuevo vehículo'"></h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <select class="input" x-model="vehiculoForm.cliente_id">
+          <option value="">Cliente…</option>
+          <template x-for="c in clientes" :key="c.id">
+            <option :value="c.id" x-text="c.nombre"></option>
+          </template>
+        </select>
+        <input class="input" placeholder="Marca" x-model="vehiculoForm.marca">
+        <input class="input" placeholder="Modelo" x-model="vehiculoForm.modelo">
+        <input class="input" placeholder="Patente" x-model="vehiculoForm.dominio">
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="btn" @click="modal.vehiculo=false">Cancelar</button>
+        <button class="btn btn-primary" @click="saveVehiculo()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const sb = window.sb;
 
@@ -307,11 +411,19 @@
           await this.loadAll();
           if (this.tab === 'reporte') this.$nextTick(()=>this.renderCharts());
         },
-        async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); this.buildReport(); },
+
+        // Carga en orden: clientes -> vehiculos -> citas
+        async loadAll(){
+          await this.loadClientes();
+          await this.loadVehiculos();
+          await this.loadCitas();
+          this.recalc();
+          this.buildReport();
+        },
 
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // -------- CLIENTES (fiable) --------
+        // -------- CLIENTES (robusto) --------
         async loadClientes(){
           const { data, error } = await sb
             .from('clientes')
@@ -335,13 +447,13 @@
           if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id));
           else                      ({ error } = await sb.from('clientes').insert(row));
           if (error) alert(error.message);
-          this.modal.cliente=false; await this.loadClientes(); this.recalc(); this.buildReport();
+          this.modal.cliente=false; await this.loadAll();
         },
         async delCliente(id){
           if(!confirm('¿Eliminar cliente?')) return;
           const { error } = await sb.from('clientes').delete().eq('id', id);
           if (error) alert(error.message);
-          await this.loadClientes(); this.recalc(); this.buildReport();
+          await this.loadAll();
         },
         clientesFiltrados(){
           const q=(this.filtros.clientQ||'').toLowerCase();
@@ -353,11 +465,20 @@
           );
         },
 
-        // -------- VEHÍCULOS --------
+        // -------- VEHÍCULOS (sin depender de join y sin 'creado_en') --------
         async loadVehiculos(){
-          const { data, error } = await sb.from('vehiculos').select('*, clientes(nombre)').order('creado_en',{ascending:false});
-          if (error) console.error(error);
-          this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
+          const { data, error } = await sb
+            .from('vehiculos')
+            .select('*')
+            .order('id', { ascending:false });
+          if (error) { console.error('loadVehiculos()', error); this.vehiculos=[]; return; }
+
+          // Armo mapa id->nombre desde clientes ya cargados
+          const nameById = Object.fromEntries(this.clientes.map(c => [c.id, c.nombre || '']));
+          this.vehiculos = (data||[]).map(v => ({
+            ...v,
+            cliente_nombre: nameById[v.cliente_id] || '—'
+          }));
         },
         openVehiculo(v){
           this.vehiculoForm = v
@@ -376,20 +497,27 @@
           if(this.vehiculoForm.id) ({ error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id));
           else                      ({ error } = await sb.from('vehiculos').insert(r));
           if (error) alert(error.message);
-          this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc(); this.buildReport();
+          this.modal.vehiculo=false; await this.loadAll();
         },
         async delVehiculo(id){
           if(!confirm('¿Eliminar vehículo?')) return;
           const { error } = await sb.from('vehiculos').delete().eq('id', id);
           if (error) alert(error.message);
-          await this.loadVehiculos(); this.recalc(); this.buildReport();
+          await this.loadAll();
         },
 
         // -------- CITAS --------
         async loadCitas(){
+          // Si el join falla por relación no registrada, igual tendremos data (sin nombre)
           const { data, error } = await sb.from('citas').select('*, clientes(nombre)').order('fecha',{ascending:false});
-          if (error) console.error(error);
-          this.citas = (data||[]).map(a => ({...a, cliente_nombre: a.clientes?.nombre || ''}));
+          if (error) console.warn('loadCitas() (join puede fallar, continúo):', error);
+          const nameById = Object.fromEntries(this.clientes.map(c => [c.id, c.nombre || '']));
+          const base = (data || []);
+          // Completo cliente_nombre incluso si el join vino null
+          this.citas = base.map(a => ({
+            ...a,
+            cliente_nombre: a.clientes?.nombre || nameById[a.cliente_id] || '—'
+          }));
         },
         openCita(a){
           this.citaForm = a
@@ -412,13 +540,13 @@
           if (this.citaForm.id) ({ error } = await sb.from('citas').update(row).eq('id', this.citaForm.id));
           else                  ({ error } = await sb.from('citas').insert(row));
           if (error) alert(error.message);
-          this.modal.cita=false; await this.loadCitas(); this.recalc(); this.buildReport();
+          this.modal.cita=false; await this.loadAll();
         },
         async delCita(id){
           if(!confirm('¿Eliminar cita?')) return;
           const { error } = await sb.from('citas').delete().eq('id', id);
           if (error) alert(error.message);
-          await this.loadCitas(); this.recalc(); this.buildReport();
+          await this.loadAll();
         },
         citasFiltradas(){
           let arr = this.citas.slice();
@@ -518,7 +646,6 @@
         },
 
         async exportPDF(){
-          // Aseguro que los gráficos estén visibles/actualizados
           if (this.tab !== 'reporte') { this.tab = 'reporte'; await this.$nextTick(); this.renderCharts(); }
           const el = document.getElementById('reportRoot');
           const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor:'#ffffff' });
@@ -526,14 +653,12 @@
           const pdf = new window.jspdf.jsPDF('p','pt','a4');
           const pageWidth = pdf.internal.pageSize.getWidth();
           const pageHeight = pdf.internal.pageSize.getHeight();
-          const imgWidth = pageWidth - 40; // márgenes
+          const imgWidth = pageWidth - 40;
           const imgHeight = canvas.height * imgWidth / canvas.width;
 
-          let y = 20;
-          if (imgHeight < pageHeight - 40) {
-            pdf.addImage(imgData, 'PNG', 20, y, imgWidth, imgHeight);
+          if (imgHeight <= pageHeight - 40) {
+            pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
           } else {
-            // dividir en múltiples páginas si es alto
             let position = 0;
             const sliceHeight = (pageHeight - 40) * canvas.width / imgWidth;
             while (position < canvas.height) {
@@ -548,7 +673,6 @@
               position += sliceHeight;
             }
           }
-
           pdf.save('reporte-monaco-detailing.pdf');
         }
       }
