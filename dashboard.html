@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -462,349 +463,353 @@
         { name: "Cerámico c/Grafeno — SUV/Pick-Up (2 años)", price: 600000 }
       ]
     };
+  </script>
 
-    <script>
-  const sb = window.sb;
+  <script>
+    const sb = window.sb;
 
-  window.crm = function(){
-    return {
-      // Estado base
-      tab:'home',
-      userId:null,
+    window.crm = function(){
+      return {
+        // Estado base
+        tab:'home',
+        userId:null,
 
-      clientes:[], vehiculos:[], citas:[],
-      modal:{ cliente:false, cita:false, vehiculo:false },
+        clientes:[], vehiculos:[], citas:[],
+        modal:{ cliente:false, cita:false, vehiculo:false },
 
-      clienteForm:{ id:null, nombre:'', email:'', telefono:'' },
-      citaForm:{ id:null, cliente_id:'', servicio:'', fecha:'', precio:'', estado:'pendiente', notas:'' },
-      vehiculoForm:{ id:null, cliente_id:'', marca:'', modelo:'', dominio:'' },
+        clienteForm:{ id:null, nombre:'', email:'', telefono:'' },
+        citaForm:{ id:null, cliente_id:'', servicio:'', fecha:'', precio:'', estado:'pendiente', notas:'' },
+        vehiculoForm:{ id:null, cliente_id:'', marca:'', modelo:'', dominio:'' },
 
-      filtros:{ clientQ:'', citaFecha:'', citaEstado:'' },
-      stats:{ clientes:0, citasHoy:0, ingresosHoy:0, vehiculos:0 },
+        filtros:{ clientQ:'', citaFecha:'', citaEstado:'' },
+        stats:{ clientes:0, citasHoy:0, ingresosHoy:0, vehiculos:0 },
 
-      // Reporte
-      report:{ ingresos:0, ganancia:0, clientes:0 },
-      _charts:{ servicios:null, ingresos:null, clientes:null },
+        // Reporte
+        report:{ ingresos:0, ganancia:0, clientes:0 },
+        _charts:{ servicios:null, ingresos:null, clientes:null },
 
-      // Errores visibles (opcional para debug en UI)
-      lastErrorClientes:'', lastErrorVehiculos:'', lastErrorCitas:'',
+        // Errores visibles (opcional para debug en UI)
+        lastErrorClientes:'', lastErrorVehiculos:'', lastErrorCitas:'',
 
-      // Utils
-      fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
-      fmtDateTime(iso){
-        if(!iso) return '';
-        const d=new Date(iso);
-        return d.toLocaleString('es-AR',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-      },
-      statusPill(s){
-        return {
-          'bg-emerald-100 text-emerald-700': s==='completado',
-          'bg-yellow-100 text-yellow-700':  s==='pendiente',
-          'bg-red-100 text-red-700':        s==='cancelado'
-        }
-      },
-
-      // Init + Refresh
-      async init(){
-        const { data:{ session } } = await sb.auth.getSession();
-        if(!session){ location.href='./index.html'; return; }
-        this.userId = session.user.id;
-        await this.loadAll();
-      },
-      async onRefresh(){
-        await this.loadAll();
-        if (this.tab === 'reporte') this.$nextTick(()=>this.renderCharts());
-      },
-      async loadAll(){
-        await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]);
-        this.recalc();
-        this.buildReport();
-      },
-      async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
-
-      // ================== CLIENTES (robusto) ==================
-      async loadClientes(){
-        try{
-          // No dependemos de created_at / creado_en; ordenamos por id que siempre existe.
-          const { data, error } = await sb
-            .from('clientes')
-            .select('id,nombre,email,telefono,user_id')
-            .order('id',{ascending:false});
-          if (error) throw error;
-          this.clientes = Array.isArray(data) ? data : [];
-          this.lastErrorClientes = '';
-        }catch(err){
-          console.error('loadClientes', err);
-          this.clientes = [];
-          this.lastErrorClientes = err?.message || 'Error al cargar clientes.';
-        }
-      },
-      openCliente(c){
-        this.clienteForm = c ? JSON.parse(JSON.stringify(c)) : { id:null, nombre:'', email:'', telefono:'' };
-        this.modal.cliente = true;
-      },
-      async saveCliente(){
-        const row = {
-          nombre:(this.clienteForm.nombre||'').trim(),
-          email:(this.clienteForm.email||'').trim() || null,
-          telefono:(this.clienteForm.telefono||'').trim() || null,
-          user_id:this.userId
-        };
-        try{
-          if (this.clienteForm.id) {
-            const { error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id);
-            if (error) throw error;
-          } else {
-            const { error } = await sb.from('clientes').insert(row);
-            if (error) throw error;
+        // Utils
+        fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
+        fmtDateTime(iso){
+          if(!iso) return '';
+          const d=new Date(iso);
+          return d.toLocaleString('es-AR',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+        },
+        statusPill(s){
+          return {
+            'bg-emerald-100 text-emerald-700': s==='completado',
+            'bg-yellow-100 text-yellow-700':  s==='pendiente',
+            'bg-red-100 text-red-700':        s==='cancelado'
           }
-          this.modal.cliente=false;
-          await this.loadClientes();
-          this.recalc(); this.buildReport();
-        }catch(err){
-          alert(err?.message || 'No se pudo guardar el cliente.');
-        }
-      },
-      async delCliente(id){
-        if(!confirm('¿Eliminar cliente?')) return;
-        try{
-          const { error } = await sb.from('clientes').delete().eq('id', id);
-          if (error) throw error;
-          await this.loadClientes();
-          this.recalc(); this.buildReport();
-        }catch(err){
-          alert(err?.message || 'No se pudo eliminar.');
-        }
-      },
-      clientesFiltrados(){
-        const q=(this.filtros.clientQ||'').toLowerCase();
-        if(!q) return this.clientes;
-        return this.clientes.filter(c =>
-          (c?.nombre||'').toLowerCase().includes(q) ||
-          (c?.email||'').toLowerCase().includes(q)  ||
-          (c?.telefono||'').toLowerCase().includes(q)
-        );
-      },
+        },
 
-      // ================== VEHÍCULOS (robusto) ==================
-      async loadVehiculos(){
-        try{
-          const { data, error } = await sb
-            .from('vehiculos')
-            .select('id,cliente_id,marca,modelo,dominio,clientes(nombre)')
-            .order('id',{ascending:false});
-          if (error) throw error;
-          this.vehiculos = (data||[]).map(v => ({
-            ...v,
-            cliente_nombre: v?.clientes?.nombre || ''
-          }));
-          this.lastErrorVehiculos = '';
-        }catch(err){
-          console.error('loadVehiculos', err);
-          this.vehiculos = [];
-          this.lastErrorVehiculos = err?.message || 'Error al cargar vehículos.';
-        }
-      },
-      openVehiculo(v){
-        this.vehiculoForm = v
-          ? {id:v.id, cliente_id:v.cliente_id, marca:v.marca, modelo:v.modelo, dominio:v.dominio}
-          : {id:null, cliente_id:'', marca:'', modelo:'', dominio:''};
-        this.modal.vehiculo = true;
-      },
-      async saveVehiculo(){
-        const r = {
-          cliente_id:this.vehiculoForm.cliente_id || null,
-          marca:(this.vehiculoForm.marca||'').trim() || null,
-          modelo:(this.vehiculoForm.modelo||'').trim() || null,
-          dominio:(this.vehiculoForm.dominio||'').trim() || null
-        };
-        try{
-          if(this.vehiculoForm.id){
-            const { error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id);
+        // Init + Refresh
+        async init(){
+          const { data:{ session } } = await sb.auth.getSession();
+          if(!session){ location.href='./index.html'; return; }
+          this.userId = session.user.id;
+          await this.loadAll();
+        },
+        async onRefresh(){
+          await this.loadAll();
+          if (this.tab === 'reporte') this.$nextTick(()=>this.renderCharts());
+        },
+        async loadAll(){
+          await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]);
+          this.recalc();
+          this.buildReport();
+        },
+        async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
+
+        // ================== CLIENTES (robusto) ==================
+        async loadClientes(){
+          try{
+            // No dependemos de created_at / creado_en; ordenamos por id que siempre existe.
+            const { data, error } = await sb
+              .from('clientes')
+              .select('id,nombre,email,telefono,user_id')
+              .order('id',{ascending:false});
             if (error) throw error;
-          }else{
-            const { error } = await sb.from('vehiculos').insert(r);
-            if (error) throw error;
+            this.clientes = Array.isArray(data) ? data : [];
+            this.lastErrorClientes = '';
+          }catch(err){
+            console.error('loadClientes', err);
+            this.clientes = [];
+            this.lastErrorClientes = err?.message || 'Error al cargar clientes.';
           }
-          this.modal.vehiculo=false;
-          await this.loadVehiculos();
-          this.recalc(); this.buildReport();
-        }catch(err){
-          alert(err?.message || 'No se pudo guardar el vehículo.');
-        }
-      },
-      async delVehiculo(id){
-        if(!confirm('¿Eliminar vehículo?')) return;
-        try{
-          const { error } = await sb.from('vehiculos').delete().eq('id', id);
-          if (error) throw error;
-          await this.loadVehiculos();
-          this.recalc(); this.buildReport();
-        }catch(err){
-          alert(err?.message || 'No se pudo eliminar el vehículo.');
-        }
-      },
+        },
+        openCliente(c){
+          this.clienteForm = c ? JSON.parse(JSON.stringify(c)) : { id:null, nombre:'', email:'', telefono:'' };
+          this.modal.cliente = true;
+        },
+        async saveCliente(){
+          const row = {
+            nombre:(this.clienteForm.nombre||'').trim(),
+            email:(this.clienteForm.email||'').trim() || null,
+            telefono:(this.clienteForm.telefono||'').trim() || null,
+            user_id:this.userId
+          };
+          try{
+            if (this.clienteForm.id) {
+              const { error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id);
+              if (error) throw error;
+            } else {
+              const { error } = await sb.from('clientes').insert(row);
+              if (error) throw error;
+            }
+            this.modal.cliente=false;
+            await this.loadClientes();
+            this.recalc(); this.buildReport();
+          }catch(err){
+            alert(err?.message || 'No se pudo guardar el cliente.');
+          }
+        },
+        async delCliente(id){
+          if(!confirm('¿Eliminar cliente?')) return;
+          try{
+            const { error } = await sb.from('clientes').delete().eq('id', id);
+            if (error) throw error;
+            await this.loadClientes();
+            this.recalc(); this.buildReport();
+          }catch(err){
+            alert(err?.message || 'No se pudo eliminar.');
+          }
+        },
+        clientesFiltrados(){
+          const q=(this.filtros.clientQ||'').toLowerCase();
+          if(!q) return this.clientes;
+          return this.clientes.filter(c =>
+            (c?.nombre||'').toLowerCase().includes(q) ||
+            (c?.email||'').toLowerCase().includes(q)  ||
+            (c?.telefono||'').toLowerCase().includes(q)
+          );
+        },
 
-      // ================== CITAS (robusto) ==================
-      async loadCitas(){
-        try{
-          // Intento 1: ordenar por fecha (si existe)
-          let resp = await sb
-            .from('citas')
-            .select('id,cliente_id,servicio,fecha,precio,estado,notas,clientes(nombre)')
-            .order('fecha',{ascending:false});
-          if (resp.error) {
-            // Fallback: ordenar por id si 'fecha' no fuera confiable
-            resp = await sb
+        // ================== VEHÍCULOS (robusto) ==================
+        async loadVehiculos(){
+          try{
+            const { data, error } = await sb
+              .from('vehiculos')
+              .select('id,cliente_id,marca,modelo,dominio,clientes(nombre)')
+              .order('id',{ascending:false});
+            if (error) throw error;
+            this.vehiculos = (data||[]).map(v => ({
+              ...v,
+              cliente_nombre: v?.clientes?.nombre || ''
+            }));
+            this.lastErrorVehiculos = '';
+          }catch(err){
+            console.error('loadVehiculos', err);
+            this.vehiculos = [];
+            this.lastErrorVehiculos = err?.message || 'Error al cargar vehículos.';
+          }
+        },
+        openVehiculo(v){
+          this.vehiculoForm = v
+            ? {id:v.id, cliente_id:v.cliente_id, marca:v.marca, modelo:v.modelo, dominio:v.dominio}
+            : {id:null, cliente_id:'', marca:'', modelo:'', dominio:''};
+          this.modal.vehiculo = true;
+        },
+        async saveVehiculo(){
+          const r = {
+            cliente_id:this.vehiculoForm.cliente_id || null,
+            marca:(this.vehiculoForm.marca||'').trim() || null,
+            modelo:(this.vehiculoForm.modelo||'').trim() || null,
+            dominio:(this.vehiculoForm.dominio||'').trim() || null
+          };
+          try{
+            if(this.vehiculoForm.id){
+              const { error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id);
+              if (error) throw error;
+            }else{
+              const { error } = await sb.from('vehiculos').insert(r);
+              if (error) throw error;
+            }
+            this.modal.vehiculo=false;
+            await this.loadVehiculos();
+            this.recalc(); this.buildReport();
+          }catch(err){
+            alert(err?.message || 'No se pudo guardar el vehículo.');
+          }
+        },
+        async delVehiculo(id){
+          if(!confirm('¿Eliminar vehículo?')) return;
+          try{
+            const { error } = await sb.from('vehiculos').delete().eq('id', id);
+            if (error) throw error;
+            await this.loadVehiculos();
+            this.recalc(); this.buildReport();
+          }catch(err){
+            alert(err?.message || 'No se pudo eliminar el vehículo.');
+          }
+        },
+
+        // ================== CITAS (robusto) ==================
+        async loadCitas(){
+          try{
+            // Intento 1: ordenar por fecha (si existe)
+            let resp = await sb
               .from('citas')
               .select('id,cliente_id,servicio,fecha,precio,estado,notas,clientes(nombre)')
-              .order('id',{ascending:false});
-          }
-          if (resp.error) throw resp.error;
+              .order('fecha',{ascending:false});
+            if (resp.error) {
+              // Fallback: ordenar por id si 'fecha' no fuera confiable
+              resp = await sb
+                .from('citas')
+                .select('id,cliente_id,servicio,fecha,precio,estado,notas,clientes(nombre)')
+                .order('id',{ascending:false});
+            }
+            if (resp.error) throw resp.error;
 
-          const data = resp.data || [];
-          this.citas = data.map(a => ({
-            ...a,
-            cliente_nombre: a?.clientes?.nombre || ''
-          }));
-          this.lastErrorCitas = '';
-        }catch(err){
-          console.error('loadCitas', err);
-          this.citas = [];
-          this.lastErrorCitas = err?.message || 'Error al cargar citas.';
-        }
-      },
-      openCita(a){
-        this.citaForm = a
-          ? { id:a.id, cliente_id:a.cliente_id, servicio:a.servicio||'', fecha:(a.fecha||'').slice(0,16), precio:a.precio||'', estado:a.estado||'pendiente', notas:a.notas||'' }
-          : { id:null, cliente_id:'', servicio:'', fecha:new Date().toISOString().slice(0,16), precio:'', estado:'pendiente', notas:'' };
-        this.modal.cita = true;
-      },
-      async saveCita(){
-        const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
-        const row = {
-          cliente_id: this.citaForm.cliente_id || null,
-          servicio:   (this.citaForm.servicio||'').trim() || null,
-          fecha:      fechaISO ? fechaISO.toISOString() : null,
-          precio:     +this.citaForm.precio || 0,
-          estado:     this.citaForm.estado,
-          notas:      (this.citaForm.notas||'').trim() || null,
-          user_id:    this.userId
-        };
-        try{
-          if (this.citaForm.id){
-            const { error } = await sb.from('citas').update(row).eq('id', this.citaForm.id);
-            if (error) throw error;
-          } else {
-            const { error } = await sb.from('citas').insert(row);
-            if (error) throw error;
+            const data = resp.data || [];
+            this.citas = data.map(a => ({
+              ...a,
+              cliente_nombre: a?.clientes?.nombre || ''
+            }));
+            this.lastErrorCitas = '';
+          }catch(err){
+            console.error('loadCitas', err);
+            this.citas = [];
+            this.lastErrorCitas = err?.message || 'Error al cargar citas.';
           }
-          this.modal.cita=false;
-          await this.loadCitas();
-          this.recalc(); this.buildReport();
-        }catch(err){
-          alert(err?.message || 'No se pudo guardar la cita.');
-        }
-      },
-      async delCita(id){
-        if(!confirm('¿Eliminar cita?')) return;
-        try{
-          const { error } = await sb.from('citas').delete().eq('id', id);
-          if (error) throw error;
-          await this.loadCitas();
-          this.recalc(); this.buildReport();
-        }catch(err){
-          alert(err?.message || 'No se pudo eliminar la cita.');
-        }
-      },
-      citasFiltradas(){
-        let arr = this.citas.slice();
-        if(this.filtros.citaFecha){
-          const d=this.filtros.citaFecha;
-          arr = arr.filter(x => (x?.fecha||'').slice(0,10) === d);
-        }
-        if(this.filtros.citaEstado) arr = arr.filter(x => (x?.estado||'')===this.filtros.citaEstado);
-        return arr;
-      },
-      citasHoy(){
-        const t = new Date().toISOString().slice(0,10);
-        return this.citas.filter(x => (x?.fecha||'').slice(0,10) === t);
-      },
+        },
+        openCita(a){
+          this.citaForm = a
+            ? { id:a.id, cliente_id:a.cliente_id, servicio:a.servicio||'', fecha:(a.fecha||'').slice(0,16), precio:a.precio||'', estado:a.estado||'pendiente', notas:a.notas||'' }
+            : { id:null, cliente_id:'', servicio:'', fecha:new Date().toISOString().slice(0,16), precio:'', estado:'pendiente', notas:'' };
+          this.modal.cita = true;
+        },
+        async saveCita(){
+          const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
+          const row = {
+            cliente_id: this.citaForm.cliente_id || null,
+            servicio:   (this.citaForm.servicio||'').trim() || null,
+            fecha:      fechaISO ? fechaISO.toISOString() : null,
+            precio:     +this.citaForm.precio || 0,
+            estado:     this.citaForm.estado,
+            notas:      (this.citaForm.notas||'').trim() || null,
+            user_id:    this.userId
+          };
+          try{
+            if (this.citaForm.id){
+              const { error } = await sb.from('citas').update(row).eq('id', this.citaForm.id);
+              if (error) throw error;
+            } else {
+              const { error } = await sb.from('citas').insert(row);
+              if (error) throw error;
+            }
+            this.modal.cita=false;
+            await this.loadCitas();
+            this.recalc(); this.buildReport();
+          }catch(err){
+            alert(err?.message || 'No se pudo guardar la cita.');
+          }
+        },
+        async delCita(id){
+          if(!confirm('¿Eliminar cita?')) return;
+          try{
+            const { error } = await sb.from('citas').delete().eq('id', id);
+            if (error) throw error;
+            await this.loadCitas();
+            this.recalc(); this.buildReport();
+          }catch(err){
+            alert(err?.message || 'No se pudo eliminar la cita.');
+          }
+        },
+        citasFiltradas(){
+          let arr = this.citas.slice();
+          if(this.filtros.citaFecha){
+            const d=this.filtros.citaFecha;
+            arr = arr.filter(x => (x?.fecha||'').slice(0,10) === d);
+          }
+          if(this.filtros.citaEstado) arr = arr.filter(x => (x?.estado||'')===this.filtros.citaEstado);
+          return arr;
+        },
+        citasHoy(){
+          const t = new Date().toISOString().slice(0,10);
+          return this.citas.filter(x => (x?.fecha||'').slice(0,10) === t);
+        },
 
-      // ================== KPIs + Reporte ==================
-      recalc(){
-        this.stats.clientes  = this.clientes.length;
-        this.stats.vehiculos = this.vehiculos.length;
-        const hoy = this.citasHoy();
-        this.stats.citasHoy   = hoy.length;
-        this.stats.ingresosHoy= hoy.filter(x => x?.estado==='completado')
-                                   .reduce((a,b)=>a+(+b?.precio||0),0);
-      },
-      buildReport(){
-        const totIng = this.citas
-          .filter(c => (c?.estado||'')==='completado')
-          .reduce((a,b)=>a+(+b?.precio||0),0);
-        const gan = Math.round(totIng * 0.7);
-        const totalCli = this.clientes.length;
-        this.report = { ingresos: totIng, ganancia: gan, clientes: totalCli };
-      },
-      renderCharts(){
-        // destruir previos
-        for (const k of Object.keys(this._charts)) {
-          if (this._charts[k]) { this._charts[k].destroy(); this._charts[k]=null; }
-        }
-        // Servicios (pie)
-        const bySrv = {};
-        this.citas.filter(c=> (c?.estado||'')==='completado').forEach(c=>{
-          const k=(c?.servicio||'Otro').trim()||'Otro';
-          bySrv[k]=(bySrv[k]||0)+(+c?.precio||0);
-        });
-        const ctxS = document.getElementById('chServicios');
-        if (ctxS && window.Chart) {
-          this._charts.servicios = new Chart(ctxS,{
-            type:'pie',
-            data:{ labels:Object.keys(bySrv), datasets:[{ data:Object.values(bySrv) }]},
-            options:{ plugins:{ legend:{ position:'bottom' } } }
+        // ================== KPIs + Reporte ==================
+        recalc(){
+          this.stats.clientes  = this.clientes.length;
+          this.stats.vehiculos = this.vehiculos.length;
+          const hoy = this.citasHoy();
+          this.stats.citasHoy   = hoy.length;
+          this.stats.ingresosHoy= hoy.filter(x => x?.estado==='completado')
+                                     .reduce((a,b)=>a+(+b?.precio||0),0);
+        },
+        buildReport(){
+          const totIng = this.citas
+            .filter(c => (c?.estado||'')==='completado')
+            .reduce((a,b)=>a+(+b?.precio||0),0);
+          const gan = Math.round(totIng * 0.7);
+          const totalCli = this.clientes.length;
+          this.report = { ingresos: totIng, ganancia: gan, clientes: totalCli };
+        },
+        renderCharts(){
+          // destruir previos
+          for (const k of Object.keys(this._charts)) {
+            if (this._charts[k]) { this._charts[k].destroy(); this._charts[k]=null; }
+          }
+          // Servicios (pie)
+          const bySrv = {};
+          this.citas.filter(c=> (c?.estado||'')==='completado').forEach(c=>{
+            const k=(c?.servicio||'Otro').trim()||'Otro';
+            bySrv[k]=(bySrv[k]||0)+(+c?.precio||0);
           });
-        }
-        // Ingresos Mensuales (line)
-        const byMonth = {};
-        this.citas.filter(c=> (c?.estado||'')==='completado').forEach(c=>{
-          const d=new Date(c?.fecha); const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-          byMonth[k]=(byMonth[k]||0)+(+c?.precio||0);
-        });
-        const keys = Object.keys(byMonth).sort();
-        const ctxI = document.getElementById('chIngresos');
-        if (ctxI && window.Chart) {
-          this._charts.ingresos = new Chart(ctxI,{
-            type:'line',
-            data:{
-              labels:keys.map(k=>{const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleString('es-AR',{month:'short'})}),
-              datasets:[{ data:keys.map(k=>byMonth[k]), fill:true, tension:.35 }]
-            },
-            options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+          const ctxS = document.getElementById('chServicios');
+          if (ctxS && window.Chart) {
+            this._charts.servicios = new Chart(ctxS,{
+              type:'pie',
+              data:{ labels:Object.keys(bySrv), datasets:[{ data:Object.values(bySrv) }]},
+              options:{ plugins:{ legend:{ position:'bottom' } } }
+            });
+          }
+          // Ingresos Mensuales (line)
+          const byMonth = {};
+          this.citas.filter(c=> (c?.estado||'')==='completado').forEach(c=>{
+            const d=new Date(c?.fecha); const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+            byMonth[k]=(byMonth[k]||0)+(+c?.precio||0);
           });
-        }
-        // Clientes por mes (bar)
-        const byCli = {};
-        this.clientes.forEach(c=>{
-          const d=new Date(c?.created_at || c?.creado_en || Date.now());
-          const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-          byCli[k]=(byCli[k]||0)+1;
-        });
-        const k2 = Object.keys(byCli).sort();
-        const ctxC = document.getElementById('chClientes');
-        if (ctxC && window.Chart) {
-          this._charts.clientes = new Chart(ctxC,{
-            type:'bar',
-            data:{
-              labels:k2.map(k=>{const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleString('es-AR',{month:'short'})}),
-              datasets:[{ data:k2.map(k=>byCli[k]), borderRadius:6 }]
-            },
-            options:{ scales:{ y:{ beginAtZero:true } } }
+          const keys = Object.keys(byMonth).sort();
+          const ctxI = document.getElementById('chIngresos');
+          if (ctxI && window.Chart) {
+            this._charts.ingresos = new Chart(ctxI,{
+              type:'line',
+              data:{
+                labels:keys.map(k=>{const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleString('es-AR',{month:'short'})}),
+                datasets:[{ data:keys.map(k=>byMonth[k]), fill:true, tension:.35 }]
+              },
+              options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+            });
+          }
+          // Clientes por mes (bar)
+          const byCli = {};
+          this.clientes.forEach(c=>{
+            const d=new Date(c?.created_at || c?.creado_en || Date.now());
+            const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+            byCli[k]=(byCli[k]||0)+1;
           });
+          const k2 = Object.keys(byCli).sort();
+          const ctxC = document.getElementById('chClientes');
+          if (ctxC && window.Chart) {
+            this._charts.clientes = new Chart(ctxC,{
+              type:'bar',
+              data:{
+                labels:k2.map(k=>{const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleString('es-AR',{month:'short'})}),
+                datasets:[{ data:k2.map(k=>byCli[k]), borderRadius:6 }]
+              },
+              options:{ scales:{ y:{ beginAtZero:true } } }
+            });
+          }
         }
       }
     }
-  }
-</script>
+  </script>
+</body>
+</html>
+```
