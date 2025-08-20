@@ -24,7 +24,7 @@
   <!-- Chart.js para Reporte -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
-  <!-- Supabase (NO tocar, usa tus credenciales ya estables) -->
+  <!-- Supabase (no tocar) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     window.sb = supabase.createClient(
@@ -313,7 +313,7 @@
     </div>
   </div>
 
-  <!-- MODAL CITA (con selección de vehículo y servicios múltiples) -->
+  <!-- MODAL CITA (vehículo + múltiples servicios) -->
   <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-2xl p-5">
       <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
@@ -330,7 +330,7 @@
           </select>
         </div>
 
-        <!-- Vehículo (filtra por cliente) -->
+        <!-- Vehículo (filtrado por cliente) -->
         <div>
           <label class="text-sm block mb-1">Vehículo</label>
           <select class="input" x-model="citaForm.vehiculo_id">
@@ -373,8 +373,7 @@
             <div class="font-semibold mb-2">Autos (Hatch / Sedan)</div>
             <template x-for="(item,idx) in serviceCatalog.autos" :key="'a'+idx">
               <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1"
-                  :value="item.name" @change="toggleService(item)">
+                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
                 <div>
                   <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
                   <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
@@ -387,8 +386,7 @@
             <div class="font-semibold mb-2">SUV / Pick-Up</div>
             <template x-for="(item,idx) in serviceCatalog.suv" :key="'s'+idx">
               <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1"
-                  :value="item.name" @change="toggleService(item)">
+                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
                 <div>
                   <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
                   <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
@@ -401,8 +399,7 @@
             <div class="font-semibold mb-2">Motos</div>
             <template x-for="(item,idx) in serviceCatalog.motos" :key="'m'+idx">
               <label class="flex items-start gap-2 mb-2 cursor-pointer">
-                <input type="checkbox" class="mt-1"
-                  :value="item.name" @change="toggleService(item)">
+                <input type="checkbox" class="mt-1" :value="item.name" @change="toggleService(item)">
                 <div>
                   <div class="font-medium" x-text="item.name + ' — ' + (typeof item.price==='number' ? fmtARS(item.price) : item.price)"></div>
                   <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
@@ -419,8 +416,7 @@
                 <template x-for="(it,ii) in grupo.items" :key="'ti'+gi+'-'+ii">
                   <label class="flex items-start gap-2 mb-1 cursor-pointer">
                     <input type="checkbox" class="mt-1"
-                      :value="it.name + ' ' + (grupo.grupo.includes('Pick')?'(SUV/Pick-Up)':'(Autos)')"
-                      @change="toggleService({ name: it.name + ' — ' + it.detalle, price: it.price })">
+                      :value="it.name" @change="toggleService({ name: it.name + ' — ' + it.detalle, price: it.price })">
                     <div class="text-sm">
                       <span class="font-medium" x-text="it.name + ' — ' + it.detalle + ' — ' + fmtARS(it.price)"></span>
                     </div>
@@ -484,16 +480,16 @@
         clienteForm:{ id:null, nombre:'', email:'', telefono:'' },
         vehiculoForm:{ id:null, cliente_id:'', marca:'', modelo:'', dominio:'' },
 
-        // ---- CITA Form (extendido) ----
+        // ---- CITA Form ----
         citaForm:{
           id:null,
           cliente_id:'',
           vehiculo_id:'',
-          servicio:'',            // string a guardar (nombres concatenados)
-          selectedServices:[],    // [{name,price}]
+          servicio:'',
+          selectedServices:[],
           fecha:'',
           precio:'',
-          total:0,                // calculado
+          total:0,
           estado:'pendiente',
           notas:''
         },
@@ -519,27 +515,20 @@
             { name: "Paquete Completo SUV / Pick-Up", desc:"Abrillantado + Interior + Motor a Vapor.", price:450000, time:"2–3 días" }
           ],
           motos: [
-            // dejo un número estimado para sumar (si querés, lo cambiamos por un selector de rango)
             { name:"Tratamiento Motos", desc:"Lavado + descontaminación + reacondicionamiento de plásticos + lubricación de cadena + protección (Acrílico o Cerámico).", price:200000, time:"En el día" }
           ]
         },
         tratamientos:[
-          {
-            grupo:"Autos (Hatch / Sedan)",
-            items:[
+          { grupo:"Autos (Hatch / Sedan)", items:[
               { name:"Acrílico", detalle:"Duración 6 meses", price:300000 },
               { name:"Cerámico", detalle:"Duración 1 año", price:400000 },
               { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:500000 }
-            ]
-          },
-          {
-            grupo:"Pick-Up / SUV",
-            items:[
+          ]},
+          { grupo:"Pick-Up / SUV", items:[
               { name:"Acrílico", detalle:"Duración 6 meses", price:400000 },
               { name:"Cerámico", detalle:"Duración 1 año", price:500000 },
               { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:600000 }
-            ]
-          }
+          ]}
         ],
 
         // ===== Helpers =====
@@ -567,14 +556,12 @@
         async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); this.buildReport(); },
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // ===== Clientes =====
+        // ===== Clientes (sin order problemático) =====
         async loadClientes(){
-          const { data, error } = await sb
-            .from('clientes')
-            .select('id,nombre,email,telefono,created_at,creado_en,user_id')
-            .order('id',{ascending:false});
-          if (error) { console.error(error); this.clientes=[]; return; }
-          this.clientes = data || [];
+          const { data, error } = await sb.from('clientes').select('id,nombre,email,telefono,created_at,creado_en,user_id');
+          if (error) { console.error('loadClientes', error); this.clientes=[]; return; }
+          // orden seguro en cliente
+          this.clientes = (data||[]).sort((a,b)=> (a.nombre||'').localeCompare(b.nombre||''));
         },
         openCliente(c){
           this.clienteForm = c ? JSON.parse(JSON.stringify(c)) : { id:null, nombre:'', email:'', telefono:'' };
@@ -609,10 +596,11 @@
           );
         },
 
-        // ===== Vehículos =====
+        // ===== Vehículos (sin order problemático) =====
         async loadVehiculos(){
-          const { data, error } = await sb.from('vehiculos').select('*, clientes(nombre)').order('creado_en',{ascending:false});
-          if (error) console.error(error);
+          // El join anidado funciona si existe FK cliente_id -> clientes.id; si no, igual mostramos sin nombre
+          const { data, error } = await sb.from('vehiculos').select('id,cliente_id,marca,modelo,dominio,clientes(nombre)');
+          if (error) { console.error('loadVehiculos', error); this.vehiculos=[]; return; }
           this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
         },
         vehiculosDeCliente(){
@@ -648,8 +636,7 @@
         // ===== Citas =====
         async loadCitas(){
           const { data, error } = await sb.from('citas').select('*, clientes(nombre)').order('fecha',{ascending:false});
-          if (error) console.error(error);
-          // enriquecemos con descripción de vehículo si la notas la trae
+          if (error) { console.error('loadCitas', error); this.citas=[]; return; }
           this.citas = (data||[]).map(a => {
             let vehiculo_desc = null;
             const m = (a.notas||'').match(/Vehículo:\s(.+)/i);
@@ -657,15 +644,12 @@
             return {...a, cliente_nombre: a.clientes?.nombre || '', vehiculo_desc};
           });
         },
-        onClienteChange(){
-          // Reset vehículo al cambiar cliente
-          this.citaForm.vehiculo_id = '';
-        },
+        onClienteChange(){ this.citaForm.vehiculo_id = ''; },
         openCita(a){
           this.citaForm = a ? {
               id:a.id,
               cliente_id:a.cliente_id,
-              vehiculo_id:'',               // no persistimos ID (sin cambiar base)
+              vehiculo_id:'',
               servicio:a.servicio||'',
               selectedServices: (a.servicio? a.servicio.split('+').map(n=>({name:n.trim(), price:0})) : []),
               fecha:(a.fecha||'').slice(0,16),
@@ -680,9 +664,10 @@
             };
         },
         toggleService(item){
-          const i = this.citaForm.selectedServices.findIndex(s=>s.name===item.name || s.name=== (item.name + ' — ' + (item.detalle||'')));
+          const key = item.name + (item.detalle ? ' — ' + item.detalle : '');
+          const i = this.citaForm.selectedServices.findIndex(s=>s.name===key || s.name===item.name);
           if (i>=0) this.citaForm.selectedServices.splice(i,1);
-          else this.citaForm.selectedServices.push({ name: item.name, price: this.num(item.price) });
+          else this.citaForm.selectedServices.push({ name: key || item.name, price: this.num(item.price) });
           this.updateTotal();
         },
         updateTotal(){
@@ -691,17 +676,14 @@
           this.citaForm.precio = total;
         },
         async saveCita(){
-          // normalizo fecha a ISO
           const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
 
-          // Armamos servicio como string concatenado y notas con vehículo (sin tocar base)
           const servicioStr = this.citaForm.selectedServices.map(s=>s.name).join(' + ') || (this.citaForm.servicio||'');
           let notas = (this.citaForm.notas||'').trim();
           const vehSel = this.vehiculos.find(v => String(v.id)===String(this.citaForm.vehiculo_id));
           if (vehSel){
             const vdesc = this.vehiculoLabel(vehSel);
-            // agregamos/actualizamos línea de vehículo en notas
-            notas = notas.replace(/(^|\n)Vehículo: .+(\n|$)/i,'$1'); // limpia si existía
+            notas = notas.replace(/(^|\n)Vehículo: .+(\n|$)/i,'$1');
             notas = (notas? (notas+'\n') : '') + `Vehículo: ${vdesc}`;
           }
 
@@ -765,8 +747,9 @@
           }
           const bySrvMap = {};
           this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
-            (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean).forEach(name=>{
-              bySrvMap[name]=(bySrvMap[name]||0)+(+c.precio||0)/((c.servicio||'').split('+').filter(Boolean).length||1);
+            const parts = (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean);
+            parts.forEach(name=>{
+              bySrvMap[name]=(bySrvMap[name]||0)+(+c.precio||0)/(parts.length||1);
             });
           });
           const labelsSrv = Object.keys(bySrvMap);
@@ -776,7 +759,7 @@
           if (ctxS) {
             this._charts.servicios = new Chart(ctxS, {
               type:'pie',
-              data:{ labels:labelsSrv, datasets:[{ data:dataSrv, backgroundColor:['#0a8d4b','#059669','#10b981','#34d399','#16a34a','#22c55e'] }]},
+              data:{ labels:labelsSrv, datasets:[{ data:dataSrv, backgroundColor:['#0a8d4b','#059669','#10b981','#34d399','#16a34a','#22c55e','#14b8a6'] }]},
               options:{ plugins:{ legend:{ position:'bottom' } } }
             });
           }
