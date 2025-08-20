@@ -24,7 +24,7 @@
   <!-- Chart.js para Reporte -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
-  <!-- Supabase (no tocar) -->
+  <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     window.sb = supabase.createClient(
@@ -167,6 +167,9 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Aviso de error si lo hubiera -->
+        <p x-show="uiErr.clientes" class="mt-3 text-sm text-red-600" x-text="uiErr.clientes"></p>
       </div>
     </section>
 
@@ -204,6 +207,8 @@
             </tbody>
           </table>
         </div>
+
+        <p x-show="uiErr.vehiculos" class="mt-3 text-sm text-red-600" x-text="uiErr.vehiculos"></p>
       </div>
     </section>
 
@@ -256,6 +261,8 @@
             </tbody>
           </table>
         </div>
+
+        <p x-show="uiErr.citas" class="mt-3 text-sm text-red-600" x-text="uiErr.citas"></p>
       </div>
     </section>
 
@@ -319,7 +326,6 @@
       <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <!-- Cliente -->
         <div>
           <label class="text-sm block mb-1">Cliente</label>
           <select class="input" x-model="citaForm.cliente_id" @change="onClienteChange()">
@@ -330,7 +336,6 @@
           </select>
         </div>
 
-        <!-- Vehículo (filtrado por cliente) -->
         <div>
           <label class="text-sm block mb-1">Vehículo</label>
           <select class="input" x-model="citaForm.vehiculo_id">
@@ -341,13 +346,11 @@
           </select>
         </div>
 
-        <!-- Fecha -->
         <div>
           <label class="text-sm block mb-1">Fecha y hora</label>
           <input class="input" type="datetime-local" x-model="citaForm.fecha">
         </div>
 
-        <!-- Estado -->
         <div>
           <label class="text-sm block mb-1">Estado</label>
           <select class="input" x-model="citaForm.estado">
@@ -357,7 +360,6 @@
           </select>
         </div>
 
-        <!-- Notas -->
         <div class="md:col-span-2">
           <label class="text-sm block mb-1">Notas</label>
           <textarea class="input" rows="3" placeholder="Observaciones…" x-model="citaForm.notas"></textarea>
@@ -368,7 +370,6 @@
       <div class="mt-4">
         <h4 class="font-semibold mb-2">Servicios (podés elegir más de uno)</h4>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <!-- Autos -->
           <div class="border rounded-lg p-3">
             <div class="font-semibold mb-2">Autos (Hatch / Sedan)</div>
             <template x-for="(item,idx) in serviceCatalog.autos" :key="'a'+idx">
@@ -381,7 +382,7 @@
               </label>
             </template>
           </div>
-          <!-- SUV / Pick-Up -->
+
           <div class="border rounded-lg p-3">
             <div class="font-semibold mb-2">SUV / Pick-Up</div>
             <template x-for="(item,idx) in serviceCatalog.suv" :key="'s'+idx">
@@ -394,7 +395,7 @@
               </label>
             </template>
           </div>
-          <!-- Motos -->
+
           <div class="border rounded-lg p-3">
             <div class="font-semibold mb-2">Motos</div>
             <template x-for="(item,idx) in serviceCatalog.motos" :key="'m'+idx">
@@ -407,7 +408,7 @@
               </label>
             </template>
           </div>
-          <!-- Tratamientos -->
+
           <div class="border rounded-lg p-3">
             <div class="font-semibold mb-2">Tratamientos</div>
             <template x-for="(grupo,gi) in tratamientos" :key="'t'+gi">
@@ -428,7 +429,6 @@
         </div>
       </div>
 
-      <!-- Total -->
       <div class="mt-4 flex items-center justify-between border-t pt-3">
         <div class="text-sm text-textmut">
           Seleccionados: <span class="font-semibold" x-text="citaForm.selectedServices.map(s=>s.name).join(' + ') || '—'"></span>
@@ -475,23 +475,17 @@
         userId:null,
 
         clientes:[], vehiculos:[], citas:[],
+        uiErr:{ clientes:'', vehiculos:'', citas:'' },
+
         modal:{ cliente:false, cita:false, vehiculo:false },
 
         clienteForm:{ id:null, nombre:'', email:'', telefono:'' },
         vehiculoForm:{ id:null, cliente_id:'', marca:'', modelo:'', dominio:'' },
 
-        // ---- CITA Form ----
         citaForm:{
-          id:null,
-          cliente_id:'',
-          vehiculo_id:'',
-          servicio:'',
-          selectedServices:[],
-          fecha:'',
-          precio:'',
-          total:0,
-          estado:'pendiente',
-          notas:''
+          id:null, cliente_id:'', vehiculo_id:'',
+          servicio:'', selectedServices:[], fecha:'', precio:'', total:0,
+          estado:'pendiente', notas:''
         },
 
         filtros:{ clientQ:'', citaFecha:'', citaEstado:'' },
@@ -503,16 +497,16 @@
         // ===== Catálogos =====
         serviceCatalog:{
           autos: [
-            { name: "Interior (Hatch / Sedan)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:150000, time:"1 día" },
-            { name: "Interior al Detalle (Hatch / Sedan)", desc:"Desarme, aspirado profundo, limpieza de techo y tapizados, descontaminación y reacondicionamiento de plásticos.", price:250000, time:"2-3 días" },
-            { name: "Motor a Vapor (Hatch / Sedan)", desc:"Limpieza técnica del vano motor a vapor.", price:100000, time:"En el día" },
-            { name: "Paquete Completo (Hatch / Sedan)", desc:"Abrillantado + Interior + Motor a Vapor.", price:350000, time:"2–3 días" }
+            { name:"Interior (Hatch / Sedan)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:150000, time:"1 día" },
+            { name:"Interior al Detalle (Hatch / Sedan)", desc:"Desarme, aspirado profundo, limpieza de techo y tapizados, descontaminación y reacondicionamiento de plásticos.", price:250000, time:"2-3 días" },
+            { name:"Motor a Vapor (Hatch / Sedan)", desc:"Limpieza técnica del vano motor a vapor.", price:100000, time:"En el día" },
+            { name:"Paquete Completo (Hatch / Sedan)", desc:"Abrillantado + Interior + Motor a Vapor.", price:350000, time:"2–3 días" }
           ],
           suv: [
-            { name: "Interior (SUV / Pick-Up)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:200000, time:"1 día" },
-            { name: "Interior al Detalle (SUV / Pick-Up)", desc:"Desarme, aspirado profundo, limpieza de techo y tapizados, descontaminación y reacondicionamiento de plásticos.", price:300000, time:"2-3 días" },
-            { name: "Motor a Vapor (SUV / Pick-Up)", desc:"Limpieza técnica del vano motor a vapor.", price:130000, time:"En el día" },
-            { name: "Paquete Completo SUV / Pick-Up", desc:"Abrillantado + Interior + Motor a Vapor.", price:450000, time:"2–3 días" }
+            { name:"Interior (SUV / Pick-Up)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:200000, time:"1 día" },
+            { name:"Interior al Detalle (SUV / Pick-Up)", desc:"Desarme, aspirado profundo, limpieza de techo y tapizados, descontaminación y reacondicionamiento de plásticos.", price:300000, time:"2-3 días" },
+            { name:"Motor a Vapor (SUV / Pick-Up)", desc:"Limpieza técnica del vano motor a vapor.", price:130000, time:"En el día" },
+            { name:"Paquete Completo SUV / Pick-Up", desc:"Abrillantado + Interior + Motor a Vapor.", price:450000, time:"2–3 días" }
           ],
           motos: [
             { name:"Tratamiento Motos", desc:"Lavado + descontaminación + reacondicionamiento de plásticos + lubricación de cadena + protección (Acrílico o Cerámico).", price:200000, time:"En el día" }
@@ -520,14 +514,14 @@
         },
         tratamientos:[
           { grupo:"Autos (Hatch / Sedan)", items:[
-              { name:"Acrílico", detalle:"Duración 6 meses", price:300000 },
-              { name:"Cerámico", detalle:"Duración 1 año", price:400000 },
-              { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:500000 }
+            { name:"Acrílico", detalle:"Duración 6 meses", price:300000 },
+            { name:"Cerámico", detalle:"Duración 1 año", price:400000 },
+            { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:500000 }
           ]},
           { grupo:"Pick-Up / SUV", items:[
-              { name:"Acrílico", detalle:"Duración 6 meses", price:400000 },
-              { name:"Cerámico", detalle:"Duración 1 año", price:500000 },
-              { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:600000 }
+            { name:"Acrílico", detalle:"Duración 6 meses", price:400000 },
+            { name:"Cerámico", detalle:"Duración 1 año", price:500000 },
+            { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:600000 }
           ]}
         ],
 
@@ -553,32 +547,48 @@
           await this.loadAll();
           if (this.tab === 'reporte') this.$nextTick(()=>this.renderCharts());
         },
-        async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); this.buildReport(); },
+        async loadAll(){
+          this.uiErr = { clientes:'', vehiculos:'', citas:'' };
+          await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]);
+          this.recalc(); this.buildReport();
+        },
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // ===== Clientes (sin order problemático) =====
+        // ===== Clientes =====
         async loadClientes(){
-          const { data, error } = await sb.from('clientes').select('id,nombre,email,telefono,created_at,creado_en,user_id');
-          if (error) { console.error('loadClientes', error); this.clientes=[]; return; }
-          // orden seguro en cliente
-          this.clientes = (data||[]).sort((a,b)=> (a.nombre||'').localeCompare(b.nombre||''));
+          try{
+            const { data, error } = await sb
+              .from('clientes')
+              .select('id,nombre,email,telefono,created_at,creado_en,user_id');
+            if (error) throw error;
+            this.clientes = (data||[]).sort((a,b)=> (a.nombre||'').localeCompare(b.nombre||''));
+          }catch(e){
+            console.error('loadClientes', e);
+            this.uiErr.clientes = e?.message || 'No se pudieron cargar los clientes.';
+            this.clientes = [];
+          }
         },
         openCliente(c){
           this.clienteForm = c ? JSON.parse(JSON.stringify(c)) : { id:null, nombre:'', email:'', telefono:'' };
           this.modal.cliente = true;
         },
         async saveCliente(){
-          const row = {
-            nombre:(this.clienteForm.nombre||'').trim(),
-            email:(this.clienteForm.email||'').trim()||null,
-            telefono:(this.clienteForm.telefono||'').trim()||null,
-            user_id:this.userId
-          };
-          let error;
-          if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id));
-          else                      ({ error } = await sb.from('clientes').insert(row));
-          if (error) alert(error.message);
-          this.modal.cliente=false; await this.loadClientes(); this.recalc(); this.buildReport();
+          try{
+            const row = {
+              nombre:(this.clienteForm.nombre||'').trim(),
+              email:(this.clienteForm.email||'').trim()||null,
+              telefono:(this.clienteForm.telefono||'').trim()||null,
+              user_id:this.userId
+            };
+            if (this.clienteForm.id)
+              await sb.from('clientes').update(row).eq('id', this.clienteForm.id);
+            else
+              await sb.from('clientes').insert(row);
+            this.modal.cliente=false;
+            await this.loadClientes(); this.recalc(); this.buildReport();
+          }catch(e){
+            alert(e?.message || 'Error al guardar cliente.');
+          }
         },
         async delCliente(id){
           if(!confirm('¿Eliminar cliente?')) return;
@@ -596,12 +606,19 @@
           );
         },
 
-        // ===== Vehículos (sin order problemático) =====
+        // ===== Vehículos =====
         async loadVehiculos(){
-          // El join anidado funciona si existe FK cliente_id -> clientes.id; si no, igual mostramos sin nombre
-          const { data, error } = await sb.from('vehiculos').select('id,cliente_id,marca,modelo,dominio,clientes(nombre)');
-          if (error) { console.error('loadVehiculos', error); this.vehiculos=[]; return; }
-          this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
+          try{
+            const { data, error } = await sb
+              .from('vehiculos')
+              .select('id,cliente_id,marca,modelo,dominio,clientes(nombre)');
+            if (error) throw error;
+            this.vehiculos = (data||[]).map(v => ({...v, cliente_nombre: v.clientes?.nombre || ''}));
+          }catch(e){
+            console.error('loadVehiculos', e);
+            this.uiErr.vehiculos = e?.message || 'No se pudieron cargar los vehículos.';
+            this.vehiculos = [];
+          }
         },
         vehiculosDeCliente(){
           const cid = this.citaForm.cliente_id;
@@ -614,17 +631,22 @@
           this.modal.vehiculo = true;
         },
         async saveVehiculo(){
-          const r = {
-            cliente_id: this.vehiculoForm.cliente_id || null,
-            marca:(this.vehiculoForm.marca||'').trim()||null,
-            modelo:(this.vehiculoForm.modelo||'').trim()||null,
-            dominio:(this.vehiculoForm.dominio||'').trim()||null
-          };
-          let error;
-          if(this.vehiculoForm.id) ({ error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id));
-          else                      ({ error } = await sb.from('vehiculos').insert(r));
-          if (error) alert(error.message);
-          this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc(); this.buildReport();
+          try{
+            const r = {
+              cliente_id: this.vehiculoForm.cliente_id || null,
+              marca:(this.vehiculoForm.marca||'').trim()||null,
+              modelo:(this.vehiculoForm.modelo||'').trim()||null,
+              dominio:(this.vehiculoForm.dominio||'').trim()||null
+            };
+            if(this.vehiculoForm.id)
+              await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id);
+            else
+              await sb.from('vehiculos').insert(r);
+            this.modal.vehiculo=false;
+            await this.loadVehiculos(); this.recalc(); this.buildReport();
+          }catch(e){
+            alert(e?.message || 'Error al guardar vehículo.');
+          }
         },
         async delVehiculo(id){
           if(!confirm('¿Eliminar vehículo?')) return;
@@ -635,33 +657,41 @@
 
         // ===== Citas =====
         async loadCitas(){
-          const { data, error } = await sb.from('citas').select('*, clientes(nombre)').order('fecha',{ascending:false});
-          if (error) { console.error('loadCitas', error); this.citas=[]; return; }
-          this.citas = (data||[]).map(a => {
-            let vehiculo_desc = null;
-            const m = (a.notas||'').match(/Vehículo:\s(.+)/i);
-            if (m) vehiculo_desc = m[1];
-            return {...a, cliente_nombre: a.clientes?.nombre || '', vehiculo_desc};
-          });
+          try{
+            const { data, error } = await sb
+              .from('citas')
+              .select('id,cliente_id,servicio,fecha,precio,estado,notas,clientes(nombre)')
+              .order('fecha',{ascending:false});
+            if (error) throw error;
+            this.citas = (data||[]).map(a => {
+              let vehiculo_desc = null;
+              const m = (a.notas||'').match(/Vehículo:\s(.+)/i);
+              if (m) vehiculo_desc = m[1];
+              return {...a, cliente_nombre: a.clientes?.nombre || '', vehiculo_desc};
+            });
+          }catch(e){
+            console.error('loadCitas', e);
+            this.uiErr.citas = e?.message || 'No se pudieron cargar las citas.';
+            this.citas = [];
+          }
         },
         onClienteChange(){ this.citaForm.vehiculo_id = ''; },
         openCita(a){
           this.citaForm = a ? {
-              id:a.id,
-              cliente_id:a.cliente_id,
-              vehiculo_id:'',
-              servicio:a.servicio||'',
-              selectedServices: (a.servicio? a.servicio.split('+').map(n=>({name:n.trim(), price:0})) : []),
-              fecha:(a.fecha||'').slice(0,16),
-              precio:a.precio||'',
-              total:+(a.precio||0),
-              estado:a.estado||'pendiente',
-              notas:a.notas||''
-            } : {
-              id:null, cliente_id:'', vehiculo_id:'', servicio:'',
-              selectedServices:[], fecha:new Date().toISOString().slice(0,16),
-              precio:'', total:0, estado:'pendiente', notas:''
-            };
+            id:a.id, cliente_id:a.cliente_id, vehiculo_id:'',
+            servicio:a.servicio||'',
+            selectedServices:(a.servicio ? a.servicio.split('+').map(n=>({name:n.trim(), price:0})) : []),
+            fecha:(a.fecha||'').slice(0,16),
+            precio:a.precio||'',
+            total:+(a.precio||0),
+            estado:a.estado||'pendiente',
+            notas:a.notas||''
+          } : {
+            id:null, cliente_id:'', vehiculo_id:'', servicio:'',
+            selectedServices:[], fecha:new Date().toISOString().slice(0,16),
+            precio:'', total:0, estado:'pendiente', notas:''
+          };
+          this.modal.cita = true;
         },
         toggleService(item){
           const key = item.name + (item.detalle ? ' — ' + item.detalle : '');
@@ -676,33 +706,43 @@
           this.citaForm.precio = total;
         },
         async saveCita(){
-          const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
+          try{
+            const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
 
-          const servicioStr = this.citaForm.selectedServices.map(s=>s.name).join(' + ') || (this.citaForm.servicio||'');
-          let notas = (this.citaForm.notas||'').trim();
-          const vehSel = this.vehiculos.find(v => String(v.id)===String(this.citaForm.vehiculo_id));
-          if (vehSel){
-            const vdesc = this.vehiculoLabel(vehSel);
-            notas = notas.replace(/(^|\n)Vehículo: .+(\n|$)/i,'$1');
-            notas = (notas? (notas+'\n') : '') + `Vehículo: ${vdesc}`;
+            const servicioStr = this.citaForm.selectedServices.map(s=>s.name).join(' + ') || (this.citaForm.servicio||'');
+            let notas = (this.citaForm.notas||'').trim();
+            const vehSel = this.vehiculos.find(v => String(v.id)===String(this.citaForm.vehiculo_id));
+            if (vehSel){
+              const vdesc = this.vehiculoLabel(vehSel);
+              notas = notas.replace(/(^|\n)Vehículo: .+(\n|$)/i,'$1');
+              notas = (notas? (notas+'\n') : '') + `Vehículo: ${vdesc}`;
+            }
+
+            // Validación mínima: cliente requerido para poder registrar cita
+            if (!this.citaForm.cliente_id) {
+              alert('Elegí un cliente para la cita.'); return;
+            }
+
+            const row = {
+              cliente_id: this.citaForm.cliente_id || null,
+              servicio:   servicioStr || null,
+              fecha:      fechaISO ? fechaISO.toISOString() : null,
+              precio:     +this.citaForm.precio || 0,
+              estado:     this.citaForm.estado,
+              notas:      notas || null,
+              user_id:    this.userId
+            };
+
+            if (this.citaForm.id)
+              await sb.from('citas').update(row).eq('id', this.citaForm.id);
+            else
+              await sb.from('citas').insert(row);
+
+            this.modal.cita=false; 
+            await this.loadCitas(); this.recalc(); this.buildReport();
+          }catch(e){
+            alert(e?.message || 'Error al guardar cita.');
           }
-
-          const row = {
-            cliente_id: this.citaForm.cliente_id || null,
-            servicio:   servicioStr || null,
-            fecha:      fechaISO ? fechaISO.toISOString() : null,
-            precio:     +this.citaForm.precio || 0,
-            estado:     this.citaForm.estado,
-            notas:      notas || null,
-            user_id:    this.userId
-          };
-
-          let error;
-          if (this.citaForm.id) ({ error } = await sb.from('citas').update(row).eq('id', this.citaForm.id));
-          else                  ({ error } = await sb.from('citas').insert(row));
-          if (error) { alert(error.message); return; }
-
-          this.modal.cita=false; await this.loadCitas(); this.recalc(); this.buildReport();
         },
         async delCita(id){
           if(!confirm('¿Eliminar cita?')) return;
