@@ -2,113 +2,103 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Monaco Detailing CRM — Acceso</title>
-  <meta name="theme-color" content="#0a8d4b" />
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Ccircle cx='64' cy='64' r='64' fill='%230a8d4b'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' dominant-baseline='middle' font-size='62' fill='white' font-family='Arial' %3EM%3C/text%3E%3C/svg%3E">
 
-  <!-- Supabase SDK GLOBAL (sin módulos) -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+  <!-- Tailwind minimal para estilos -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase (global) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
-    window.supabaseClient = window.supabase.createClient(
+    // Cliente global (usa tus credenciales)
+    window.sb = supabase.createClient(
       "https://nqokfvddbpjqrsfflntk.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xb2tmdmRkYnBqcXJzZmZsbnRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2NDE5OTgsImV4cCI6MjA3MTIxNzk5OH0.A5CzSNjHJ9y012vJjDunzYMTzoxGwu6RV88OmKYOUGo"
     );
   </script>
 
   <style>
-    :root{ --brand:#0a8d4b; --border:#e5e7eb; --muted:#5b677a; --shadow:0 18px 36px rgba(20,30,40,.12) }
-    html,body{height:100%}
-    body{margin:0;display:flex;align-items:center;justify-content:center;background:#f6f8fb;color:#0b1220;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    .card{width:100%;max-width:420px;background:#fff;border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
-    h1{margin:.2rem 0 1.2rem;text-align:center;font-size:1.4rem;font-weight:800;letter-spacing:.2px}
-    label{display:block;font-size:.9rem;margin:.25rem 0 .35rem;color:var(--muted)}
-    input{width:100%;padding:.7rem .8rem;border-radius:10px;border:1px solid #d1d5db;background:#fff}
-    input:focus{outline:none;border-color:#19c37d;box-shadow:0 0 0 3px rgba(25,195,125,.18)}
-    .actions{display:flex;flex-direction:column;gap:.7rem;margin-top:1rem}
-    .btn{border:none;border-radius:12px;padding:.8rem .9rem;cursor:pointer;font-weight:800}
-    .btn-primary{background:linear-gradient(90deg,#0a8d4b,#19c37d);color:#062015;box-shadow:0 8px 18px rgba(10,141,75,.25)}
-    .muted{font-size:.9rem;color:var(--muted);margin-top:.6rem;text-align:center}
-    .link{color:#0a8d4b;cursor:pointer;font-weight:700}
-    .msg{margin-top:.7rem;font-size:.92rem;text-align:center}
-    .error{color:#d12e2e}
-    #newPassWrap{display:none;margin-top:.85rem}
+    body{background:#f6f8fb}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 12px 24px rgba(20,30,40,.06)}
+    .btn{border:1px solid #d9e1ea;background:#fff;color:#0b1220;font-weight:700;border-radius:12px;padding:.6rem .9rem;box-shadow:0 6px 0 #e3e8ef,0 14px 24px rgba(10,20,30,.08),inset 0 1px 0 rgba(255,255,255,.7);transition:all .15s}
+    .btn-primary{background:linear-gradient(90deg,#0a8d4b,#19c37d);color:#062015;border-color:#16a86a}
+    .btn:hover{background:#f7fafc}
+    .input{border:1px solid #d1d5db;border-radius:.7rem;padding:.65rem .8rem;width:100%}
+    .input:focus{outline:none;border-color:#19c37d;box-shadow:0 0 0 3px rgba(25,195,125,.2)}
   </style>
 
   <script>
-    // Limpia tokens en hash
+    // Limpia el hash de Supabase (tokens) para evitar scroll raro
     if (location.hash && /access_token|refresh_token|type=/.test(location.hash)) {
       history.replaceState(null, document.title, location.pathname + location.search);
     }
   </script>
 </head>
-<body>
-  <div class="card">
-    <h1>Monaco Detailing CRM</h1>
+<body class="min-h-screen flex items-center justify-center p-4">
+  <div class="card w-full max-w-md p-6">
+    <h1 class="text-2xl font-extrabold text-center mb-6">Monaco Detailing CRM</h1>
 
-    <label for="email">Email</label>
-    <input id="email" type="email" placeholder="tu@correo.com" autocomplete="username email" />
+    <label class="block text-sm mb-1">Email</label>
+    <input id="email" type="email" class="input mb-3" placeholder="tu@correo.com" autocomplete="username email">
 
-    <label for="pass">Contraseña</label>
-    <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password" />
+    <label class="block text-sm mb-1">Contraseña</label>
+    <input id="pass" type="password" class="input mb-4" placeholder="••••••••" autocomplete="current-password">
 
-    <div id="newPassWrap">
-      <label for="newpass">Nueva contraseña</label>
-      <input id="newpass" type="password" placeholder="Nueva contraseña" autocomplete="new-password" />
-      <button id="btnSetNewPass" class="btn btn-primary" type="button">Guardar nueva contraseña</button>
-    </div>
+    <button id="btnSignIn" class="btn btn-primary w-full mb-2">Ingresar</button>
+    <button id="btnForgot" class="btn w-full">Olvidé mi contraseña</button>
 
-    <div class="actions">
-      <button id="btnSignIn" class="btn btn-primary" type="button">Ingresar</button>
-    </div>
-
-    <div class="muted">
-      <span id="btnForgot" class="link">Olvidé mi contraseña</span>
-    </div>
-
-    <div id="msg" class="msg"></div>
+    <p id="msg" class="text-center text-sm mt-3"></p>
   </div>
 
   <script>
-    const supabase = window.supabaseClient;
-    const $ = (s) => document.querySelector(s);
-    const msg = $("#msg"), emailEl = $("#email"), passEl = $("#pass");
-    const newPassWrap = $("#newPassWrap"), newPassEl = $("#newpass");
+    const sb = window.sb;
+    const $  = (s)=>document.querySelector(s);
+    const msg = $("#msg");
 
     (async () => {
-      const { data:{ session } } = await supabase.auth.getSession();
-      if (session) { location.href = "./dashboard.html"; return; }
-      const params = new URLSearchParams(location.hash.replace("#","?"));
-      if (params.get("type")==="recovery" || params.get("type")==="invite") newPassWrap.style.display = "block";
+      const { data:{ session } } = await sb.auth.getSession();
+      if (session) location.href = "./dashboard.html";
     })();
 
     $("#btnSignIn").addEventListener("click", async () => {
-      msg.textContent = "Ingresando…"; msg.classList.remove("error");
+      msg.textContent = "Ingresando…";
+      msg.className = "text-center text-sm mt-3 text-slate-600";
+      const email = $("#email").value.trim();
+      const password = $("#pass").value;
+
       try{
-        const { error } = await supabase.auth.signInWithPassword({
-          email: (emailEl.value||"").trim(),
-          password: passEl.value||""
-        });
+        const { error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        location.href="./dashboard.html";
-      }catch(err){ console.error(err); msg.textContent = err?.message || "Error de red"; msg.classList.add("error"); }
+        location.href = "./dashboard.html";
+      }catch(err){
+        console.error(err);
+        msg.textContent = err.message || "Error de red (CORS).";
+        msg.className = "text-center text-sm mt-3 text-red-600";
+      }
     });
 
     $("#btnForgot").addEventListener("click", async () => {
-      msg.textContent = "Enviando email de recuperación…"; msg.classList.remove("error");
-      const email = (emailEl.value||"").trim(); if(!email){ msg.textContent = "Ingresá tu email arriba."; msg.classList.add("error"); return; }
+      const email = $("#email").value.trim();
+      if (!email) {
+        msg.textContent = "Ingresá tu email arriba.";
+        msg.className = "text-center text-sm mt-3 text-red-600";
+        return;
+      }
+      msg.textContent = "Enviando email de recuperación…";
+      msg.className = "text-center text-sm mt-3 text-slate-600";
       try{
-        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: location.origin + "/index.html" });
-        if (error) throw error; msg.textContent = "Revisá tu correo para cambiar la contraseña.";
-      }catch(err){ console.error(err); msg.textContent = err?.message || "Error de red"; msg.classList.add("error"); }
-    });
-
-    $("#btnSetNewPass").addEventListener("click", async () => {
-      msg.textContent = "Actualizando contraseña…"; msg.classList.remove("error");
-      const newPass = newPassEl.value||""; if(newPass.length<6){ msg.textContent="Mínimo 6 caracteres."; msg.classList.add("error"); return; }
-      try{
-        const { error } = await supabase.auth.updateUser({ password:newPass });
-        if (error) throw error; msg.textContent="Contraseña actualizada. Redirigiendo…"; setTimeout(()=>location.href="./dashboard.html",600);
-      }catch(err){ console.error(err); msg.textContent = err?.message || "Error de red"; msg.classList.add("error"); }
+        const redirectTo = location.origin + "/index.html";
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) throw error;
+        msg.textContent = "Revisá tu correo para cambiar la contraseña.";
+        msg.className = "text-center text-sm mt-3 text-emerald-600";
+      }catch(err){
+        msg.textContent = err.message || "Error de red.";
+        msg.className = "text-center text-sm mt-3 text-red-600";
+      }
     });
   </script>
 </body>
