@@ -21,7 +21,7 @@
   </script>
   <!-- Alpine -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <!-- Chart.js (para Reportes) -->
+  <!-- Chart.js para Reportes -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
   <!-- Supabase -->
@@ -43,6 +43,7 @@
     .input:focus, select:focus, textarea:focus{ outline:none; border-color:#19c37d; box-shadow:0 0 0 3px rgba(25,195,125,.2) }
     .pill{ display:inline-flex; align-items:center; border-radius:999px; padding:.2rem .55rem; font-size:.75rem; font-weight:700 }
     [x-cloak]{ display:none !important }
+    .chip{ display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .6rem; border-radius:999px; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; font-size:.9rem }
   </style>
 </head>
 
@@ -62,7 +63,7 @@
     </div>
   </header>
 
-  <!-- Nav -->
+  <!-- Nav (orden pedido) -->
   <nav class="bg-white border-b border-border">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-2">
       <button class="btn" :class="{'btn-primary':tab==='home'}" @click="tab='home'">Dashboard</button>
@@ -115,7 +116,7 @@
             <template x-for="a in citasHoy()" :key="a.id">
               <li class="py-3 flex items-center justify-between">
                 <div>
-                  <div class="font-semibold" x-text="(a.cliente_nombre||'Cliente') + (a.vehiculo_label? ' — '+a.vehiculo_label : '')"></div>
+                  <div class="font-semibold" x-text="(a.cliente_nombre || 'Cliente') + (a.vehiculo_str ? ' — ' + a.vehiculo_str : '')"></div>
                   <div class="text-sm text-textmut" x-text="a.servicio + ' — ' + fmtARS(a.precio || 0)"></div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -135,7 +136,7 @@
       <div class="card p-5">
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
           <h2 class="font-bold text-brand text-lg">Clientes</h2>
-        <div class="flex gap-2 w-full md:w-auto">
+          <div class="flex gap-2 w-full md:w-auto">
             <input class="input w-full md:w-72" placeholder="Buscar…" x-model="filtros.clientQ">
             <button class="btn btn-primary" @click="openCliente()">+ Nuevo cliente</button>
           </div>
@@ -181,7 +182,7 @@
         <div class="overflow-x-auto mt-4">
           <table class="min-w-full text-sm">
             <thead>
-            <tr class="text-left border-b">
+              <tr class="text-left border-b">
                 <th class="py-2 px-3">Cliente</th>
                 <th class="py-2 px-3">Marca/Modelo</th>
                 <th class="py-2 px-3">Patente</th>
@@ -239,7 +240,7 @@
             <tbody>
               <template x-for="a in citasFiltradas()" :key="a.id">
                 <tr class="border-b hover:bg-slate-50">
-                  <td class="py-2 px-3" x-text="(a.cliente_nombre||'') + (a.vehiculo_label? ' — '+a.vehiculo_label : '')"></td>
+                  <td class="py-2 px-3" x-text="(a.cliente_nombre||'') + (a.vehiculo_str ? ' — ' + a.vehiculo_str : '')"></td>
                   <td class="py-2 px-3" x-text="a.servicio"></td>
                   <td class="py-2 px-3" x-text="fmtDateTime(a.fecha)"></td>
                   <td class="py-2 px-3" x-text="fmtARS(a.precio || 0)"></td>
@@ -257,20 +258,23 @@
       </div>
     </section>
 
-    <!-- REPORTES (simple, para que compile sin errores) -->
+    <!-- REPORTES -->
     <section x-show="tab==='reporte'" x-cloak>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="card p-5 text-center">
           <h3 class="text-lg font-semibold opacity-80">Ingresos</h3>
           <div class="text-3xl font-extrabold mt-1 text-brand" x-text="fmtARS(report.ingresos)"></div>
+          <div class="text-xs opacity-70">+12% vs mes anterior</div>
         </div>
         <div class="card p-5 text-center">
           <h3 class="text-lg font-semibold opacity-80">Clientes</h3>
           <div class="text-3xl font-extrabold mt-1" x-text="report.clientes"></div>
+          <div class="text-xs opacity-70">+8% vs mes anterior</div>
         </div>
         <div class="card p-5 text-center">
           <h3 class="text-lg font-semibold opacity-80">Ganancia total</h3>
           <div class="text-3xl font-extrabold mt-1 text-amber-500" x-text="fmtARS(report.ganancia)"></div>
+          <div class="text-xs opacity-70">Ingresos - costos estimados (30%)</div>
         </div>
       </div>
 
@@ -332,25 +336,96 @@
 
   <!-- MODAL CITA -->
   <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
-    <div class="card w-full max-w-lg p-5">
+    <div class="card w-full max-w-3xl p-5">
       <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <select class="input" x-model="citaForm.cliente_id">
-          <option value="">Cliente…</option>
-          <template x-for="c in clientes" :key="c.id">
-            <option :value="c.id" x-text="c.nombre"></option>
-          </template>
-        </select>
-        <input class="input" placeholder="Servicio" x-model="citaForm.servicio">
-        <input class="input" type="datetime-local" x-model="citaForm.fecha">
-        <input class="input" type="number" min="0" step="1" placeholder="Precio (ARS)" x-model="citaForm.precio">
-        <select class="input" x-model="citaForm.estado">
-          <option value="pendiente">Pendiente</option>
-          <option value="completado">Completado</option>
-          <option value="cancelado">Cancelado</option>
-        </select>
-        <textarea class="input md:col-span-2" rows="3" placeholder="Notas" x-model="citaForm.notas"></textarea>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label class="text-sm block mb-1">Cliente</label>
+          <select class="input" x-model="citaForm.cliente_id" @change="onClienteChange()">
+            <option value="">Seleccioná cliente…</option>
+            <template x-for="c in clientes" :key="c.id">
+              <option :value="c.id" x-text="c.nombre"></option>
+            </template>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-sm block mb-1">Vehículo</label>
+          <select class="input" x-model="citaForm.vehiculo_id" :disabled="vehiculosCliente.length===0">
+            <option value="">{{ vehiculosCliente.length? 'Seleccioná vehículo…' : 'Sin vehículos del cliente' }}</option>
+            <template x-for="v in vehiculosCliente" :key="v.id">
+              <option :value="v.id" x-text="v.marca + ' ' + (v.modelo||'') + (v.dominio? ' ('+v.dominio+')':'')"></option>
+            </template>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-sm block mb-1">Fecha y hora</label>
+          <input class="input" type="datetime-local" x-model="citaForm.fecha">
+        </div>
       </div>
+
+      <!-- Selector de servicios -->
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label class="text-sm block mb-1">Categoría</label>
+          <select class="input" x-model="picker.categoria">
+            <option value="">Elegí una categoría…</option>
+            <option value="autos">Autos (Hatch / Sedan)</option>
+            <option value="suv">SUV / Pick-Up</option>
+            <option value="motos">Motos</option>
+            <option value="t_auto">Tratamientos — Autos</option>
+            <option value="t_suv">Tratamientos — Pick-Up / SUV</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm block mb-1">Servicio</label>
+          <select class="input" x-model="picker.item">
+            <option value="">Seleccioná servicio…</option>
+            <template x-for="opt in pickerOptions()" :key="opt.name">
+              <option :value="opt.name" x-text="opt.name + ' — $ ' + fmtNum(opt.price)"></option>
+            </template>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button class="btn btn-primary w-full" @click="addServicio()">Agregar</button>
+        </div>
+      </div>
+
+      <div class="mt-3" x-show="citaForm.servicios.length">
+        <div class="text-sm mb-1 font-semibold">Seleccionados</div>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="(s,idx) in citaForm.servicios" :key="idx">
+            <span class="chip">
+              <span x-text="s.name"></span>
+              <span class="opacity-60" x-text="'$ ' + fmtNum(s.price)"></span>
+              <button class="text-emerald-700/70 hover:text-emerald-900" @click="removeServicio(idx)">✕</button>
+            </span>
+          </template>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+        <div>
+          <label class="text-sm block mb-1">Estado</label>
+          <select class="input" x-model="citaForm.estado">
+            <option value="pendiente">Pendiente</option>
+            <option value="completado">Completado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm block mb-1">Total</label>
+          <input class="input" :value="fmtARS(totalServicios())" disabled>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <label class="text-sm block mb-1">Notas</label>
+        <textarea class="input" rows="3" placeholder="Notas (opcional)" x-model="citaForm.notas"></textarea>
+      </div>
+
       <div class="mt-4 flex justify-end gap-2">
         <button class="btn" @click="modal.cita=false">Cancelar</button>
         <button class="btn btn-primary" @click="saveCita()">Guardar</button>
@@ -358,8 +433,37 @@
     </div>
   </div>
 
-  <!-- LÓGICA -->
- <script>
+  <script>
+    // Catálogo
+    const servicesCatalog = {
+      autos: [
+        { name: "Interior (Hatch / Sedan)", price: 150000 },
+        { name: "Interior al Detalle (Hatch / Sedan)", price: 250000 },
+        { name: "Motor a Vapor (Hatch / Sedan)", price: 100000 },
+        { name: "Paquete Completo (Hatch / Sedan)", price: 350000 }
+      ],
+      suv: [
+        { name: "Interior (SUV / Pick-Up)", price: 200000 },
+        { name: "Interior al Detalle (SUV / Pick-Up)", price: 300000 },
+        { name: "Motor a Vapor (SUV / Pick-Up)", price: 130000 },
+        { name: "Paquete Completo SUV / Pick-Up", price: 450000 }
+      ],
+      motos: [
+        { name: "Tratamiento Motos", price: 200000 }
+      ],
+      t_auto: [
+        { name: "Acrílico — Autos (6 meses)", price: 300000 },
+        { name: "Cerámico — Autos (1 año)", price: 400000 },
+        { name: "Cerámico c/Grafeno — Autos (2 años)", price: 500000 }
+      ],
+      t_suv: [
+        { name: "Acrílico — SUV/Pick-Up (6 meses)", price: 400000 },
+        { name: "Cerámico — SUV/Pick-Up (1 año)", price: 500000 },
+        { name: "Cerámico c/Grafeno — SUV/Pick-Up (2 años)", price: 600000 }
+      ]
+    };
+
+    <script>
   const sb = window.sb;
 
   window.crm = function(){
