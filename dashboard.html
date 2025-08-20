@@ -499,43 +499,107 @@
 
         report:{ ingresos:0, ganancia:0, clientes:0 },
         _charts:{ servicios:null, ingresos:null, clientes:null },
+        serviceTab: 'autos', // pestaña activa en el selector de servicios
 
-        // Catálogos
-        serviceCatalog:{
-          autos: [
-            { name: "Interior (Hatch / Sedan)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:150000, time:"1 día" },
-            { name: "Interior al Detalle (Hatch / Sedan)", desc:"Desarme, aspirado profundo, limpieza de techo y tapizados, descontaminación y reacondicionamiento de plásticos.", price:250000, time:"2-3 días" },
-            { name: "Motor a Vapor (Hatch / Sedan)", desc:"Limpieza técnica del vano motor a vapor.", price:100000, time:"En el día" },
-            { name: "Paquete Completo (Hatch / Sedan)", desc:"Abrillantado + Interior + Motor a Vapor.", price:350000, time:"2–3 días" }
-          ],
-          suv: [
-            { name: "Interior (SUV / Pick-Up)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:200000, time:"1 día" },
-            { name: "Interior al Detalle (SUV / Pick-Up)", desc:"Desarme, aspirado profundo, limpieza de techo y tapizados, descontaminación y reacondicionamiento de plásticos.", price:300000, time:"2-3 días" },
-            { name: "Motor a Vapor (SUV / Pick-Up)", desc:"Limpieza técnica del vano motor a vapor.", price:130000, time:"En el día" },
-            { name: "Paquete Completo SUV / Pick-Up", desc:"Abrillantado + Interior + Motor a Vapor.", price:450000, time:"2–3 días" }
-          ],
-          motos: [
-            { name:"Tratamiento Motos", desc:"Lavado + descontaminación + reacondicionamiento de plásticos + lubricación de cadena + protección (Acrílico o Cerámico).", price:200000, time:"En el día" }
-          ]
-        },
-        tratamientos:[
-          {
-            grupo:"Autos (Hatch / Sedan)",
-            items:[
-              { name:"Acrílico", detalle:"Duración 6 meses", price:300000 },
-              { name:"Cerámico", detalle:"Duración 1 año", price:400000 },
-              { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:500000 }
-            ]
-          },
-          {
-            grupo:"Pick-Up / SUV",
-            items:[
-              { name:"Acrílico", detalle:"Duración 6 meses", price:400000 },
-              { name:"Cerámico", detalle:"Duración 1 año", price:500000 },
-              { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:600000 }
-            ]
-          }
-        ],
+<!-- Catálogo de servicios (segmentado por pestañas) -->
+<div class="mt-4">
+  <h4 class="font-semibold mb-2">Servicios (podés elegir más de uno)</h4>
+
+  <!-- Tabs -->
+  <div class="flex flex-wrap gap-2 mb-3">
+    <button class="btn"
+            :class="{'btn-primary':serviceTab==='autos'}"
+            @click="serviceTab='autos'">Autos (Hatch / Sedan)</button>
+    <button class="btn"
+            :class="{'btn-primary':serviceTab==='suv'}"
+            @click="serviceTab='suv'">SUV / Pick-Up</button>
+    <button class="btn"
+            :class="{'btn-primary':serviceTab==='motos'}"
+            @click="serviceTab='motos'">Motos</button>
+    <button class="btn"
+            :class="{'btn-primary':serviceTab==='tratamientos'}"
+            @click="serviceTab='tratamientos'">Tratamientos</button>
+  </div>
+
+  <!-- Contenido de cada pestaña -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+    <!-- AUTOS -->
+    <template x-if="serviceTab==='autos'">
+      <div class="md:col-span-2 border rounded-lg p-3">
+        <div class="font-semibold mb-2">Autos (Hatch / Sedan)</div>
+        <template x-for="(item,idx) in serviceCatalog.autos" :key="'a'+idx">
+          <label class="flex items-start gap-2 mb-2 cursor-pointer">
+            <input type="checkbox" class="mt-1" :value="item.name"
+                   @change="toggleService(item)">
+            <div>
+              <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
+              <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
+            </div>
+          </label>
+        </template>
+      </div>
+    </template>
+
+    <!-- SUV / PICK-UP -->
+    <template x-if="serviceTab==='suv'">
+      <div class="md:col-span-2 border rounded-lg p-3">
+        <div class="font-semibold mb-2">SUV / Pick-Up</div>
+        <template x-for="(item,idx) in serviceCatalog.suv" :key="'s'+idx">
+          <label class="flex items-start gap-2 mb-2 cursor-pointer">
+            <input type="checkbox" class="mt-1" :value="item.name"
+                   @change="toggleService(item)">
+            <div>
+              <div class="font-medium" x-text="item.name + ' — ' + fmtARS(num(item.price))"></div>
+              <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
+            </div>
+          </label>
+        </template>
+      </div>
+    </template>
+
+    <!-- MOTOS -->
+    <template x-if="serviceTab==='motos'">
+      <div class="md:col-span-2 border rounded-lg p-3">
+        <div class="font-semibold mb-2">Motos</div>
+        <template x-for="(item,idx) in serviceCatalog.motos" :key="'m'+idx">
+          <label class="flex items-start gap-2 mb-2 cursor-pointer">
+            <input type="checkbox" class="mt-1" :value="item.name"
+                   @change="toggleService(item)">
+            <div>
+              <div class="font-medium"
+                   x-text="item.name + ' — ' + (typeof item.price==='number' ? fmtARS(item.price) : item.price)"></div>
+              <div class="text-xs text-textmut" x-text="item.desc + ' • ' + item.time"></div>
+            </div>
+          </label>
+        </template>
+      </div>
+    </template>
+
+    <!-- TRATAMIENTOS -->
+    <template x-if="serviceTab==='tratamientos'">
+      <div class="md:col-span-2 border rounded-lg p-3">
+        <div class="font-semibold mb-2">Tratamientos</div>
+        <template x-for="(grupo,gi) in tratamientos" :key="'t'+gi">
+          <div class="mb-3">
+            <div class="text-sm font-semibold mb-1" x-text="grupo.grupo"></div>
+            <template x-for="(it,ii) in grupo.items" :key="'ti'+gi+'-'+ii">
+              <label class="flex items-start gap-2 mb-1 cursor-pointer">
+                <input type="checkbox" class="mt-1"
+                       @change="toggleService({ name: it.name + ' — ' + it.detalle, price: it.price })">
+                <div class="text-sm">
+                  <span class="font-medium" x-text="it.name + ' — ' + it.detalle + ' — ' + fmtARS(it.price)"></span>
+                </div>
+              </label>
+            </template>
+          </div>
+        </template>
+      </div>
+    </template>
+
+  </div>
+</div>
+
 
         // Helpers
         num(v){ return typeof v==='number' ? v : (parseInt(String(v).replace(/[^0-9]/g,''))||0) },
