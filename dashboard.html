@@ -7,25 +7,14 @@
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Ccircle cx='64' cy='64' r='64' fill='%230a8d4b'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' dominant-baseline='middle' font-size='62' fill='white' font-family='Arial' %3EM%3C/text%3E%3C/svg%3E">
 
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors:{ brand:"#0a8d4b", brand2:"#19c37d", border:"#e5e7eb", textmut:"#5b677a" },
-          boxShadow:{ card:"0 12px 24px rgba(20,30,40,.06)" }
-        }
-      }
-    }
+    tailwind.config = { theme:{ extend:{ colors:{ brand:"#0a8d4b", brand2:"#19c37d", border:"#e5e7eb", textmut:"#5b677a" }, boxShadow:{ card:"0 12px 24px rgba(20,30,40,.06)" } } } }
   </script>
 
-  <!-- Alpine -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <!-- Chart.js para Reporte -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
-  <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     window.sb = supabase.createClient(
@@ -49,7 +38,6 @@
 
 <body x-data="crm()" x-init="init()">
 
-  <!-- Topbar -->
   <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-border">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -63,7 +51,6 @@
     </div>
   </header>
 
-  <!-- Nav (orden solicitado) -->
   <nav class="bg-white border-b border-border">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-2">
       <button class="btn" :class="{'btn-primary':tab==='home'}" @click="tab='home'">Dashboard</button>
@@ -319,7 +306,6 @@
       <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <!-- Cliente -->
         <div>
           <label class="text-sm block mb-1">Cliente</label>
           <select class="input" x-model="citaForm.cliente_id" @change="onClienteChange()">
@@ -330,7 +316,6 @@
           </select>
         </div>
 
-        <!-- Vehículo -->
         <div>
           <label class="text-sm block mb-1">Vehículo</label>
           <select class="input" x-model="citaForm.vehiculo_id">
@@ -341,13 +326,11 @@
           </select>
         </div>
 
-        <!-- Fecha -->
         <div>
           <label class="text-sm block mb-1">Fecha y hora</label>
           <input class="input" type="datetime-local" x-model="citaForm.fecha">
         </div>
 
-        <!-- Estado -->
         <div>
           <label class="text-sm block mb-1">Estado</label>
           <select class="input" x-model="citaForm.estado">
@@ -357,20 +340,18 @@
           </select>
         </div>
 
-        <!-- Notas -->
         <div class="md:col-span-2">
           <label class="text-sm block mb-1">Notas</label>
           <textarea class="input" rows="3" placeholder="Observaciones…" x-model="citaForm.notas"></textarea>
         </div>
       </div>
 
-      <!-- Segmento + Menú desplegable de servicios -->
+      <!-- Segmento + Menú de servicios multiselección -->
       <div class="mt-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-          <!-- Segmento -->
           <div>
             <label class="text-sm block mb-1">Segmento</label>
-            <select class="input" x-model="serviceTab" @change="$nextTick(()=>{})">
+            <select class="input" x-model="serviceTab">
               <option value="autos">Autos (Hatch / Sedan)</option>
               <option value="suv">SUV / Pick-Up</option>
               <option value="motos">Motos</option>
@@ -378,7 +359,6 @@
             </select>
           </div>
 
-          <!-- Dropdown multiselección -->
           <div class="relative" @click.outside="showSrvDD=false">
             <label class="text-sm block mb-1">Servicios</label>
             <button type="button" class="input text-left flex items-center justify-between"
@@ -387,14 +367,10 @@
               <span>▾</span>
             </button>
 
-            <!-- Panel -->
-            <div x-show="showSrvDD" x-transition
-                 class="absolute z-50 mt-1 w-full card p-3 max-h-72 overflow-auto">
-              <!-- listado según segmento actual -->
+            <div x-show="showSrvDD" x-transition class="absolute z-50 mt-1 w-full card p-3 max-h-72 overflow-auto">
               <template x-for="opt in currentServiceOptions()" :key="opt.key">
                 <label class="flex items-start gap-2 py-1 cursor-pointer">
-                  <input type="checkbox" class="mt-1"
-                         :checked="isSelected(opt.nameLabel)"
+                  <input type="checkbox" class="mt-1" :checked="isSelected(opt.nameLabel)"
                          @change="toggleService({ name: opt.nameLabel, price: num(opt.price) })">
                   <div>
                     <div class="text-sm font-medium" x-text="opt.nameLabel + ' — ' + fmtARS(num(opt.price))"></div>
@@ -415,7 +391,6 @@
         </div>
       </div>
 
-      <!-- Total -->
       <div class="mt-4 flex items-center justify-between border-t pt-3">
         <div class="text-sm text-textmut">
           Seleccionados: <span class="font-semibold" x-text="citaForm.selectedServices.map(s=>s.name).join(' + ') || '—'"></span>
@@ -452,7 +427,6 @@
     </div>
   </div>
 
-  <!-- LÓGICA -->
   <script>
     const sb = window.sb;
 
@@ -468,16 +442,9 @@
         vehiculoForm:{ id:null, cliente_id:'', marca:'', modelo:'', dominio:'' },
 
         citaForm:{
-          id:null,
-          cliente_id:'',
-          vehiculo_id:'',
-          servicio:'',
-          selectedServices:[],
-          fecha:'',
-          precio:'',
-          total:0,
-          estado:'pendiente',
-          notas:''
+          id:null, cliente_id:'', vehiculo_id:'', servicio:'',
+          selectedServices:[], fecha:'', precio:'', total:0,
+          estado:'pendiente', notas:''
         },
 
         filtros:{ clientQ:'', citaFecha:'', citaEstado:'' },
@@ -486,11 +453,9 @@
         report:{ ingresos:0, ganancia:0, clientes:0 },
         _charts:{ servicios:null, ingresos:null, clientes:null },
 
-        /* UI dropdown servicios */
         showSrvDD:false,
         serviceTab:'autos',
 
-        // Catálogos
         serviceCatalog:{
           autos: [
             { name: "Interior (Hatch / Sedan)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:150000, time:"1 día" },
@@ -509,36 +474,24 @@
           ]
         },
         tratamientos:[
-          {
-            grupo:"Autos (Hatch / Sedan)",
-            items:[
+          { grupo:"Autos (Hatch / Sedan)", items:[
               { name:"Acrílico", detalle:"Duración 6 meses", price:300000 },
               { name:"Cerámico", detalle:"Duración 1 año", price:400000 },
               { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:500000 }
-            ]
-          },
-          {
-            grupo:"Pick-Up / SUV",
-            items:[
+            ]},
+          { grupo:"Pick-Up / SUV", items:[
               { name:"Acrílico", detalle:"Duración 6 meses", price:400000 },
               { name:"Cerámico", detalle:"Duración 1 año", price:500000 },
               { name:"Cerámico c/Grafeno", detalle:"Duración 2 años", price:600000 }
-            ]
-          }
+            ]}
         ],
 
-        // ===== Helpers =====
         num(v){ return typeof v==='number' ? v : (parseInt(String(v).replace(/[^0-9]/g,''))||0) },
         fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
         fmtDateTime(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleString('es-AR',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); },
-        statusPill(s){ return {
-          'bg-emerald-100 text-emerald-700': s==='completado',
-          'bg-yellow-100 text-yellow-700':  s==='pendiente',
-          'bg-red-100 text-red-700':        s==='cancelado'
-        }},
+        statusPill(s){ return { 'bg-emerald-100 text-emerald-700': s==='completado', 'bg-yellow-100 text-yellow-700': s==='pendiente', 'bg-red-100 text-red-700': s==='cancelado' }},
         vehiculoLabel(v){ return `${v.marca||''} ${v.modelo||''} ${v.dominio?('('+v.dominio+')'):''}`.trim() || 'Vehículo'; },
 
-        // ===== Init / Refresh =====
         async init(){
           const { data:{ session } } = await sb.auth.getSession();
           if(!session){ location.href='./index.html'; return; }
@@ -552,86 +505,45 @@
         async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); this.buildReport(); },
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // ===== Clientes =====
         async loadClientes(){
           const { data, error } = await sb.from('clientes').select('id,nombre,email,telefono').order('id',{ascending:false});
           if (error){ console.error('loadClientes', error); this.clientes=[]; return; }
           this.clientes = data || [];
         },
-        openCliente(c){
-          this.clienteForm = c ? JSON.parse(JSON.stringify(c)) : { id:null, nombre:'', email:'', telefono:'' };
-          this.modal.cliente = true;
-        },
+        openCliente(c){ this.clienteForm = c ? JSON.parse(JSON.stringify(c)) : { id:null, nombre:'', email:'', telefono:'' }; this.modal.cliente = true; },
         async saveCliente(){
-          const row = {
-            nombre:(this.clienteForm.nombre||'').trim(),
-            email:(this.clienteForm.email||'').trim()||null,
-            telefono:(this.clienteForm.telefono||'').trim()||null,
-            user_id:this.userId
-          };
+          const row = { nombre:(this.clienteForm.nombre||'').trim(), email:(this.clienteForm.email||'').trim()||null, telefono:(this.clienteForm.telefono||'').trim()||null, user_id:this.userId };
           let error;
           if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id));
           else                      ({ error } = await sb.from('clientes').insert(row));
           if (error) { alert(error.message); return; }
           this.modal.cliente=false; await this.loadClientes(); this.recalc(); this.buildReport();
         },
-        async delCliente(id){
-          if(!confirm('¿Eliminar cliente?')) return;
-          const { error } = await sb.from('clientes').delete().eq('id', id);
-          if (error) alert(error.message);
-          await this.loadClientes(); this.recalc(); this.buildReport();
-        },
+        async delCliente(id){ if(!confirm('¿Eliminar cliente?')) return; const { error } = await sb.from('clientes').delete().eq('id', id); if (error) alert(error.message); await this.loadClientes(); this.recalc(); this.buildReport(); },
         clientesFiltrados(){
           const q=(this.filtros.clientQ||'').toLowerCase();
           if(!q) return this.clientes;
-          return this.clientes.filter(c =>
-            (c.nombre||'').toLowerCase().includes(q) ||
-            (c.email||'').toLowerCase().includes(q) ||
-            (c.telefono||'').toLowerCase().includes(q)
-          );
+          return this.clientes.filter(c => (c.nombre||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q) || (c.telefono||'').toLowerCase().includes(q));
         },
 
-        // ===== Vehículos =====
         async loadVehiculos(){
           const { data, error } = await sb.from('vehiculos').select('id,cliente_id,marca,modelo,dominio').order('id',{ascending:false});
           if (error){ console.error('loadVehiculos', error); this.vehiculos=[]; return; }
           this.vehiculos = data || [];
         },
-        vehiculosRender(){
-          const map = Object.fromEntries(this.clientes.map(c=>[String(c.id), c.nombre]));
-          return this.vehiculos.map(v => ({ ...v, cliente_nombre: map[String(v.cliente_id)] || '' }));
-        },
-        vehiculosDeCliente(){
-          const cid = this.citaForm.cliente_id;
-          return this.vehiculos.filter(v => String(v.cliente_id) === String(cid));
-        },
-        openVehiculo(v){
-          this.vehiculoForm = v
-            ? {id:v.id, cliente_id:v.cliente_id, marca:v.marca, modelo:v.modelo, dominio:v.dominio}
-            : {id:null, cliente_id:'', marca:'', modelo:'', dominio:''};
-          this.modal.vehiculo = true;
-        },
+        vehiculosRender(){ const map = Object.fromEntries(this.clientes.map(c=>[String(c.id), c.nombre])); return this.vehiculos.map(v => ({ ...v, cliente_nombre: map[String(v.cliente_id)] || '' })); },
+        vehiculosDeCliente(){ const cid = this.citaForm.cliente_id; return this.vehiculos.filter(v => String(v.cliente_id) === String(cid)); },
+        openVehiculo(v){ this.vehiculoForm = v ? {id:v.id, cliente_id:v.cliente_id, marca:v.marca, modelo:v.modelo, dominio:v.dominio} : {id:null, cliente_id:'', marca:'', modelo:'', dominio:''}; this.modal.vehiculo = true; },
         async saveVehiculo(){
-          const r = {
-            cliente_id: this.vehiculoForm.cliente_id || null,
-            marca:(this.vehiculoForm.marca||'').trim()||null,
-            modelo:(this.vehiculoForm.modelo||'').trim()||null,
-            dominio:(this.vehiculoForm.dominio||'').trim()||null
-          };
+          const r = { cliente_id: this.vehiculoForm.cliente_id || null, marca:(this.vehiculoForm.marca||'').trim()||null, modelo:(this.vehiculoForm.modelo||'').trim()||null, dominio:(this.vehiculoForm.dominio||'').trim()||null };
           let error;
           if(this.vehiculoForm.id) ({ error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id));
           else                      ({ error } = await sb.from('vehiculos').insert(r));
           if (error) { alert(error.message); return; }
           this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc(); this.buildReport();
         },
-        async delVehiculo(id){
-          if(!confirm('¿Eliminar vehículo?')) return;
-          const { error } = await sb.from('vehiculos').delete().eq('id', id);
-          if (error) alert(error.message);
-          await this.loadVehiculos(); this.recalc(); this.buildReport();
-        },
+        async delVehiculo(id){ if(!confirm('¿Eliminar vehículo?')) return; const { error } = await sb.from('vehiculos').delete().eq('id', id); if (error) alert(error.message); await this.loadVehiculos(); this.recalc(); this.buildReport(); },
 
-        // ===== Citas =====
         async loadCitas(){
           const { data, error } = await sb.from('citas').select('id,cliente_id,servicio,fecha,precio,estado,notas').order('fecha',{ascending:false});
           if (error){ console.error('loadCitas', error); this.citas=[]; return; }
@@ -654,42 +566,25 @@
         onClienteChange(){ this.citaForm.vehiculo_id = ''; },
         openCita(a){
           this.citaForm = a ? {
-            id:a.id,
-            cliente_id:a.cliente_id,
-            vehiculo_id:'',
-            servicio:a.servicio||'',
-            selectedServices: (a.servicio? a.servicio.split('+').map(n=>({name:n.trim(), price:0})) : []),
-            fecha:(a.fecha||'').slice(0,16),
-            precio:a.precio||'',
-            total:+(a.precio||0),
-            estado:a.estado||'pendiente',
-            notas:a.notas||''
+            id:a.id, cliente_id:a.cliente_id, vehiculo_id:'', servicio:a.servicio||'',
+            selectedServices:(a.servicio? a.servicio.split('+').map(n=>({name:n.trim(), price:0})) : []),
+            fecha:(a.fecha||'').slice(0,16), precio:a.precio||'', total:+(a.precio||0),
+            estado:a.estado||'pendiente', notas:a.notas||''
           } : {
-            id:null, cliente_id:'', vehiculo_id:'', servicio:'',
-            selectedServices:[], fecha:new Date().toISOString().slice(0,16),
-            precio:'', total:0, estado:'pendiente', notas:''
+            id:null, cliente_id:'', vehiculo_id:'', servicio:'', selectedServices:[],
+            fecha:new Date().toISOString().slice(0,16), precio:'', total:0, estado:'pendiente', notas:''
           };
           this.modal.cita = true;
-          this.recalcTotalFromSelected();
+          this.updateTotal();
         },
 
-        // Opciones de servicios según segmento
         currentServiceOptions(){
-          if (this.serviceTab==='autos')
-            return this.serviceCatalog.autos.map((s,i)=>({ key:'a'+i, nameLabel:s.name, price:s.price }));
-          if (this.serviceTab==='suv')
-            return this.serviceCatalog.suv.map((s,i)=>({ key:'s'+i, nameLabel:s.name, price:s.price }));
-          if (this.serviceTab==='motos')
-            return this.serviceCatalog.motos.map((s,i)=>({ key:'m'+i, nameLabel:s.name, price:s.price }));
-          const out=[];
-          this.tratamientos.forEach((g,gi)=>{
-            g.items.forEach((it,ii)=>{
-              out.push({ key:`t${gi}-${ii}`, nameLabel:`${it.name} — ${it.detalle}`, price:it.price });
-            });
-          });
+          if (this.serviceTab==='autos') return this.serviceCatalog.autos.map((s,i)=>({ key:'a'+i, nameLabel:s.name, price:s.price }));
+          if (this.serviceTab==='suv')   return this.serviceCatalog.suv.map((s,i)=>({ key:'s'+i, nameLabel:s.name, price:s.price }));
+          if (this.serviceTab==='motos') return this.serviceCatalog.motos.map((s,i)=>({ key:'m'+i, nameLabel:s.name, price:s.price }));
+          const out=[]; this.tratamientos.forEach((g,gi)=>g.items.forEach((it,ii)=>out.push({ key:`t${gi}-${ii}`, nameLabel:`${it.name} — ${it.detalle}`, price:it.price })));
           return out;
         },
-
         isSelected(name){ return this.citaForm.selectedServices.some(s=>s.name===name); },
         toggleService(item){
           const idx = this.citaForm.selectedServices.findIndex(s=>s.name===item.name);
@@ -697,13 +592,10 @@
           else this.citaForm.selectedServices.push({ name:item.name, price:this.num(item.price) });
           this.updateTotal();
         },
-
         updateTotal(){
           const total = this.citaForm.selectedServices.reduce((acc,s)=>acc + this.num(s.price), 0);
-          this.citaForm.total = total;
-          this.citaForm.precio = total;
+          this.citaForm.total = total; this.citaForm.precio = total;
         },
-        recalcTotalFromSelected(){ this.updateTotal(); },
 
         async saveCita(){
           const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
@@ -715,128 +607,92 @@
             notas = notas.replace(/(^|\n)Vehículo: .+(\n|$)/i,'$1');
             notas = (notas? (notas+'\n') : '') + `Vehículo: ${vdesc}`;
           }
-
-          const row = {
-            cliente_id: this.citaForm.cliente_id || null,
-            servicio:   servicioStr || null,
-            fecha:      fechaISO ? fechaISO.toISOString() : null,
-            precio:     +this.citaForm.precio || 0,
-            estado:     this.citaForm.estado,
-            notas:      notas || null,
-            user_id:    this.userId
-          };
-
+          const row = { cliente_id:this.citaForm.cliente_id||null, servicio:servicioStr||null, fecha:fechaISO?fechaISO.toISOString():null, precio:+this.citaForm.precio||0, estado:this.citaForm.estado, notas:notas||null, user_id:this.userId };
           let error;
           if (this.citaForm.id) ({ error } = await sb.from('citas').update(row).eq('id', this.citaForm.id));
           else                  ({ error } = await sb.from('citas').insert(row));
           if (error) { alert(error.message); return; }
-
           this.modal.cita=false; await this.loadCitas(); this.recalc(); this.buildReport();
         },
-
-        async delCita(id){
-          if(!confirm('¿Eliminar cita?')) return;
-          const { error } = await sb.from('citas').delete().eq('id', id);
-          if (error) alert(error.message);
-          await this.loadCitas(); this.recalc(); this.buildReport();
-        },
+        async delCita(id){ if(!confirm('¿Eliminar cita?')) return; const { error } = await sb.from('citas').delete().eq('id', id); if (error) alert(error.message); await this.loadCitas(); this.recalc(); this.buildReport(); },
 
         citasHoy(){
           const t = new Date().toISOString().slice(0,10);
           const mapCli = Object.fromEntries(this.clientes.map(c=>[String(c.id), c.nombre]));
           return this.citas.filter(x => (x.fecha||'').slice(0,10) === t).map(a=>{
-            let vehiculo_desc = null;
-            const m = (a.notas||'').match(/(^|\n)Vehículo:\s(.+)/i);
+            let vehiculo_desc = null; const m = (a.notas||'').match(/(^|\n)Vehículo:\s(.+)/i);
             if (m) vehiculo_desc = m[2]?.trim() || null;
             return { ...a, cliente_nombre: mapCli[String(a.cliente_id)] || '', vehiculo_desc };
           });
         },
 
-        // ===== KPIs / Reporte =====
         recalc(){
           this.stats.clientes  = this.clientes.length;
           this.stats.vehiculos = this.vehiculos.length;
           const hoy = this.citasHoy();
           this.stats.citasHoy   = hoy.length;
-          this.stats.ingresosHoy= hoy.filter(x => x.estado==='completado')
-                                     .reduce((a,b)=>a+(+b.precio||0),0);
+          this.stats.ingresosHoy= hoy.filter(x => x.estado==='completado').reduce((a,b)=>a+(+b.precio||0),0);
         },
         buildReport(){
-          const totIng = this.citas
-            .filter(c => (c.estado||'')==='completado')
-            .reduce((a,b)=>a+(+b.precio||0),0);
+          const totIng = this.citas.filter(c => (c.estado||'')==='completado').reduce((a,b)=>a+(+b.precio||0),0);
           const gan = Math.round(totIng * 0.7);
-          const totalCli = this.clientes.length;
-          this.report = { ingresos: totIng, ganancia: gan, clientes: totalCli };
+          this.report = { ingresos: totIng, ganancia: gan, clientes: this.clientes.length };
         },
 
         renderCharts(){
-          for (const k of Object.keys(this._charts)) {
-            if (this._charts[k]) { this._charts[k].destroy(); this._charts[k]=null; }
-          }
+          // destruir previos
+          Object.keys(this._charts).forEach(k=>{ if(this._charts[k]){ this._charts[k].destroy(); this._charts[k]=null; }});
+
+          // Pie: ingresos por servicio (distribuye el total de la cita entre los servicios seleccionados)
           const bySrvMap = {};
           this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
             const parts = (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean);
             if (!parts.length) return;
-            parts.forEach(name=>{
-              bySrvMap[name]=(bySrvMap[name]||0)+(+c.precio||0)/parts.length;
-            });
+            const pr = (+c.precio||0)/parts.length;
+            parts.forEach(name=>{ bySrvMap[name]=(bySrvMap[name]||0)+pr; });
           });
           const labelsSrv = Object.keys(bySrvMap);
           const dataSrv   = Object.values(bySrvMap);
-
           const ctxS = document.getElementById('chServicios');
-          if (ctxS) {
-            this._charts.servicios = new Chart(ctxS, {
-              type:'pie',
-              data:{ labels:labelsSrv, datasets:[{ data:dataSrv, backgroundColor:['#0a8d4b','#059669','#10b981','#34d399','#16a34a','#22c55e'] }]},
-              options:{ plugins:{ legend:{ position:'bottom' } } }
-            });
-          }
+          if (ctxS) this._charts.servicios = new Chart(ctxS, {
+            type:'pie',
+            data:{ labels:labelsSrv, datasets:[{ data:dataSrv, backgroundColor:['#0a8d4b','#059669','#10b981','#34d399','#16a34a','#22c55e','#bef264','#86efac'] }]},
+            options:{ plugins:{ legend:{ position:'bottom' } } }
+          });
 
+          // Línea: ingresos mensuales
           const byMonth = {};
           this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
-            const d = new Date(c.fecha);
-            if (isNaN(+d)) return;
+            const d = new Date(c.fecha); if (isNaN(+d)) return;
             const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
             byMonth[k]=(byMonth[k]||0)+(+c.precio||0);
           });
           const monthsSorted = Object.keys(byMonth).sort();
-          const lblMes = monthsSorted.map(k=>{
-            const [y,m]=k.split('-'); return new Date(+y, +m-1, 1).toLocaleString('es-AR',{month:'short'});
-          });
+          const lblMes = monthsSorted.map(k=>{ const [y,m]=k.split('-'); return new Date(+y, +m-1, 1).toLocaleString('es-AR',{month:'short'}); });
           const dataMes = monthsSorted.map(k=>byMonth[k]);
-
           const ctxI = document.getElementById('chIngresos');
-          if (ctxI) {
-            this._charts.ingresos = new Chart(ctxI, {
-              type:'line',
-              data:{ labels:lblMes, datasets:[{ label:'Ingresos', data:dataMes, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.15)', fill:true, tension:.35 }]},
-              options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
-            });
-          }
+          if (ctxI) this._charts.ingresos = new Chart(ctxI, {
+            type:'line',
+            data:{ labels:lblMes, datasets:[{ label:'Ingresos', data:dataMes, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.15)', fill:true, tension:.35 }]},
+            options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+          });
 
+          // Barras: clientes por mes (por fecha de creación estimada)
           const byCliMonth = {};
           this.clientes.forEach(c=>{
-            const d = new Date(Date.parse(c.created_at || c.creado_en || ''));
-            const dd = isNaN(+d) ? new Date() : d;
+            const d = new Date(Date.parse(c.created_at || c.creado_en || '')); const dd = isNaN(+d) ? new Date() : d;
             const k = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0');
             byCliMonth[k]=(byCliMonth[k]||0)+1;
           });
           const monthsCliSorted = Object.keys(byCliMonth).sort();
-          const lblCli = monthsCliSorted.map(k=>{
-            const [y,m]=k.split('-'); return new Date(+y, +m-1, 1).toLocaleString('es-AR',{month:'short'});
-          });
+          const lblCli = monthsCliSorted.map(k=>{ const [y,m]=k.split('-'); return new Date(+y, +m-1, 1).toLocaleString('es-AR',{month:'short'}); });
           const dataCli = monthsCliSorted.map(k=>byCliMonth[k]);
-
           const ctxC = document.getElementById('chClientes');
-          if (ctxC) {
-            this._charts.clientes = new Chart(ctxC, {
-              type:'bar',
-              data:{ labels:lblCli, datasets:[{ label:'Clientes', data:dataCli, backgroundColor:'#059669', borderRadius:6 }]},
-              options:{ scales:{ y:{ beginAtZero:true } } }
-            });
-          }
+          if (ctxC) this._charts.clientes = new Chart(ctxC, {
+            type:'bar',
+            data:{ labels:lblCli, datasets:[{ label:'Clientes', data:dataCli, backgroundColor:'#059669', borderRadius:6 }]},
+            options:{ scales:{ y:{ beginAtZero:true } } }
+          });
         }
       }
     }
