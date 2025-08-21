@@ -72,13 +72,12 @@
       <button class="btn" :class="{'btn-primary':tab==='clientes'}" @click="tab='clientes'">Clientes</button>
       <button class="btn" :class="{'btn-primary':tab==='vehiculos'}" @click="tab='vehiculos'">Vehículos</button>
       <button class="btn" :class="{'btn-primary':tab==='citas'}" @click="tab='citas'">Citas</button>
-      <!-- ❗️Antes acá se llamaba renderCharts() fuera de scope y rompía el JS -->
       <button class="btn" :class="{'btn-primary':tab==='reporte'}" @click="tab='reporte'">Reportes</button>
     </div>
   </nav>
 
   <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
-    <!-- Efecto seguro para renderizar charts cuando tab === 'reporte' -->
+    <!-- Render charts cuando tab === reporte -->
     <div x-effect="if(tab==='reporte'){ $nextTick(()=>{ renderCharts() }) }"></div>
 
     <!-- DASHBOARD -->
@@ -218,7 +217,7 @@
       <div class="card p-5">
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
           <h2 class="font-bold text-brand text-lg">Citas</h2>
-          <div class="flex gap-2 w-full md:w-auto">
+        <div class="flex gap-2 w-full md:w-auto">
             <input class="input w-44" type="date" x-model="filtros.citaFecha">
             <select class="input w-44" x-model="filtros.citaEstado">
               <option value="">Todos</option>
@@ -339,7 +338,7 @@
     </div>
   </div>
 
-  <!-- MODAL CITA (segmento + multiselección) -->
+  <!-- MODAL CITA -->
   <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-2xl p-5">
       <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
@@ -385,7 +384,7 @@
         </div>
       </div>
 
-      <!-- Segmento + Menú desplegable multiselección -->
+      <!-- Segmento + multiselección con buscador y columnas -->
       <div class="mt-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
           <div>
@@ -406,16 +405,91 @@
               <span>▾</span>
             </button>
 
-            <div x-show="showSrvDD" x-transition class="absolute z-50 mt-1 w-full card p-3 max-h-72 overflow-auto">
-              <template x-for="opt in currentServiceOptions()" :key="opt.key">
-                <label class="flex items-start gap-2 py-1 cursor-pointer">
-                  <input type="checkbox" class="mt-1" :checked="isSelected(opt.nameLabel)"
-                         @change="toggleService({ name: opt.nameLabel, price: num(opt.price) })">
-                  <div>
-                    <div class="text-sm font-medium" x-text="opt.nameLabel + ' — ' + fmtARS(num(opt.price))"></div>
+            <!-- Dropdown -->
+            <div x-show="showSrvDD" x-transition
+                 class="absolute z-50 mt-1 w-full card p-3 max-h-80 overflow-auto">
+              <!-- Buscador -->
+              <input class="input mb-2" placeholder="Buscar servicio…" x-model="serviceSearch">
+
+              <!-- Contenido -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <!-- Autos -->
+                <template x-if="serviceTab==='autos'">
+                  <div class="space-y-1">
+                    <div class="text-xs font-semibold text-textmut sticky top-0 bg-white/90 backdrop-blur py-1">Autos</div>
+                    <template x-for="(s,i) in filterOptions(serviceCatalog.autos)" :key="'a'+i">
+                      <label class="flex items-start gap-2 py-1 cursor-pointer">
+                        <input type="checkbox" class="mt-1"
+                          :checked="isSelected(s.name)"
+                          @change="toggleService({ name: s.name, price: num(s.price) })">
+                        <div class="text-sm">
+                          <div class="font-medium" x-text="s.name + ' — ' + fmtARS(num(s.price))"></div>
+                          <div class="text-xs text-textmut" x-text="s.desc + ' • ' + s.time"></div>
+                        </div>
+                      </label>
+                    </template>
                   </div>
-                </label>
-              </template>
+                </template>
+
+                <!-- SUV -->
+                <template x-if="serviceTab==='suv'">
+                  <div class="space-y-1">
+                    <div class="text-xs font-semibold text-textmut sticky top-0 bg-white/90 backdrop-blur py-1">SUV / Pick-Up</div>
+                    <template x-for="(s,i) in filterOptions(serviceCatalog.suv)" :key="'s'+i">
+                      <label class="flex items-start gap-2 py-1 cursor-pointer">
+                        <input type="checkbox" class="mt-1"
+                          :checked="isSelected(s.name)"
+                          @change="toggleService({ name: s.name, price: num(s.price) })">
+                        <div class="text-sm">
+                          <div class="font-medium" x-text="s.name + ' — ' + fmtARS(num(s.price))"></div>
+                          <div class="text-xs text-textmut" x-text="s.desc + ' • ' + s.time"></div>
+                        </div>
+                      </label>
+                    </template>
+                  </div>
+                </template>
+
+                <!-- Motos -->
+                <template x-if="serviceTab==='motos'">
+                  <div class="space-y-1">
+                    <div class="text-xs font-semibold text-textmut sticky top-0 bg-white/90 backdrop-blur py-1">Motos</div>
+                    <template x-for="(s,i) in filterOptions(serviceCatalog.motos)" :key="'m'+i">
+                      <label class="flex items-start gap-2 py-1 cursor-pointer">
+                        <input type="checkbox" class="mt-1"
+                          :checked="isSelected(s.name)"
+                          @change="toggleService({ name: s.name, price: num(s.price) })">
+                        <div class="text-sm">
+                          <div class="font-medium" x-text="s.name + ' — ' + fmtARS(num(s.price))"></div>
+                          <div class="text-xs text-textmut" x-text="s.desc + ' • ' + s.time"></div>
+                        </div>
+                      </label>
+                    </template>
+                  </div>
+                </template>
+
+                <!-- Tratamientos -->
+                <template x-if="serviceTab==='tratamientos'">
+                  <div class="sm:col-span-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <template x-for="(g,gi) in tratamientos" :key="'tg'+gi">
+                        <div class="space-y-1">
+                          <div class="text-xs font-semibold text-textmut sticky top-0 bg-white/90 backdrop-blur py-1" x-text="g.grupo"></div>
+                          <template x-for="(it,ii) in filterOptions(g.items, true)" :key="'ti'+gi+'-'+ii">
+                            <label class="flex items-start gap-2 py-1 cursor-pointer">
+                              <input type="checkbox" class="mt-1"
+                                :checked="isSelected(it.name + ' — ' + it.detalle)"
+                                @change="toggleService({ name: it.name + ' — ' + it.detalle, price: num(it.price) })">
+                              <div class="text-sm">
+                                <div class="font-medium" x-text="it.name + ' — ' + it.detalle + ' — ' + fmtARS(num(it.price))"></div>
+                              </div>
+                            </label>
+                          </template>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+              </div>
 
               <div class="border-t mt-2 pt-2 flex items-center justify-between">
                 <div class="text-sm text-textmut">Total parcial</div>
@@ -430,16 +504,26 @@
         </div>
       </div>
 
-      <div class="mt-4 flex items-center justify-between border-t pt-3">
-        <div class="text-sm text-textmut">
-          Seleccionados: <span class="font-semibold" x-text="citaForm.selectedServices.map(s=>s.name).join(' + ') || '—'"></span>
+      <!-- Chips de seleccionados -->
+      <div class="mt-3">
+        <div class="text-sm text-textmut mb-1">Seleccionados:</div>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="(s,idx) in citaForm.selectedServices" :key="s.name">
+            <span class="px-2 py-1 rounded-full border text-sm flex items-center gap-2">
+              <span x-text="s.name"></span>
+              <button class="text-red-600" @click="removeService(idx)" title="Quitar">×</button>
+            </span>
+          </template>
+          <span x-show="!citaForm.selectedServices.length" class="text-sm text-textmut">—</span>
         </div>
-        <div class="text-lg font-extrabold">Total: <span x-text="fmtARS(citaForm.total)"></span></div>
       </div>
 
-      <div class="mt-4 flex justify-end gap-2">
-        <button class="btn" @click="modal.cita=false">Cancelar</button>
-        <button class="btn btn-primary" @click="saveCita()">Guardar</button>
+      <div class="mt-4 flex items-center justify-between border-t pt-3">
+        <div class="text-lg font-extrabold">Total: <span x-text="fmtARS(citaForm.total)"></span></div>
+        <div class="flex justify-end gap-2">
+          <button class="btn" @click="modal.cita=false">Cancelar</button>
+          <button class="btn btn-primary" @click="saveCita()">Guardar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -496,8 +580,10 @@
         reportFilter:{ from:'', to:'' },
         _charts:{ servicios:null, ingresos:null, clientes:null },
 
+        // UI servicios
         showSrvDD:false,
         serviceTab:'autos',
+        serviceSearch:'',
 
         // Catálogos
         serviceCatalog:{
@@ -552,10 +638,11 @@
 
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // CLIENTES
+        // CLIENTES (filtrado por user_id para RLS)
         async loadClientes(){
           const { data, error } = await sb.from('clientes')
-            .select('id,nombre,email,telefono,created_at,creado_en')
+            .select('id,nombre,email,telefono,created_at,creado_en,user_id')
+            .eq('user_id', this.userId)
             .order('id',{ascending:false});
           if (error){ console.error('loadClientes', error); this.clientes=[]; return; }
           this.clientes = data || [];
@@ -564,21 +651,24 @@
         async saveCliente(){
           const row = { nombre:(this.clienteForm.nombre||'').trim(), email:(this.clienteForm.email||'').trim()||null, telefono:(this.clienteForm.telefono||'').trim()||null, user_id:this.userId };
           let error;
-          if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id));
+          if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id).eq('user_id', this.userId));
           else                      ({ error } = await sb.from('clientes').insert(row));
           if (error) { alert(error.message); return; }
           this.modal.cliente=false; await this.loadClientes(); this.recalc(); this.buildReport();
         },
-        async delCliente(id){ if(!confirm('¿Eliminar cliente?')) return; const { error } = await sb.from('clientes').delete().eq('id', id); if (error) alert(error.message); await this.loadClientes(); this.recalc(); this.buildReport(); },
+        async delCliente(id){ if(!confirm('¿Eliminar cliente?')) return; const { error } = await sb.from('clientes').delete().eq('id', id).eq('user_id', this.userId); if (error) alert(error.message); await this.loadClientes(); this.recalc(); this.buildReport(); },
         clientesFiltrados(){
           const q=(this.filtros.clientQ||'').toLowerCase();
           if(!q) return this.clientes;
           return this.clientes.filter(c => (c.nombre||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q) || (c.telefono||'').toLowerCase().includes(q));
         },
 
-        // VEHÍCULOS
+        // VEHÍCULOS (filtrado por user_id vía join lógico)
         async loadVehiculos(){
-          const { data, error } = await sb.from('vehiculos').select('id,cliente_id,marca,modelo,dominio').order('id',{ascending:false});
+          const { data, error } = await sb.from('vehiculos')
+            .select('id,cliente_id,marca,modelo,dominio,user_id')
+            .eq('user_id', this.userId)
+            .order('id',{ascending:false});
           if (error){ console.error('loadVehiculos', error); this.vehiculos=[]; return; }
           this.vehiculos = data || [];
         },
@@ -586,18 +676,21 @@
         vehiculosDeCliente(){ const cid = this.citaForm.cliente_id; return this.vehiculos.filter(v => String(v.cliente_id) === String(cid)); },
         openVehiculo(v){ this.vehiculoForm = v ? {id:v.id, cliente_id:v.cliente_id, marca:v.marca, modelo:v.modelo, dominio:v.dominio} : {id:null, cliente_id:'', marca:'', modelo:'', dominio:''}; this.modal.vehiculo = true; },
         async saveVehiculo(){
-          const r = { cliente_id: this.vehiculoForm.cliente_id || null, marca:(this.vehiculoForm.marca||'').trim()||null, modelo:(this.vehiculoForm.modelo||'').trim()||null, dominio:(this.vehiculoForm.dominio||'').trim()||null };
+          const r = { cliente_id: this.vehiculoForm.cliente_id || null, marca:(this.vehiculoForm.marca||'').trim()||null, modelo:(this.vehiculoForm.modelo||'').trim()||null, dominio:(this.vehiculoForm.dominio||'').trim()||null, user_id:this.userId };
           let error;
-          if(this.vehiculoForm.id) ({ error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id));
+          if(this.vehiculoForm.id) ({ error } = await sb.from('vehiculos').update(r).eq('id', this.vehiculoForm.id).eq('user_id', this.userId));
           else                      ({ error } = await sb.from('vehiculos').insert(r));
           if (error) { alert(error.message); return; }
           this.modal.vehiculo=false; await this.loadVehiculos(); this.recalc(); this.buildReport();
         },
-        async delVehiculo(id){ if(!confirm('¿Eliminar vehículo?')) return; const { error } = await sb.from('vehiculos').delete().eq('id', id); if (error) alert(error.message); await this.loadVehiculos(); this.recalc(); this.buildReport(); },
+        async delVehiculo(id){ if(!confirm('¿Eliminar vehículo?')) return; const { error } = await sb.from('vehiculos').delete().eq('id', id).eq('user_id', this.userId); if (error) alert(error.message); await this.loadVehiculos(); this.recalc(); this.buildReport(); },
 
-        // CITAS
+        // CITAS (filtradas por user_id)
         async loadCitas(){
-          const { data, error } = await sb.from('citas').select('id,cliente_id,servicio,fecha,precio,estado,notas').order('fecha',{ascending:false});
+          const { data, error } = await sb.from('citas')
+            .select('id,cliente_id,servicio,fecha,precio,estado,notas,user_id')
+            .eq('user_id', this.userId)
+            .order('fecha',{ascending:false});
           if (error){ console.error('loadCitas', error); this.citas=[]; return; }
           this.citas = data || [];
         },
@@ -617,6 +710,10 @@
         },
         onClienteChange(){ this.citaForm.vehiculo_id = ''; },
         openCita(a){
+          this.serviceTab = 'autos';
+          this.serviceSearch = '';
+          this.showSrvDD = false;
+
           this.citaForm = a ? {
             id:a.id, cliente_id:a.cliente_id, vehiculo_id:'', servicio:a.servicio||'',
             selectedServices:(a.servicio? a.servicio.split('+').map(n=>({name:n.trim(), price:0})) : []),
@@ -630,13 +727,14 @@
           this.updateTotal();
         },
 
-        // Servicios (segmento + multiselección)
-        currentServiceOptions(){
-          if (this.serviceTab==='autos') return this.serviceCatalog.autos.map((s,i)=>({ key:'a'+i, nameLabel:s.name, price:s.price }));
-          if (this.serviceTab==='suv')   return this.serviceCatalog.suv.map((s,i)=>({ key:'s'+i, nameLabel:s.name, price:s.price }));
-          if (this.serviceTab==='motos') return this.serviceCatalog.motos.map((s,i)=>({ key:'m'+i, nameLabel:s.name, price:s.price }));
-          const out=[]; this.tratamientos.forEach((g,gi)=>g.items.forEach((it,ii)=>out.push({ key:`t${gi}-${ii}`, nameLabel:`${it.name} — ${it.detalle}`, price:it.price })));
-          return out;
+        // Servicios helpers
+        filterOptions(list, isTrat=false){
+          const q = (this.serviceSearch||'').toLowerCase();
+          if (!q) return list;
+          return list.filter(it=>{
+            const base = isTrat ? (it.name + ' ' + it.detalle) : (it.name + ' ' + (it.desc||''));
+            return base.toLowerCase().includes(q);
+          });
         },
         isSelected(name){ return this.citaForm.selectedServices.some(s=>s.name===name); },
         toggleService(item){
@@ -645,6 +743,7 @@
           else this.citaForm.selectedServices.push({ name:item.name, price:this.num(item.price) });
           this.updateTotal();
         },
+        removeService(idx){ this.citaForm.selectedServices.splice(idx,1); this.updateTotal(); },
         updateTotal(){
           const total = this.citaForm.selectedServices.reduce((acc,s)=>acc + this.num(s.price), 0);
           this.citaForm.total = total; this.citaForm.precio = total;
@@ -661,12 +760,12 @@
           }
           const row = { cliente_id:this.citaForm.cliente_id||null, servicio:servicioStr||null, fecha:fechaISO?fechaISO.toISOString():null, precio:+this.citaForm.precio||0, estado:this.citaForm.estado, notas:notas||null, user_id:this.userId };
           let error;
-          if (this.citaForm.id) ({ error } = await sb.from('citas').update(row).eq('id', this.citaForm.id));
+          if (this.citaForm.id) ({ error } = await sb.from('citas').update(row).eq('id', this.citaForm.id).eq('user_id', this.userId));
           else                  ({ error } = await sb.from('citas').insert(row));
           if (error) { alert(error.message); return; }
           this.modal.cita=false; await this.loadCitas(); this.recalc(); this.buildReport();
         },
-        async delCita(id){ if(!confirm('¿Eliminar cita?')) return; const { error } = await sb.from('citas').delete().eq('id', id); if (error) alert(error.message); await this.loadCitas(); this.recalc(); this.buildReport(); },
+        async delCita(id){ if(!confirm('¿Eliminar cita?')) return; const { error } = await sb.from('citas').delete().eq('id', id).eq('user_id', this.userId); if (error) alert(error.message); await this.loadCitas(); this.recalc(); this.buildReport(); },
 
         // KPIs / Reporte
         recalc(){
@@ -717,7 +816,6 @@
         },
 
         renderCharts(){
-          // destruir previos
           Object.keys(this._charts).forEach(k=>{ if(this._charts[k]){ this._charts[k].destroy(); this._charts[k]=null; }});
 
           const citasR = this.getReportCitas().filter(c=> (c.estado||'')==='completado');
@@ -840,4 +938,3 @@
   </script>
 </body>
 </html>
-
