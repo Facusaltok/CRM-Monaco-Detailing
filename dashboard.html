@@ -7,14 +7,27 @@
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Ccircle cx='64' cy='64' r='64' fill='%230a8d4b'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' dominant-baseline='middle' font-size='62' fill='white' font-family='Arial' %3EM%3C/text%3E%3C/svg%3E">
 
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = { theme:{ extend:{ colors:{ brand:"#0a8d4b", brand2:"#19c37d", border:"#e5e7eb", textmut:"#5b677a" }, boxShadow:{ card:"0 12px 24px rgba(20,30,40,.06)" } } } }
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors:{ brand:"#0a8d4b", brand2:"#19c37d", border:"#e5e7eb", textmut:"#5b677a" },
+          boxShadow:{ card:"0 12px 24px rgba(20,30,40,.06)" }
+        }
+      }
+    }
   </script>
 
+  <!-- Alpine -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <!-- jsPDF para exportar PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
+  <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     window.sb = supabase.createClient(
@@ -38,6 +51,7 @@
 
 <body x-data="crm()" x-init="init()">
 
+  <!-- Topbar -->
   <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-border">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -51,6 +65,7 @@
     </div>
   </header>
 
+  <!-- Nav -->
   <nav class="bg-white border-b border-border">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-2">
       <button class="btn" :class="{'btn-primary':tab==='home'}" @click="tab='home'">Dashboard</button>
@@ -249,20 +264,42 @@
 
     <!-- REPORTE -->
     <section x-show="tab==='reporte'" x-cloak>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Controles de filtro y exportación -->
+      <div class="card p-5">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+          <div>
+            <label class="text-sm block mb-1">Desde</label>
+            <input class="input" type="date" x-model="reportFilter.from">
+          </div>
+          <div>
+            <label class="text-sm block mb-1">Hasta</label>
+            <input class="input" type="date" x-model="reportFilter.to">
+          </div>
+          <div class="md:col-span-2">
+            <button class="btn btn-primary w-full" @click="applyReportFilter()">Aplicar filtro</button>
+          </div>
+          <div class="flex gap-2">
+            <button class="btn w-full" @click="exportCSV()">Exportar CSV</button>
+            <button class="btn w-full" @click="exportPDF()">Exportar PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <div class="card p-5 text-center">
           <h3 class="text-lg font-semibold opacity-80">Ingresos</h3>
           <div class="text-3xl font-extrabold mt-1 text-brand" x-text="fmtARS(report.ingresos)"></div>
-          <div class="text-xs opacity-70">+12% vs mes anterior</div>
+          <div class="text-xs opacity-70">Periodo filtrado</div>
         </div>
         <div class="card p-5 text-center">
           <h3 class="text-lg font-semibold opacity-80">Clientes</h3>
           <div class="text-3xl font-extrabold mt-1" x-text="report.clientes"></div>
+          <div class="text-xs opacity-70">Nuevos en el periodo</div>
         </div>
         <div class="card p-5 text-center">
           <h3 class="text-lg font-semibold opacity-80">Ganancia total</h3>
           <div class="text-3xl font-extrabold mt-1 text-amber-500" x-text="fmtARS(report.ganancia)"></div>
-          <div class="text-xs opacity-70">Ingresos - costos estimados (30%)</div>
+          <div class="text-xs opacity-70">Ingresos - 30% costos</div>
         </div>
       </div>
 
@@ -300,7 +337,7 @@
     </div>
   </div>
 
-  <!-- MODAL CITA -->
+  <!-- MODAL CITA (segmento + multiselección) -->
   <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-2xl p-5">
       <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
@@ -346,7 +383,7 @@
         </div>
       </div>
 
-      <!-- Segmento + Menú de servicios multiselección -->
+      <!-- Segmento + Menú multiselección -->
       <div class="mt-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
           <div>
@@ -427,6 +464,7 @@
     </div>
   </div>
 
+  <!-- LÓGICA -->
   <script>
     const sb = window.sb;
 
@@ -442,8 +480,10 @@
         vehiculoForm:{ id:null, cliente_id:'', marca:'', modelo:'', dominio:'' },
 
         citaForm:{
-          id:null, cliente_id:'', vehiculo_id:'', servicio:'',
-          selectedServices:[], fecha:'', precio:'', total:0,
+          id:null,
+          cliente_id:'', vehiculo_id:'',
+          servicio:'', selectedServices:[],
+          fecha:'', precio:'', total:0,
           estado:'pendiente', notas:''
         },
 
@@ -451,11 +491,13 @@
         stats:{ clientes:0, citasHoy:0, ingresosHoy:0, vehiculos:0 },
 
         report:{ ingresos:0, ganancia:0, clientes:0 },
+        reportFilter:{ from:'', to:'' },      // <<< filtro de reportes
         _charts:{ servicios:null, ingresos:null, clientes:null },
 
         showSrvDD:false,
         serviceTab:'autos',
 
+        // Catálogos
         serviceCatalog:{
           autos: [
             { name: "Interior (Hatch / Sedan)", desc:"Aspirado profundo, descontaminación del habitáculo y reacondicionamiento de plásticos.", price:150000, time:"1 día" },
@@ -486,12 +528,14 @@
             ]}
         ],
 
+        // Helpers
         num(v){ return typeof v==='number' ? v : (parseInt(String(v).replace(/[^0-9]/g,''))||0) },
         fmtARS(n){ return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(+n||0) },
         fmtDateTime(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleString('es-AR',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); },
-        statusPill(s){ return { 'bg-emerald-100 text-emerald-700': s==='completado', 'bg-yellow-100 text-yellow-700': s==='pendiente', 'bg-red-100 text-red-700': s==='cancelado' }},
+        statusPill(s){ return { 'bg-emerald-100 text-emerald-700': s==='completado','bg-yellow-100 text-yellow-700': s==='pendiente','bg-red-100 text-red-700': s==='cancelado' } },
         vehiculoLabel(v){ return `${v.marca||''} ${v.modelo||''} ${v.dominio?('('+v.dominio+')'):''}`.trim() || 'Vehículo'; },
 
+        // Init / Refresh
         async init(){
           const { data:{ session } } = await sb.auth.getSession();
           if(!session){ location.href='./index.html'; return; }
@@ -505,8 +549,9 @@
         async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); this.buildReport(); },
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
+        // CLIENTES
         async loadClientes(){
-          const { data, error } = await sb.from('clientes').select('id,nombre,email,telefono').order('id',{ascending:false});
+          const { data, error } = await sb.from('clientes').select('id,nombre,email,telefono,created_at,creado_en').order('id',{ascending:false});
           if (error){ console.error('loadClientes', error); this.clientes=[]; return; }
           this.clientes = data || [];
         },
@@ -526,6 +571,7 @@
           return this.clientes.filter(c => (c.nombre||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q) || (c.telefono||'').toLowerCase().includes(q));
         },
 
+        // VEHÍCULOS
         async loadVehiculos(){
           const { data, error } = await sb.from('vehiculos').select('id,cliente_id,marca,modelo,dominio').order('id',{ascending:false});
           if (error){ console.error('loadVehiculos', error); this.vehiculos=[]; return; }
@@ -544,6 +590,7 @@
         },
         async delVehiculo(id){ if(!confirm('¿Eliminar vehículo?')) return; const { error } = await sb.from('vehiculos').delete().eq('id', id); if (error) alert(error.message); await this.loadVehiculos(); this.recalc(); this.buildReport(); },
 
+        // CITAS
         async loadCitas(){
           const { data, error } = await sb.from('citas').select('id,cliente_id,servicio,fecha,precio,estado,notas').order('fecha',{ascending:false});
           if (error){ console.error('loadCitas', error); this.citas=[]; return; }
@@ -578,6 +625,7 @@
           this.updateTotal();
         },
 
+        // Servicios (segmento + multiselección)
         currentServiceOptions(){
           if (this.serviceTab==='autos') return this.serviceCatalog.autos.map((s,i)=>({ key:'a'+i, nameLabel:s.name, price:s.price }));
           if (this.serviceTab==='suv')   return this.serviceCatalog.suv.map((s,i)=>({ key:'s'+i, nameLabel:s.name, price:s.price }));
@@ -596,7 +644,6 @@
           const total = this.citaForm.selectedServices.reduce((acc,s)=>acc + this.num(s.price), 0);
           this.citaForm.total = total; this.citaForm.precio = total;
         },
-
         async saveCita(){
           const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
           const servicioStr = this.citaForm.selectedServices.map(s=>s.name).join(' + ') || (this.citaForm.servicio||'');
@@ -616,16 +663,7 @@
         },
         async delCita(id){ if(!confirm('¿Eliminar cita?')) return; const { error } = await sb.from('citas').delete().eq('id', id); if (error) alert(error.message); await this.loadCitas(); this.recalc(); this.buildReport(); },
 
-        citasHoy(){
-          const t = new Date().toISOString().slice(0,10);
-          const mapCli = Object.fromEntries(this.clientes.map(c=>[String(c.id), c.nombre]));
-          return this.citas.filter(x => (x.fecha||'').slice(0,10) === t).map(a=>{
-            let vehiculo_desc = null; const m = (a.notas||'').match(/(^|\n)Vehículo:\s(.+)/i);
-            if (m) vehiculo_desc = m[2]?.trim() || null;
-            return { ...a, cliente_nombre: mapCli[String(a.cliente_id)] || '', vehiculo_desc };
-          });
-        },
-
+        // KPIs / Reporte (globales)
         recalc(){
           this.stats.clientes  = this.clientes.length;
           this.stats.vehiculos = this.vehiculos.length;
@@ -633,19 +671,57 @@
           this.stats.citasHoy   = hoy.length;
           this.stats.ingresosHoy= hoy.filter(x => x.estado==='completado').reduce((a,b)=>a+(+b.precio||0),0);
         },
+        citasHoy(){
+          const t = new Date().toISOString().slice(0,10);
+          const mapCli = Object.fromEntries(this.clientes.map(c=>[String(c.id), c.nombre]));
+          return this.citas.filter(x => (x.fecha||'').slice(0,10) === t).map(a=>{
+            let vehiculo_desc = null;
+            const m = (a.notas||'').match(/(^|\n)Vehículo:\s(.+)/i);
+            if (m) vehiculo_desc = m[2]?.trim() || null;
+            return { ...a, cliente_nombre: mapCli[String(a.cliente_id)] || '', vehiculo_desc };
+          });
+        },
+
+        // === Reporte con filtro ===
+        getReportCitas(){
+          // devuelve citas dentro del rango (si está definido). Incluye todas si no hay filtro.
+          let arr = this.citas.slice();
+          const from = this.reportFilter.from ? new Date(this.reportFilter.from + 'T00:00:00') : null;
+          const to   = this.reportFilter.to   ? new Date(this.reportFilter.to   + 'T23:59:59') : null;
+          if (from) arr = arr.filter(c => c.fecha && new Date(c.fecha) >= from);
+          if (to)   arr = arr.filter(c => c.fecha && new Date(c.fecha) <= to);
+          return arr;
+        },
+        getReportClientes(){
+          let arr = this.clientes.slice();
+          const from = this.reportFilter.from ? new Date(this.reportFilter.from + 'T00:00:00') : null;
+          const to   = this.reportFilter.to   ? new Date(this.reportFilter.to   + 'T23:59:59') : null;
+          if (from) arr = arr.filter(c => new Date(c.created_at || c.creado_en || Date.now()) >= from);
+          if (to)   arr = arr.filter(c => new Date(c.created_at || c.creado_en || Date.now()) <= to);
+          return arr;
+        },
+        applyReportFilter(){
+          this.buildReport();   // recalcula totales del panel con filtro
+          this.$nextTick(()=>this.renderCharts()); // re-render gráficos
+        },
         buildReport(){
-          const totIng = this.citas.filter(c => (c.estado||'')==='completado').reduce((a,b)=>a+(+b.precio||0),0);
+          const citasR = this.getReportCitas().filter(c=> (c.estado||'')==='completado');
+          const totIng = citasR.reduce((a,b)=>a+(+b.precio||0),0);
           const gan = Math.round(totIng * 0.7);
-          this.report = { ingresos: totIng, ganancia: gan, clientes: this.clientes.length };
+          const cliR = this.getReportClientes().length;
+          this.report = { ingresos: totIng, ganancia: gan, clientes: cliR };
         },
 
         renderCharts(){
           // destruir previos
           Object.keys(this._charts).forEach(k=>{ if(this._charts[k]){ this._charts[k].destroy(); this._charts[k]=null; }});
 
-          // Pie: ingresos por servicio (distribuye el total de la cita entre los servicios seleccionados)
+          // fuente filtrada
+          const citasR = this.getReportCitas().filter(c=> (c.estado||'')==='completado');
+
+          // Pie: ingresos por servicio (distribuye el total entre servicios)
           const bySrvMap = {};
-          this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
+          citasR.forEach(c=>{
             const parts = (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean);
             if (!parts.length) return;
             const pr = (+c.precio||0)/parts.length;
@@ -660,9 +736,9 @@
             options:{ plugins:{ legend:{ position:'bottom' } } }
           });
 
-          // Línea: ingresos mensuales
+          // Línea: ingresos mensuales (filtrado)
           const byMonth = {};
-          this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
+          citasR.forEach(c=>{
             const d = new Date(c.fecha); if (isNaN(+d)) return;
             const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
             byMonth[k]=(byMonth[k]||0)+(+c.precio||0);
@@ -677,11 +753,11 @@
             options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
           });
 
-          // Barras: clientes por mes (por fecha de creación estimada)
+          // Barras: clientes por mes (filtrado)
           const byCliMonth = {};
-          this.clientes.forEach(c=>{
-            const d = new Date(Date.parse(c.created_at || c.creado_en || '')); const dd = isNaN(+d) ? new Date() : d;
-            const k = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0');
+          this.getReportClientes().forEach(c=>{
+            const d = new Date(c.created_at || c.creado_en || Date.now());
+            const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
             byCliMonth[k]=(byCliMonth[k]||0)+1;
           });
           const monthsCliSorted = Object.keys(byCliMonth).sort();
@@ -693,6 +769,72 @@
             data:{ labels:lblCli, datasets:[{ label:'Clientes', data:dataCli, backgroundColor:'#059669', borderRadius:6 }]},
             options:{ scales:{ y:{ beginAtZero:true } } }
           });
+        },
+
+        // EXPORTACIONES
+        exportCSV(){
+          const citasR = this.getReportCitas();
+          const rows = [
+            ['ID','Fecha','ClienteID','Servicios','Precio','Estado'],
+            ...citasR.map(c=>[
+              c.id, c.fecha, c.cliente_id,
+              (c.servicio||'').replace(/\s*\+\s*/g,' | '),
+              (+c.precio||0), c.estado||''
+            ])
+          ];
+          const csv = rows.map(r=>r.map(v=>{
+            const s=String(v??'');
+            return /[",;\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+          }).join(',' )).join('\n');
+          const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'reporte_citas.csv'; a.click();
+          URL.revokeObjectURL(url);
+        },
+        async exportPDF(){
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF({ unit:'pt', format:'a4' });
+          const pad = 24;
+
+          // Título
+          doc.setFont('helvetica','bold'); doc.setFontSize(16);
+          doc.text('Reporte — Monaco Detailing', pad, 40);
+
+          // Periodo
+          doc.setFont('helvetica','normal'); doc.setFontSize(10);
+          const per = `Periodo: ${this.reportFilter.from||'—'} a ${this.reportFilter.to||'—'}`;
+          doc.text(per, pad, 56);
+
+          // Totales
+          doc.setFontSize(12);
+          doc.text(`Ingresos: ${this.fmtARS(this.report.ingresos)}`, pad, 78);
+          doc.text(`Ganancia (70%): ${this.fmtARS(this.report.ganancia)}`, pad, 96);
+          doc.text(`Clientes (nuevos): ${this.report.clientes}`, pad, 114);
+
+          // Gráficos (si existen, se pegan como imágenes)
+          const yStart = 140;
+          const canvS = document.getElementById('chServicios');
+          const canvI = document.getElementById('chIngresos');
+          const canvC = document.getElementById('chClientes');
+
+          let y = yStart;
+          const addChart = (canvas, title) => {
+            if (!canvas) return;
+            const dataURL = canvas.toDataURL('image/png', 1.0);
+            doc.setFont('helvetica','bold'); doc.setFontSize(12);
+            doc.text(title, pad, y);
+            y += 10;
+            doc.addImage(dataURL, 'PNG', pad, y, 540, 220, undefined, 'FAST');
+            y += 235;
+          };
+          addChart(canvS, 'Ingresos por Servicio');
+          if (y > 760) { doc.addPage(); y = 40; }
+          addChart(canvI, 'Ingresos Mensuales');
+          if (y > 760) { doc.addPage(); y = 40; }
+          addChart(canvC, 'Clientes por Mes');
+
+          doc.save('reporte.pdf');
         }
       }
     }
