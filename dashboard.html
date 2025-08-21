@@ -491,7 +491,7 @@
         stats:{ clientes:0, citasHoy:0, ingresosHoy:0, vehiculos:0 },
 
         report:{ ingresos:0, ganancia:0, clientes:0 },
-        reportFilter:{ from:'', to:'' },      // <<< filtro de reportes
+        reportFilter:{ from:'', to:'' },
         _charts:{ servicios:null, ingresos:null, clientes:null },
 
         showSrvDD:false,
@@ -549,15 +549,33 @@
         async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); this.buildReport(); },
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // CLIENTES
+        // ===== CLIENTES (con filtro por user_id + normalización) =====
         async loadClientes(){
-          const { data, error } = await sb.from('clientes').select('id,nombre,email,telefono,created_at,creado_en').order('id',{ascending:false});
+          let q = sb.from('clientes')
+                    .select('id,nombre,email,telefono,created_at,creado_en,user_id')
+                    .order('id',{ascending:false});
+          if (this.userId) q = q.eq('user_id', this.userId);
+
+          const { data, error } = await q;
           if (error){ console.error('loadClientes', error); this.clientes=[]; return; }
-          this.clientes = data || [];
+
+          this.clientes = (data || []).map(c => ({
+            id: c.id,
+            nombre: c.nombre || '',
+            email: c.email || '',
+            telefono: c.telefono || '',
+            created_at: c.created_at || c.creado_en || null,
+            user_id: c.user_id || null,
+          }));
         },
         openCliente(c){ this.clienteForm = c ? JSON.parse(JSON.stringify(c)) : { id:null, nombre:'', email:'', telefono:'' }; this.modal.cliente = true; },
         async saveCliente(){
-          const row = { nombre:(this.clienteForm.nombre||'').trim(), email:(this.clienteForm.email||'').trim()||null, telefono:(this.clienteForm.telefono||'').trim()||null, user_id:this.userId };
+          const row = {
+            nombre:(this.clienteForm.nombre||'').trim(),
+            email:(this.clienteForm.email||'').trim()||null,
+            telefono:(this.clienteForm.telefono||'').trim()||null,
+            user_id:this.userId
+          };
           let error;
           if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id));
           else                      ({ error } = await sb.from('clientes').insert(row));
@@ -566,9 +584,16 @@
         },
         async delCliente(id){ if(!confirm('¿Eliminar cliente?')) return; const { error } = await sb.from('clientes').delete().eq('id', id); if (error) alert(error.message); await this.loadClientes(); this.recalc(); this.buildReport(); },
         clientesFiltrados(){
-          const q=(this.filtros.clientQ||'').toLowerCase();
+          const norm = s => (s||'').toString()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+            .toLowerCase();
+          const q = norm(this.filtros.clientQ||'');
           if(!q) return this.clientes;
-          return this.clientes.filter(c => (c.nombre||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q) || (c.telefono||'').toLowerCase().includes(q));
+          return this.clientes.filter(c =>
+            norm(c.nombre).includes(q) ||
+            norm(c.email).includes(q)  ||
+            norm(c.telefono).includes(q)
+          );
         },
 
         // VEHÍCULOS
@@ -684,7 +709,6 @@
 
         // === Reporte con filtro ===
         getReportCitas(){
-          // devuelve citas dentro del rango (si está definido). Incluye todas si no hay filtro.
           let arr = this.citas.slice();
           const from = this.reportFilter.from ? new Date(this.reportFilter.from + 'T00:00:00') : null;
           const to   = this.reportFilter.to   ? new Date(this.reportFilter.to   + 'T23:59:59') : null;
@@ -701,8 +725,8 @@
           return arr;
         },
         applyReportFilter(){
-          this.buildReport();   // recalcula totales del panel con filtro
-          this.$nextTick(()=>this.renderCharts()); // re-render gráficos
+          this.buildReport();
+          this.$nextTick(()=>this.renderCharts());
         },
         buildReport(){
           const citasR = this.getReportCitas().filter(c=> (c.estado||'')==='completado');
@@ -713,13 +737,11 @@
         },
 
         renderCharts(){
-          // destruir previos
           Object.keys(this._charts).forEach(k=>{ if(this._charts[k]){ this._charts[k].destroy(); this._charts[k]=null; }});
 
-          // fuente filtrada
           const citasR = this.getReportCitas().filter(c=> (c.estado||'')==='completado');
 
-          // Pie: ingresos por servicio (distribuye el total entre servicios)
+          // Pie: ingresos por servicio
           const bySrvMap = {};
           citasR.forEach(c=>{
             const parts = (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean);
@@ -736,7 +758,7 @@
             options:{ plugins:{ legend:{ position:'bottom' } } }
           });
 
-          // Línea: ingresos mensuales (filtrado)
+          // Línea: ingresos mensuales
           const byMonth = {};
           citasR.forEach(c=>{
             const d = new Date(c.fecha); if (isNaN(+d)) return;
@@ -753,7 +775,7 @@
             options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
           });
 
-          // Barras: clientes por mes (filtrado)
+          // Barras: clientes por mes
           const byCliMonth = {};
           this.getReportClientes().forEach(c=>{
             const d = new Date(c.created_at || c.creado_en || Date.now());
@@ -797,22 +819,18 @@
           const doc = new jsPDF({ unit:'pt', format:'a4' });
           const pad = 24;
 
-          // Título
           doc.setFont('helvetica','bold'); doc.setFontSize(16);
           doc.text('Reporte — Monaco Detailing', pad, 40);
 
-          // Periodo
           doc.setFont('helvetica','normal'); doc.setFontSize(10);
           const per = `Periodo: ${this.reportFilter.from||'—'} a ${this.reportFilter.to||'—'}`;
           doc.text(per, pad, 56);
 
-          // Totales
           doc.setFontSize(12);
           doc.text(`Ingresos: ${this.fmtARS(this.report.ingresos)}`, pad, 78);
           doc.text(`Ganancia (70%): ${this.fmtARS(this.report.ganancia)}`, pad, 96);
           doc.text(`Clientes (nuevos): ${this.report.clientes}`, pad, 114);
 
-          // Gráficos (si existen, se pegan como imágenes)
           const yStart = 140;
           const canvS = document.getElementById('chServicios');
           const canvI = document.getElementById('chIngresos');
