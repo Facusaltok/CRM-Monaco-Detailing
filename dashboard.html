@@ -365,21 +365,19 @@
         </div>
       </div>
 
-      <!-- Catálogo de servicios (pestañas) -->
+      <!-- Catálogo de servicios (menú desplegable) -->
       <div class="mt-4">
-        <h4 class="font-semibold mb-2">Servicios (podés elegir más de uno)</h4>
-
-        <!-- Tabs -->
-        <div class="flex flex-wrap gap-2 mb-3">
-          <button class="btn" :class="{'btn-primary':serviceTab==='autos'}" @click="serviceTab='autos'">Autos (Hatch / Sedan)</button>
-          <button class="btn" :class="{'btn-primary':serviceTab==='suv'}" @click="serviceTab='suv'">SUV / Pick-Up</button>
-          <button class="btn" :class="{'btn-primary':serviceTab==='motos'}" @click="serviceTab='motos'">Motos</button>
-          <button class="btn" :class="{'btn-primary':serviceTab==='tratamientos'}" @click="serviceTab='tratamientos'">Tratamientos</button>
+        <div class="flex items-center gap-3 mb-3">
+          <label class="text-sm">Categoría:</label>
+          <select class="input w-64" x-model="serviceTab">
+            <option value="autos">Autos (Hatch / Sedan)</option>
+            <option value="suv">SUV / Pick-Up</option>
+            <option value="motos">Motos</option>
+            <option value="tratamientos">Tratamientos</option>
+          </select>
         </div>
 
-        <!-- Contenido por pestaña -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-
           <!-- AUTOS -->
           <template x-if="serviceTab==='autos'">
             <div class="md:col-span-2 border rounded-lg p-3">
@@ -447,7 +445,6 @@
               </template>
             </div>
           </template>
-
         </div>
       </div>
 
@@ -522,7 +519,7 @@
         report:{ ingresos:0, ganancia:0, clientes:0 },
         _charts:{ servicios:null, ingresos:null, clientes:null },
 
-        /* pestaña activa del selector de servicios */
+        /* categoría activa del selector (desplegable) */
         serviceTab: 'autos',
 
         // Catálogos
@@ -590,7 +587,7 @@
         },
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // CLIENTES (robusto por id)
+        // CLIENTES
         async loadClientes(){
           const { data, error } = await sb
             .from('clientes')
