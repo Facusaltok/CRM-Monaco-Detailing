@@ -24,7 +24,7 @@
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-  <!-- jsPDF para exportar PDF -->
+  <!-- jsPDF -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <!-- Supabase -->
@@ -58,16 +58,8 @@
         <div class="w-3.5 h-3.5 rounded-full" style="background:linear-gradient(90deg,#0a8d4b,#19c37d)"></div>
         <h1 class="font-extrabold tracking-wide">MONACO DETAILING — CRM</h1>
       </div>
-      <div class="flex gap-2 items-center">
-        <button class="btn flex items-center gap-2 disabled:opacity-60"
-                :disabled="loading"
-                @click="onRefresh()">
-          <span x-show="!loading">⟳ Actualizar</span>
-          <span x-show="loading" class="inline-flex items-center gap-2">
-            <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#16a34a" stroke-width="4" fill="none" opacity=".25"/><path d="M22 12a10 10 0 0 1-10 10" stroke="#16a34a" stroke-width="4" fill="none"></path></svg>
-            Actualizando…
-          </span>
-        </button>
+      <div class="flex gap-2">
+        <button class="btn" @click="onRefresh()">⟳ Actualizar</button>
         <button class="btn" @click="logout()">Salir</button>
       </div>
     </div>
@@ -80,11 +72,14 @@
       <button class="btn" :class="{'btn-primary':tab==='clientes'}" @click="tab='clientes'">Clientes</button>
       <button class="btn" :class="{'btn-primary':tab==='vehiculos'}" @click="tab='vehiculos'">Vehículos</button>
       <button class="btn" :class="{'btn-primary':tab==='citas'}" @click="tab='citas'">Citas</button>
-      <button class="btn" :class="{'btn-primary':tab==='reporte'}" @click="tab='reporte'; $nextTick(()=>renderCharts())">Reportes</button>
+      <!-- ❗️Antes acá se llamaba renderCharts() fuera de scope y rompía el JS -->
+      <button class="btn" :class="{'btn-primary':tab==='reporte'}" @click="tab='reporte'">Reportes</button>
     </div>
   </nav>
 
   <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <!-- Efecto seguro para renderizar charts cuando tab === 'reporte' -->
+    <div x-effect="if(tab==='reporte'){ $nextTick(()=>{ renderCharts() }) }"></div>
 
     <!-- DASHBOARD -->
     <section x-show="tab==='home'" x-cloak>
@@ -272,7 +267,6 @@
 
     <!-- REPORTE -->
     <section x-show="tab==='reporte'" x-cloak>
-      <!-- Controles de filtro y exportación -->
       <div class="card p-5">
         <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
           <div>
@@ -391,7 +385,7 @@
         </div>
       </div>
 
-      <!-- Segmento + Menú multiselección -->
+      <!-- Segmento + Menú desplegable multiselección -->
       <div class="mt-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
           <div>
@@ -480,7 +474,6 @@
       return {
         tab:'home',
         userId:null,
-        loading:false,   // indicador para el botón Actualizar
 
         clientes:[], vehiculos:[], citas:[],
         modal:{ cliente:false, cita:false, vehiculo:false },
@@ -552,71 +545,24 @@
           await this.loadAll();
         },
         async onRefresh(){
-          try{
-            this.loading = true;
-            await this.loadAll();
-            if (this.tab === 'reporte') this.$nextTick(()=>this.renderCharts());
-          } catch(e){
-            console.error('onRefresh', e);
-            alert('No se pudo actualizar. Revisá la consola para más detalles.');
-          } finally {
-            this.loading = false;
-          }
+          await this.loadAll();
+          if (this.tab === 'reporte') this.$nextTick(()=>this.renderCharts());
         },
-        async loadAll(){
-          await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]);
-          this.recalc(); this.buildReport();
-        },
+        async loadAll(){ await Promise.all([this.loadClientes(), this.loadVehiculos(), this.loadCitas()]); this.recalc(); this.buildReport(); },
+
         async logout(){ await sb.auth.signOut(); location.href='./index.html'; },
 
-        // ===== CLIENTES (robusto: user_id opcional + filas antiguas con NULL) =====
+        // CLIENTES
         async loadClientes(){
-          // Intento 1: con user_id (y permitiendo NULL para clientes viejos)
-          let data=null, error=null;
-
-          // Nota: .or() necesita el string exacto
-          const tryWithUserId = async () => {
-            return await sb
-              .from('clientes')
-              .select('id,nombre,email,telefono,created_at,creado_en,user_id')
-              .order('id',{ascending:false})
-              .or(`user_id.eq.${this.userId},user_id.is.null`);
-          };
-
-          // Intento 2: sin user_id (fallback si la columna no existe)
-          const tryWithoutUserId = async () => {
-            return await sb
-              .from('clientes')
-              .select('id,nombre,email,telefono,created_at,creado_en')
-              .order('id',{ascending:false});
-          };
-
-          // Ejecuta intento con user_id y hace fallback si falla por columna inexistente
-          let res = await tryWithUserId();
-          if (res.error && /column .*user_id.* does not exist/i.test(res.error.message)) {
-            res = await tryWithoutUserId();
-          }
-          data = res.data; error = res.error;
-
+          const { data, error } = await sb.from('clientes')
+            .select('id,nombre,email,telefono,created_at,creado_en')
+            .order('id',{ascending:false});
           if (error){ console.error('loadClientes', error); this.clientes=[]; return; }
-
-          this.clientes = (data || []).map(c => ({
-            id: c.id,
-            nombre: c.nombre || '',
-            email: c.email || '',
-            telefono: c.telefono || '',
-            created_at: c.created_at || c.creado_en || null,
-            user_id: c.user_id ?? null
-          }));
+          this.clientes = data || [];
         },
         openCliente(c){ this.clienteForm = c ? JSON.parse(JSON.stringify(c)) : { id:null, nombre:'', email:'', telefono:'' }; this.modal.cliente = true; },
         async saveCliente(){
-          const row = {
-            nombre:(this.clienteForm.nombre||'').trim(),
-            email:(this.clienteForm.email||'').trim()||null,
-            telefono:(this.clienteForm.telefono||'').trim()||null,
-            user_id:this.userId
-          };
+          const row = { nombre:(this.clienteForm.nombre||'').trim(), email:(this.clienteForm.email||'').trim()||null, telefono:(this.clienteForm.telefono||'').trim()||null, user_id:this.userId };
           let error;
           if (this.clienteForm.id) ({ error } = await sb.from('clientes').update(row).eq('id', this.clienteForm.id));
           else                      ({ error } = await sb.from('clientes').insert(row));
@@ -625,14 +571,9 @@
         },
         async delCliente(id){ if(!confirm('¿Eliminar cliente?')) return; const { error } = await sb.from('clientes').delete().eq('id', id); if (error) alert(error.message); await this.loadClientes(); this.recalc(); this.buildReport(); },
         clientesFiltrados(){
-          const norm = s => (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-          const q = norm(this.filtros.clientQ||'');
+          const q=(this.filtros.clientQ||'').toLowerCase();
           if(!q) return this.clientes;
-          return this.clientes.filter(c =>
-            norm(c.nombre).includes(q) ||
-            norm(c.email).includes(q)  ||
-            norm(c.telefono).includes(q)
-          );
+          return this.clientes.filter(c => (c.nombre||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q) || (c.telefono||'').toLowerCase().includes(q));
         },
 
         // VEHÍCULOS
@@ -727,7 +668,7 @@
         },
         async delCita(id){ if(!confirm('¿Eliminar cita?')) return; const { error } = await sb.from('citas').delete().eq('id', id); if (error) alert(error.message); await this.loadCitas(); this.recalc(); this.buildReport(); },
 
-        // KPIs / Reporte (globales)
+        // KPIs / Reporte
         recalc(){
           this.stats.clientes  = this.clientes.length;
           this.stats.vehiculos = this.vehiculos.length;
@@ -759,8 +700,8 @@
           let arr = this.clientes.slice();
           const from = this.reportFilter.from ? new Date(this.reportFilter.from + 'T00:00:00') : null;
           const to   = this.reportFilter.to   ? new Date(this.reportFilter.to   + 'T23:59:59') : null;
-          if (from) arr = arr.filter(c => new Date(c.created_at || Date.now()) >= from);
-          if (to)   arr = arr.filter(c => new Date(c.created_at || Date.now()) <= to);
+          if (from) arr = arr.filter(c => new Date(c.created_at || c.creado_en || Date.now()) >= from);
+          if (to)   arr = arr.filter(c => new Date(c.created_at || c.creado_en || Date.now()) <= to);
           return arr;
         },
         applyReportFilter(){
@@ -776,6 +717,7 @@
         },
 
         renderCharts(){
+          // destruir previos
           Object.keys(this._charts).forEach(k=>{ if(this._charts[k]){ this._charts[k].destroy(); this._charts[k]=null; }});
 
           const citasR = this.getReportCitas().filter(c=> (c.estado||'')==='completado');
@@ -817,7 +759,7 @@
           // Barras: clientes por mes
           const byCliMonth = {};
           this.getReportClientes().forEach(c=>{
-            const d = new Date(c.created_at || Date.now());
+            const d = new Date(c.created_at || c.creado_en || Date.now());
             const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
             byCliMonth[k]=(byCliMonth[k]||0)+1;
           });
