@@ -364,33 +364,53 @@
         </div>
       </div>
 
-      <!-- Selector de segmento y servicios (ambos desplegables) -->
+      <!-- Segmento + Menú desplegable de servicios -->
       <div class="mt-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+          <!-- Segmento -->
           <div>
             <label class="text-sm block mb-1">Segmento</label>
-            <select class="input" x-model="serviceTab" @change="$nextTick(()=>syncSelectedInDropdown())">
+            <select class="input" x-model="serviceTab" @change="$nextTick(()=>{})">
               <option value="autos">Autos (Hatch / Sedan)</option>
               <option value="suv">SUV / Pick-Up</option>
               <option value="motos">Motos</option>
               <option value="tratamientos">Tratamientos</option>
             </select>
-            <p class="text-xs text-textmut mt-1">Elegí el tipo de vehículo para ver servicios asociados.</p>
           </div>
 
-          <div>
-            <label class="text-sm block mb-1">Servicios (multiselección)</label>
-            <!-- multiselección de servicios según segmento -->
-            <select class="input" multiple size="6" x-ref="srv"
-                    @change="onSelectServices($event)">
+          <!-- Dropdown multiselección -->
+          <div class="relative" @click.outside="showSrvDD=false">
+            <label class="text-sm block mb-1">Servicios</label>
+            <button type="button" class="input text-left flex items-center justify-between"
+                    @click="showSrvDD=!showSrvDD">
+              <span class="truncate" x-text="citaForm.selectedServices.length ? citaForm.selectedServices.map(s=>s.name).join(' + ') : 'Elegí uno o más servicios'"></span>
+              <span>▾</span>
+            </button>
+
+            <!-- Panel -->
+            <div x-show="showSrvDD" x-transition
+                 class="absolute z-50 mt-1 w-full card p-3 max-h-72 overflow-auto">
+              <!-- listado según segmento actual -->
               <template x-for="opt in currentServiceOptions()" :key="opt.key">
-                <option :data-name="opt.nameLabel"
-                        :data-price="opt.price"
-                        :selected="citaForm.selectedServices.some(s=>s.name===opt.nameLabel)"
-                        x-text="opt.nameLabel + ' — ' + fmtARS(num(opt.price))"></option>
+                <label class="flex items-start gap-2 py-1 cursor-pointer">
+                  <input type="checkbox" class="mt-1"
+                         :checked="isSelected(opt.nameLabel)"
+                         @change="toggleService({ name: opt.nameLabel, price: num(opt.price) })">
+                  <div>
+                    <div class="text-sm font-medium" x-text="opt.nameLabel + ' — ' + fmtARS(num(opt.price))"></div>
+                  </div>
+                </label>
               </template>
-            </select>
-            <p class="text-xs text-textmut mt-1">Tip: mantené presionadas Ctrl/Cmd para seleccionar múltiples servicios.</p>
+
+              <div class="border-t mt-2 pt-2 flex items-center justify-between">
+                <div class="text-sm text-textmut">Total parcial</div>
+                <div class="text-sm font-bold" x-text="fmtARS(citaForm.total)"></div>
+              </div>
+
+              <div class="mt-2 text-right">
+                <button class="btn btn-primary" @click="showSrvDD=false">Listo</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -466,8 +486,9 @@
         report:{ ingresos:0, ganancia:0, clientes:0 },
         _charts:{ servicios:null, ingresos:null, clientes:null },
 
-        /* categoría activa del selector */
-        serviceTab: 'autos',
+        /* UI dropdown servicios */
+        showSrvDD:false,
+        serviceTab:'autos',
 
         // Catálogos
         serviceCatalog:{
@@ -649,53 +670,31 @@
             precio:'', total:0, estado:'pendiente', notas:''
           };
           this.modal.cita = true;
-          this.$nextTick(()=>this.syncSelectedInDropdown());
+          this.recalcTotalFromSelected();
         },
 
-        /* Opciones de servicios según el segmento elegido */
+        // Opciones de servicios según segmento
         currentServiceOptions(){
-          if (this.serviceTab==='autos') {
+          if (this.serviceTab==='autos')
             return this.serviceCatalog.autos.map((s,i)=>({ key:'a'+i, nameLabel:s.name, price:s.price }));
-          }
-          if (this.serviceTab==='suv') {
+          if (this.serviceTab==='suv')
             return this.serviceCatalog.suv.map((s,i)=>({ key:'s'+i, nameLabel:s.name, price:s.price }));
-          }
-          if (this.serviceTab==='motos') {
+          if (this.serviceTab==='motos')
             return this.serviceCatalog.motos.map((s,i)=>({ key:'m'+i, nameLabel:s.name, price:s.price }));
-          }
-          // tratamientos: aplanado con nombre + detalle
           const out=[];
           this.tratamientos.forEach((g,gi)=>{
             g.items.forEach((it,ii)=>{
-              out.push({ key:`t${gi}-${ii}`, nameLabel: `${it.name} — ${it.detalle}`, price: it.price });
+              out.push({ key:`t${gi}-${ii}`, nameLabel:`${it.name} — ${it.detalle}`, price:it.price });
             });
           });
           return out;
         },
 
-        /* Sincroniza el multiselect con lo ya elegido al cambiar de segmento o abrir modal */
-        syncSelectedInDropdown(){
-          const el = this.$refs.srv;
-          if (!el) return;
-          const selectedNames = new Set(this.citaForm.selectedServices.map(s=>s.name));
-          [...el.options].forEach(opt => {
-            opt.selected = selectedNames.has(opt.dataset.name);
-          });
-        },
-
-        /* Cuando cambia la selección del multiselect, reconstruimos selectedServices */
-        onSelectServices(ev){
-          const opts = [...ev.target.selectedOptions].map(o=>{
-            return { name: o.dataset.name, price: this.num(o.dataset.price) };
-          });
-
-          // de-dup por nombre (por si cambiaste de segmento manteniendo comunes)
-          const seen = new Set();
-          this.citaForm.selectedServices = opts.filter(o=>{
-            if (seen.has(o.name)) return false;
-            seen.add(o.name); return true;
-          });
-
+        isSelected(name){ return this.citaForm.selectedServices.some(s=>s.name===name); },
+        toggleService(item){
+          const idx = this.citaForm.selectedServices.findIndex(s=>s.name===item.name);
+          if (idx>=0) this.citaForm.selectedServices.splice(idx,1);
+          else this.citaForm.selectedServices.push({ name:item.name, price:this.num(item.price) });
           this.updateTotal();
         },
 
@@ -704,10 +703,10 @@
           this.citaForm.total = total;
           this.citaForm.precio = total;
         },
+        recalcTotalFromSelected(){ this.updateTotal(); },
 
         async saveCita(){
           const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
-
           const servicioStr = this.citaForm.selectedServices.map(s=>s.name).join(' + ') || (this.citaForm.servicio||'');
           let notas = (this.citaForm.notas||'').trim();
           const vehSel = this.vehiculos.find(v => String(v.id)===String(this.citaForm.vehiculo_id));
@@ -765,33 +764,82 @@
         buildReport(){
           const totIng = this.citas
             .filter(c => (c.estado||'')==='completado')
-            .reduce((a,b)=>a+(+b.precero||0),0);
-        },
-      }
-    }
-  </script>
-
-  <script>
-    // Corrige pequeño typo en buildReport arriba (separado para claridad)
-    window.crm = (function(originalFactory){
-      return function(){
-        const state = originalFactory();
-        state.buildReport = function(){
-          const totIng = this.citas
-            .filter(c => (c.estado||'')==='completado')
             .reduce((a,b)=>a+(+b.precio||0),0);
           const gan = Math.round(totIng * 0.7);
           const totalCli = this.clientes.length;
           this.report = { ingresos: totIng, ganancia: gan, clientes: totalCli };
-        }
-        return state;
-      }
-    })(window.crm);
-  </script>
+        },
 
-  <script>
-    // Gráficos (mantenemos tal cual del paso previo)
-    // Se crean desde state.renderCharts() ya definido en la versión anterior.
+        renderCharts(){
+          for (const k of Object.keys(this._charts)) {
+            if (this._charts[k]) { this._charts[k].destroy(); this._charts[k]=null; }
+          }
+          const bySrvMap = {};
+          this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
+            const parts = (c.servicio||'').split('+').map(s=>s.trim()).filter(Boolean);
+            if (!parts.length) return;
+            parts.forEach(name=>{
+              bySrvMap[name]=(bySrvMap[name]||0)+(+c.precio||0)/parts.length;
+            });
+          });
+          const labelsSrv = Object.keys(bySrvMap);
+          const dataSrv   = Object.values(bySrvMap);
+
+          const ctxS = document.getElementById('chServicios');
+          if (ctxS) {
+            this._charts.servicios = new Chart(ctxS, {
+              type:'pie',
+              data:{ labels:labelsSrv, datasets:[{ data:dataSrv, backgroundColor:['#0a8d4b','#059669','#10b981','#34d399','#16a34a','#22c55e'] }]},
+              options:{ plugins:{ legend:{ position:'bottom' } } }
+            });
+          }
+
+          const byMonth = {};
+          this.citas.filter(c=> (c.estado||'')==='completado').forEach(c=>{
+            const d = new Date(c.fecha);
+            if (isNaN(+d)) return;
+            const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+            byMonth[k]=(byMonth[k]||0)+(+c.precio||0);
+          });
+          const monthsSorted = Object.keys(byMonth).sort();
+          const lblMes = monthsSorted.map(k=>{
+            const [y,m]=k.split('-'); return new Date(+y, +m-1, 1).toLocaleString('es-AR',{month:'short'});
+          });
+          const dataMes = monthsSorted.map(k=>byMonth[k]);
+
+          const ctxI = document.getElementById('chIngresos');
+          if (ctxI) {
+            this._charts.ingresos = new Chart(ctxI, {
+              type:'line',
+              data:{ labels:lblMes, datasets:[{ label:'Ingresos', data:dataMes, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.15)', fill:true, tension:.35 }]},
+              options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+            });
+          }
+
+          const byCliMonth = {};
+          this.clientes.forEach(c=>{
+            const d = new Date(Date.parse(c.created_at || c.creado_en || ''));
+            const dd = isNaN(+d) ? new Date() : d;
+            const k = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0');
+            byCliMonth[k]=(byCliMonth[k]||0)+1;
+          });
+          const monthsCliSorted = Object.keys(byCliMonth).sort();
+          const lblCli = monthsCliSorted.map(k=>{
+            const [y,m]=k.split('-'); return new Date(+y, +m-1, 1).toLocaleString('es-AR',{month:'short'});
+          });
+          const dataCli = monthsCliSorted.map(k=>byCliMonth[k]);
+
+          const ctxC = document.getElementById('chClientes');
+          if (ctxC) {
+            this._charts.clientes = new Chart(ctxC, {
+              type:'bar',
+              data:{ labels:lblCli, datasets:[{ label:'Clientes', data:dataCli, backgroundColor:'#059669', borderRadius:6 }]},
+              options:{ scales:{ y:{ beginAtZero:true } } }
+            });
+          }
+        }
+      }
+    }
   </script>
 </body>
 </html>
