@@ -96,6 +96,40 @@
           <div><div class="text-sm text-textmut">Vehículos</div><div class="text-2xl font-extrabold" x-text="stats.vehiculos"></div></div>
         </div>
       </div>
+
+      <!-- Agenda + Citas del día -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <div class="card p-5">
+          <h2 class="font-bold text-brand mb-3">Agenda — Google Calendar</h2>
+          <div class="aspect-[4/3] w-full border border-border rounded-xl overflow-hidden bg-white">
+            <iframe class="w-full h-full" frameborder="0" scrolling="no"
+              src="https://calendar.google.com/calendar/embed?src=monacodetailingarg%40gmail.com&ctz=America%2FArgentina%2FBuenos_Aires"></iframe>
+          </div>
+          <p class="text-sm text-textmut mt-2">Vista del calendario (solo lectura).</p>
+        </div>
+
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-bold text-brand">Citas del día</h2>
+            <button class="btn" @click="openCita()">+ Nueva cita</button>
+          </div>
+          <ul class="divide-y">
+            <template x-for="a in citasHoy()" :key="a.id">
+              <li class="py-3 flex items-center justify-between">
+                <div>
+                  <div class="font-semibold" x-text="a.cliente_nombre || 'Cliente'"></div>
+                  <div class="text-sm text-textmut" x-text="a.servicio + ' — ' + fmtARS(a.precio || 0)"></div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="pill" :class="statusPill(a.estado)" x-text="a.estado"></span>
+                  <button class="btn" @click="openCita(a)">Editar</button>
+                </div>
+              </li>
+            </template>
+            <li x-show="citas.length===0" class="text-center py-6 text-textmut">Sin citas cargadas</li>
+          </ul>
+        </div>
+      </div>
     </section>
 
     <!-- CLIENTES -->
@@ -287,13 +321,13 @@
     </div>
   </div>
 
-  <!-- MODAL CITA (compacta) -->
+  <!-- MODAL CITA (compacta con segmento + servicio + agregar) -->
   <div x-show="modal.cita" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-start md:items-center justify-center p-4" x-transition.opacity>
     <div class="card w-full max-w-3xl p-5">
       <h3 class="font-bold text-brand mb-3" x-text="citaForm.id ? 'Editar cita' : 'Nueva cita'"></h3>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div class="md:col-span-1">
+        <div>
           <label class="text-sm block mb-1">Cliente</label>
           <select class="input" x-model="citaForm.cliente_id" @change="onClienteChange()">
             <option value="">Cliente…</option>
@@ -303,7 +337,7 @@
           </select>
         </div>
 
-        <div class="md:col-span-1">
+        <div>
           <label class="text-sm block mb-1">Vehículo</label>
           <select class="input" x-model="citaForm.vehiculo_id">
             <option value="">Seleccioná…</option>
@@ -313,12 +347,12 @@
           </select>
         </div>
 
-        <div class="md:col-span-1">
+        <div>
           <label class="text-sm block mb-1">Fecha y hora</label>
           <input class="input" type="datetime-local" x-model="citaForm.fecha">
         </div>
 
-        <div class="md:col-span-1">
+        <div>
           <label class="text-sm block mb-1">Estado</label>
           <select class="input" x-model="citaForm.estado">
             <option value="pendiente">Pendiente</option>
@@ -327,7 +361,7 @@
           </select>
         </div>
 
-        <div class="md:col-span-1">
+        <div>
           <label class="text-sm block mb-1">Forma de pago</label>
           <select class="input" x-model="citaForm.pago">
             <option value="">Seleccioná…</option>
@@ -338,47 +372,40 @@
           </select>
         </div>
 
-        <div class="md:col-span-1">
+        <div>
           <label class="text-sm block mb-1">Segmento</label>
-          <select class="input" x-model="serviceTab">
-            <option value="autos">Autos (Hatch / Sedan)</option>
-            <option value="suv">SUV / Pick-Up</option>
+          <select class="input" x-model="serviceTab" @change="selectedServiceKey=''">
+            <option value="autos">Hatch/Sedan</option>
+            <option value="suv">SUV/PickUp</option>
             <option value="motos">Motos</option>
-            <option value="tratamientos">Tratamientos</option>
           </select>
         </div>
 
-        <!-- Servicios multiselección -->
-        <div class="md:col-span-3">
-          <label class="text-sm block mb-1">Servicios</label>
-          <div class="relative" @click.outside="showSrvDD=false">
-            <button type="button" class="input text-left flex items-center justify-between"
-                    @click="showSrvDD=!showSrvDD">
-              <span class="truncate" x-text="citaForm.selectedServices.length ? citaForm.selectedServices.map(s=>s.name).join(' + ') : 'Elegí uno o más servicios'"></span>
-              <span>▾</span>
-            </button>
-            <div x-show="showSrvDD" x-transition class="absolute z-50 mt-1 w-full card p-3 max-h-64 overflow-auto">
-              <template x-for="opt in currentServiceOptions()" :key="opt.key">
-                <label class="flex items-start gap-2 py-1 cursor-pointer">
-                  <input type="checkbox" class="mt-1" :checked="isSelected(opt.nameLabel)"
-                         @change="toggleService({ name: opt.nameLabel, price: num(opt.price) })">
-                  <div class="text-sm">
-                    <div class="font-medium" x-text="opt.nameLabel + ' — ' + fmtARS(num(opt.price))"></div>
-                  </div>
-                </label>
+        <!-- Selector de Servicio + Agregar -->
+        <div class="md:col-span-2">
+          <label class="text-sm block mb-1">Servicio</label>
+          <div class="flex gap-2">
+            <select class="input" x-model="selectedServiceKey">
+              <option value="">Elegí un servicio…</option>
+              <template x-for="opt in serviceOptionsFor(serviceTab)" :key="opt.key">
+                <option :value="opt.key" x-text="opt.name + ' — ' + fmtARS(opt.price)"></option>
               </template>
-              <div class="border-t mt-2 pt-2 grid grid-cols-2 gap-2">
-                <div class="text-sm text-textmut">Subtotal</div>
-                <div class="text-sm font-semibold text-right" x-text="fmtARS(citaForm.subtotal)"></div>
-              </div>
-              <div class="mt-2 text-right">
-                <button class="btn btn-primary" @click="showSrvDD=false">Listo</button>
-              </div>
-            </div>
+            </select>
+            <button class="btn btn-primary" @click="addSelectedService()">Agregar</button>
+          </div>
+          <!-- Chips -->
+          <div class="mt-2 flex flex-wrap gap-2">
+            <template x-for="(s,idx) in citaForm.selectedServices" :key="s.name + idx">
+              <span class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs flex items-center gap-2">
+                <span x-text="s.name + ' — ' + fmtARS(s.price)"></span>
+                <button class="hover:opacity-70" @click="removeService(idx)">✕</button>
+              </span>
+            </template>
+            <span x-show="!citaForm.selectedServices.length" class="text-xs text-textmut">No hay servicios agregados.</span>
           </div>
         </div>
 
-        <!-- Descuento / Seña -->
+        <!-- Descuento / Seña / Totales -->
         <div>
           <label class="text-sm block mb-1">Descuento (%)</label>
           <input class="input" type="number" min="0" max="100" step="1" placeholder="Opcional"
@@ -389,7 +416,7 @@
           <input class="input" type="number" min="0" step="1000" placeholder="Opcional"
                  x-model.number="citaForm.senia" @input="updateTotals()">
         </div>
-        <div class="md:col-span-1">
+        <div>
           <label class="text-sm block mb-1">Totales</label>
           <div class="card p-3">
             <div class="flex justify-between text-sm"><span>Subtotal</span><span x-text="fmtARS(citaForm.subtotal)"></span></div>
@@ -454,10 +481,8 @@
           id:null, cliente_id:'', vehiculo_id:'',
           servicio:'', selectedServices:[],
           fecha:'', estado:'pendiente', notas:'',
-          // totales
-          subtotal:0, descPct:0, total:0, senia:0, saldo:0,
-          // pago
-          pago:''
+          subtotal:0, descPct:0, total:0, senia:0, saldo:0, pago:'',
+          originalTotal:0
         },
 
         filtros:{ clientQ:'', citaFecha:'', citaEstado:'' },
@@ -466,8 +491,9 @@
         report:{ ingresos:0, ganancia:0, clientes:0 },
         _charts:{ servicios:null, ingresos:null, clientes:null },
 
-        showSrvDD:false,
+        // UI servicios
         serviceTab:'autos',
+        selectedServiceKey:'',
 
         // Catálogos
         serviceCatalog:{
@@ -524,10 +550,9 @@
 
         // === CLIENTES (consulta robusta) ===
         async loadClientes(){
-          // Solo pedimos columnas seguras; si RLS no devuelve filas, mostramos vacío sin romper la UI
           const { data, error } = await sb
             .from('clientes')
-            .select('id,nombre,email,telefono')     // columnas mínimas
+            .select('id,nombre,email,telefono')
             .order('id',{ascending:false});
           if (error){ console.error('loadClientes', error); this.clientes=[]; return; }
           this.clientes = Array.isArray(data) ? data : [];
@@ -595,41 +620,62 @@
             selectedServices:(a.servicio? a.servicio.split('+').map(n=>({name:n.trim(), price:0})) : []),
             fecha:(a.fecha||'').slice(0,16),
             estado:a.estado||'pendiente', notas:a.notas||'',
-            subtotal:0, descPct:0, total:+(a.precio||0), senia:0, saldo:+(a.precio||0), pago:''
+            subtotal:+(a.precio||0), descPct:0, total:+(a.precio||0), senia:0, saldo:+(a.precio||0), pago:'',
+            originalTotal:+(a.precio||0)
           } : {
             id:null, cliente_id:'', vehiculo_id:'', servicio:'',
             selectedServices:[], fecha:new Date().toISOString().slice(0,16),
             estado:'pendiente', notas:'',
-            subtotal:0, descPct:0, total:0, senia:0, saldo:0, pago:''
+            subtotal:0, descPct:0, total:0, senia:0, saldo:0, pago:'', originalTotal:0
           };
-          this.updateTotals();
           this.modal.cita = true;
         },
 
-        // Servicios (segmento + multiselección)
-        currentServiceOptions(){
-          if (this.serviceTab==='autos') return this.serviceCatalog.autos.map((s,i)=>({ key:'a'+i, nameLabel:s.name, price:s.price }));
-          if (this.serviceTab==='suv')   return this.serviceCatalog.suv.map((s,i)=>({ key:'s'+i, nameLabel:s.name, price:s.price }));
-          if (this.serviceTab==='motos') return this.serviceCatalog.motos.map((s,i)=>({ key:'m'+i, nameLabel:s.name, price:s.price }));
-          const out=[]; this.tratamientos.forEach((g,gi)=>g.items.forEach((it,ii)=>out.push({ key:`t${gi}-${ii}`, nameLabel:it.name, price:it.price })));
-          return out;
+        // Construcción del menú de servicios por segmento
+        serviceOptionsFor(seg){
+          const list=[];
+          if (seg==='autos'){
+            this.serviceCatalog.autos.forEach((s,i)=>list.push({key:'a-'+i, name:s.name, price:s.price}));
+            const t = this.tratamientos[0]?.items||[];
+            t.forEach((s,i)=>list.push({key:'ta-'+i, name:s.name, price:s.price}));
+          } else if (seg==='suv'){
+            this.serviceCatalog.suv.forEach((s,i)=>list.push({key:'s-'+i, name:s.name, price:s.price}));
+            const t = this.tratamientos[1]?.items||[];
+            t.forEach((s,i)=>list.push({key:'ts-'+i, name:s.name, price:s.price}));
+          } else if (seg==='motos'){
+            this.serviceCatalog.motos.forEach((s,i)=>list.push({key:'m-'+i, name:s.name, price:s.price}));
+          }
+          return list;
         },
-        isSelected(name){ return this.citaForm.selectedServices.some(s=>s.name===name); },
-        toggleService(item){
-          const idx = this.citaForm.selectedServices.findIndex(s=>s.name===item.name);
-          if (idx>=0) this.citaForm.selectedServices.splice(idx,1);
-          else this.citaForm.selectedServices.push({ name:item.name, price:this.num(item.price) });
+        addSelectedService(){
+          if (!this.selectedServiceKey) return;
+          const all = ['autos','suv','motos'];
+          let found=null;
+          for(const seg of all){
+            const f = this.serviceOptionsFor(seg).find(o=>o.key===this.selectedServiceKey);
+            if (f){ found=f; break; }
+          }
+          if (!found) return;
+          if (this.citaForm.selectedServices.some(s=>s.name===found.name)) return;
+          this.citaForm.selectedServices.push({ name:found.name, price:this.num(found.price) });
+          this.selectedServiceKey='';
+          this.updateTotals();
+        },
+        removeService(idx){
+          this.citaForm.selectedServices.splice(idx,1);
           this.updateTotals();
         },
 
         // Totales
         updateTotals(){
-          const subtotal = this.citaForm.selectedServices.reduce((acc,s)=>acc + this.num(s.price), 0);
+          // Si no hay servicios seleccionados, preservo el total original (evita pasar a $0)
+          const selected = this.citaForm.selectedServices;
+          const base = selected.length ? selected.reduce((a,s)=>a+this.num(s.price),0) : (this.citaForm.originalTotal||0);
           const desc = Math.min(Math.max(+this.citaForm.descPct||0, 0), 100);
-          const total = Math.round(subtotal * (1 - desc/100));
+          const total = Math.round(base * (1 - desc/100));
           const senia = Math.min(+this.citaForm.senia||0, total);
           const saldo = Math.max(total - senia, 0);
-          this.citaForm.subtotal = subtotal;
+          this.citaForm.subtotal = base;
           this.citaForm.total = total;
           this.citaForm.saldo = saldo;
         },
@@ -638,7 +684,6 @@
           const fechaISO = this.citaForm.fecha ? new Date(this.citaForm.fecha) : null;
 
           const servicioStr = this.citaForm.selectedServices.map(s=>s.name).join(' + ') || (this.citaForm.servicio||'');
-          // anotamos forma de pago, seña y saldo en notas (no tocamos esquema)
           let notas = (this.citaForm.notas||'').trim();
           const tags = [];
           if (this.citaForm.pago) tags.push(`Pago: ${this.citaForm.pago}`);
@@ -653,12 +698,14 @@
             notas = (notas? (notas+'\n') : '') + `Vehículo: ${vdesc}`;
           }
 
-          // Guardamos en precio el TOTAL (con descuento). Saldo no toca la tabla.
+          // Guardamos el TOTAL (con descuento). Si no hay servicios, preservamos originalTotal.
+          const totalParaGuardar = this.citaForm.selectedServices.length ? this.citaForm.total : (this.citaForm.originalTotal || this.citaForm.total || 0);
+
           const row = {
             cliente_id: this.citaForm.cliente_id || null,
             servicio:   servicioStr || null,
             fecha:      fechaISO ? fechaISO.toISOString() : null,
-            precio:     +this.citaForm.total || 0,
+            precio:     +totalParaGuardar || 0,
             estado:     this.citaForm.estado,
             notas:      notas || null,
             user_id:    this.userId
