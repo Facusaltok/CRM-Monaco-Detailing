@@ -383,27 +383,39 @@
 
         <!-- Selector de Servicio + Agregar -->
         <div class="md:col-span-2">
-          <label class="text-sm block mb-1">Servicio</label>
-          <div class="flex gap-2">
-            <select class="input" x-model="selectedServiceKey">
-              <option value="">Elegí un servicio…</option>
-              <template x-for="opt in serviceOptionsFor(serviceTab)" :key="opt.key">
-                <option :value="opt.key" x-text="opt.name + ' — ' + fmtARS(opt.price)"></option>
-              </template>
-            </select>
-            <button class="btn btn-primary" @click="addSelectedService()">Agregar</button>
-          </div>
-          <!-- Chips -->
-          <div class="mt-2 flex flex-wrap gap-2">
-            <template x-for="(s,idx) in citaForm.selectedServices" :key="s.name + idx">
-              <span class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs flex items-center gap-2">
-                <span x-text="s.name + ' — ' + fmtARS(s.price)"></span>
-                <button class="hover:opacity-70" @click="removeService(idx)">✕</button>
-              </span>
-            </template>
-            <span x-show="!citaForm.selectedServices.length" class="text-xs text-textmut">No hay servicios agregados.</span>
-          </div>
-        </div>
+<label class="text-sm block mb-1">Servicio</label>
+<div class="flex gap-2">
+<select class="input" x-model="selectedService">
+<option value="">Elegí un servicio…</option>
+<option>LAVADO PREMIUM</option>
+<option>INTERIOR AL DETALLE</option>
+<option>PULIDO DE OPTICAS</option>
+<option>LAVADO DE MOTOR</option>
+<option>LAVADO DE CHASIS</option>
+<option>COMBO COMPLETO</option>
+<option>TRATAMIENTO ACRILICO</option>
+<option>TRATAMIENTO CERAMICO</option>
+<option>PLOTEO</option>
+<option>PPF COMPLETO</option>
+<option>PPF FRONTAL</option>
+<option>PPF FRONTAL + CERAMICO</option>
+<option>OTROS</option>
+</select>
+</div>
+</div>
+
+
+<!-- CAMPO PRECIO MANUAL -->
+<div>
+<label class="text-sm block mb-1">Precio ($)</label>
+<input
+class="input"
+type="number"
+min="0"
+step="1000"
+placeholder="Ingresar precio manual"
+x-model.number="citaForm.total">
+</div>
 
         <!-- Descuento / Seña / Totales -->
         <div>
